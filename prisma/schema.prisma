@@ -6,6 +6,8 @@ datasource db {
   provider = "postgresql"
 }
 
+// ── NextAuth models ───────────────────────────────────────────────────────────
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -32,28 +34,41 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          UserRole  @default(STAFF)
-  tenantId      String?
-  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ── Tenant users ──────────────────────────────────────────────────────────────
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String?              @unique
+  emailVerified       DateTime?
+  image               String?
+  password            String?
+  role                UserRole             @default(STAFF)
+  tenantId            String?
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id])
+  customRoleId        String?
+  customRole          Role?                @relation(fields: [customRoleId], references: [id])
+  pin                 String?
+  status              UserStatus           @default(ACTIVE)
+  ultimoAcesso        DateTime?
+  avatarUrl           String?
+  failedLoginAttempts Int                  @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  accounts            Account[]
+  sessions            Session[]
+  accessLogs          UserAccessLog[]
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 enum UserRole {
@@ -63,21 +78,216 @@ enum UserRole {
   STAFF
 }
 
-model Tenant {
-  id          String               @id @default(cuid())
-  name        String
-  slug        String               @unique
-  logo        String?
-  active      Boolean              @default(true)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  users       User[]
-  ingredients Ingredient[]
-  products    Product[]
-  categories  Category[]
-  suppliers   Supplier[]
-  movements   IngredientMovement[]
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
 }
+
+// ── Custom Roles ──────────────────────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  isDefault   Boolean  @default(false)
+  permissions Json
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, tenantId])
+}
+
+// ── Password Reset Tokens ─────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  requestIp  String?
+  createdAt  DateTime  @default(now())
+}
+
+// ── User Access Log ───────────────────────────────────────────────────────────
+
+model UserAccessLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  action    String   @default("login")
+  createdAt DateTime @default(now())
+}
+
+// ── Invites ───────────────────────────────────────────────────────────────────
+
+model Invite {
+  id         String       @id @default(cuid())
+  email      String
+  tenantId   String
+  tenant     Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roleId     String?
+  token      String       @unique @default(cuid())
+  status     InviteStatus @default(PENDING)
+  expiresAt  DateTime
+  usedAt     DateTime?
+  invitedBy  String?
+  createdAt  DateTime     @default(now())
+
+  @@unique([email, tenantId])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+// ── Tenant (restaurante) ──────────────────────────────────────────────────────
+
+model Tenant {
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  logo                String?
+  phone               String?
+  active              Boolean              @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  users               User[]
+  roles               Role[]
+  ingredients         Ingredient[]
+  products            Product[]
+  categories          Category[]
+  suppliers           Supplier[]
+  movements           IngredientMovement[]
+  subscription        TenantSubscription?
+  invoices            Invoice[]
+  invites             Invite[]
+  accessLogs          UserAccessLog[]
+  inventarios         Inventario[]
+  planHistory         PlanHistory[]
+  cancellationRequest CancellationRequest?
+}
+
+// ── Plans & Subscriptions ─────────────────────────────────────────────────────
+
+model Plan {
+  id              String               @id @default(cuid())
+  name            String               @unique
+  description     String?
+  monthlyPrice    Float
+  annualPrice     Float
+  maxUsers        Int                  @default(5)
+  maxProducts     Int                  @default(100)
+  maxOrdersMonth  Int                  @default(1000)
+  features        Json
+  active          Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  subscriptions   TenantSubscription[]
+  invoices        Invoice[]
+}
+
+model TenantSubscription {
+  id               String             @id @default(cuid())
+  tenantId         String             @unique
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan               @relation(fields: [planId], references: [id])
+  status           SubscriptionStatus @default(TRIAL)
+  startDate        DateTime           @default(now())
+  expiresAt        DateTime
+  contractedPrice  Float
+  trialEndsAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  OVERDUE
+  CANCELLED
+  SUSPENDED
+}
+
+// ── Invoices ─────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId      String
+  plan        Plan          @relation(fields: [planId], references: [id])
+  amount      Float
+  status      InvoiceStatus @default(PENDING)
+  dueDate     DateTime
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+// ── Super Admin ───────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id                  String                   @id @default(cuid())
+  email               String                   @unique
+  passwordHash        String
+  totpSecret          String?
+  totpEnabled         Boolean                  @default(false)
+  totpConfirmedAt     DateTime?
+  role                AdminRole                @default(SUPER_ADMIN)
+  failedLoginAttempts Int                      @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  logs                AdminLog[]
+  passwordResetTokens AdminPasswordResetToken[]
+}
+
+model AdminPasswordResetToken {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestIp   String?
+  createdAt   DateTime  @default(now())
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+}
+
+model AdminLog {
+  id          String    @id @default(cuid())
+  adminUserId String
+  admin       AdminUser @relation(fields: [adminUserId], references: [id])
+  action      String
+  details     Json?
+  ip          String?
+  createdAt   DateTime  @default(now())
+}
+
+// ── Categories & Suppliers ────────────────────────────────────────────────────
 
 model Category {
   id          String       @id @default(cuid())
@@ -99,17 +309,23 @@ enum CategoryType {
 }
 
 model Supplier {
-  id          String       @id @default(cuid())
-  name        String
-  contact     String?
-  phone       String?
-  email       String?
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ingredients Ingredient[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  name                 String
+  contact              String?
+  phone                String?
+  email                String?
+  cnpj                 String?
+  prazoEntregaDias     Int?
+  endereco             String?
+  tenantId             String
+  tenant               Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredients          Ingredient[]
+  ingredientesSecundarios Ingredient[] @relation("FornecedorSecundario")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 }
+
+// ── Inventory ─────────────────────────────────────────────────────────────────
 
 enum Unit {
   KG
@@ -120,56 +336,77 @@ enum Unit {
 }
 
 model Ingredient {
-  id           String               @id @default(cuid())
-  name         String
-  unit         Unit
-  currentQty   Float                @default(0)
-  minimumQty   Float                @default(0)
-  unitCost     Float                @default(0)
-  tenantId     String
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  categoryId   String?
-  category     Category?            @relation(fields: [categoryId], references: [id])
-  supplierId   String?
-  supplier     Supplier?            @relation(fields: [supplierId], references: [id])
-  productItems ProductIngredient[]
-  movements    IngredientMovement[]
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id                   String               @id @default(cuid())
+  codigoInterno        String?
+  name                 String
+  subcategoria         String?
+  unit                 Unit
+  unidadeCompra        Unit?
+  fatorConversao       Float                @default(1)
+  currentQty           Float                @default(0)
+  minimumQty           Float                @default(0)
+  quantidadeMaxima     Float?
+  pontoReposicao       Float                @default(0)
+  unitCost             Float                @default(0)
+  custoMedioPonderado  Float                @default(0)
+  localizacao          String?
+  foto                 String?
+  dataValidade         DateTime?
+  tenantId             String
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId           String?
+  category             Category?            @relation(fields: [categoryId], references: [id])
+  supplierId           String?
+  supplier             Supplier?            @relation(fields: [supplierId], references: [id])
+  fornecedorSecundarioId String?
+  fornecedorSecundario Supplier?            @relation("FornecedorSecundario", fields: [fornecedorSecundarioId], references: [id])
+  productItems         ProductIngredient[]
+  movements            IngredientMovement[]
+  inventarioItems      InventarioItem[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@unique([codigoInterno, tenantId])
 }
 
 model IngredientMovement {
-  id           String       @id @default(cuid())
+  id           String           @id @default(cuid())
   ingredientId String
-  ingredient   Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
   tenantId     String
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   type         MovementType
   quantity     Float
+  unitCost     Float?
+  totalCost    Float?
   reason       String?
   note         String?
-  createdAt    DateTime     @default(now())
+  createdBy    String?
+  createdAt    DateTime         @default(now())
 }
 
 enum MovementType {
   IN
   OUT
   ADJUSTMENT
+  LOSS
+  EXPIRY
+  INTERNAL_USE
 }
 
 model Product {
-  id          String               @id @default(cuid())
+  id          String              @id @default(cuid())
   name        String
-  category    Category?            @relation(fields: [categoryId], references: [id])
+  category    Category?           @relation(fields: [categoryId], references: [id])
   categoryId  String?
-  salePrice   Float                @default(0)
+  salePrice   Float               @default(0)
   image       String?
-  active      Boolean              @default(true)
+  active      Boolean             @default(true)
   tenantId    String
-  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ingredients ProductIngredient[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 }
 
 model ProductIngredient {
@@ -181,4 +418,74 @@ model ProductIngredient {
   quantity     Float
 
   @@unique([productId, ingredientId])
+}
+
+// ── Inventory Counting ────────────────────────────────────────────────────────
+
+model Inventario {
+  id           String           @id @default(cuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nome         String
+  status       InventarioStatus @default(ABERTO)
+  iniciadoEm   DateTime         @default(now())
+  finalizadoEm DateTime?
+  criadoPor    String?
+  items        InventarioItem[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+enum InventarioStatus {
+  ABERTO
+  FINALIZADO
+  CANCELADO
+}
+
+model InventarioItem {
+  id           String     @id @default(cuid())
+  inventarioId String
+  inventario   Inventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  qtdSistema   Float
+  qtdContada   Float?
+  diferenca    Float?
+  observacao   String?
+
+  @@unique([inventarioId, ingredientId])
+}
+
+// ── Plan Self-Service ─────────────────────────────────────────────────────────
+
+model PlanHistory {
+  id           String              @id @default(cuid())
+  tenantId     String
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromPlanId   String?
+  toPlanId     String
+  fromStatus   SubscriptionStatus?
+  toStatus     SubscriptionStatus
+  action       String
+  reason       String?
+  scheduledFor DateTime?
+  createdAt    DateTime            @default(now())
+}
+
+model CancellationRequest {
+  id          String             @id @default(cuid())
+  tenantId    String             @unique
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reason      String
+  feedback    String?
+  requestedAt DateTime           @default(now())
+  scheduledAt DateTime
+  processedAt DateTime?
+  status      CancellationStatus @default(PENDING)
+}
+
+enum CancellationStatus {
+  PENDING
+  PROCESSED
+  REVERTED
 }

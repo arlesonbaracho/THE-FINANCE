@@ -2,10 +2,14 @@ import type { Ingredient, Category, Supplier, Product, ProductIngredient, Ingred
 
 export type { UserRole, Unit, MovementType, CategoryType }
 
+export type StockStatus = 'ok' | 'low' | 'critical' | 'expiring' | 'expired'
+
 export type IngredientWithRelations = Ingredient & {
   category?: Category | null
   supplier?: Supplier | null
+  fornecedorSecundario?: Supplier | null
   productItems?: ProductIngredient[]
+  stockStatus?: StockStatus
 }
 
 export type ProductWithRelations = Product & {
@@ -39,6 +43,11 @@ export type ProductCost = {
   margin: number
 }
 
+export type UserWithRole = User & {
+  customRole?: { id: string; name: string; permissions: unknown; tenantId: string; isDefault: boolean; createdAt: Date; updatedAt: Date } | null
+  tenant?: Tenant | null
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -49,6 +58,11 @@ declare module 'next-auth' {
       role: string
       tenantId: string
       tenantName: string
+      customRoleId?: string
+      avatarUrl?: string
+      subscriptionStatus?: string | null
+      trialEndsAt?: string | null
+      planFeatures?: unknown
     }
   }
 }

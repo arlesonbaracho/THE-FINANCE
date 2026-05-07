@@ -47,9 +47,10 @@ import {
   Trash2,
   ArrowUpDown,
   History,
+  ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IngredientWithRelations } from '@/types'
+import type { IngredientWithRelations, StockStatus } from '@/types'
 
 interface Category {
   id: string
@@ -64,6 +65,14 @@ const unitLabels: Record<string, string> = {
   UN: 'un',
 }
 
+const STOCK_STATUS: Record<StockStatus, { label: string; cls: string }> = {
+  ok: { label: 'OK', cls: 'bg-emerald-900/50 text-emerald-300 border-emerald-800' },
+  low: { label: 'Reposição', cls: 'bg-amber-900/50 text-amber-300 border-amber-800' },
+  critical: { label: 'Crítico', cls: 'bg-red-900/50 text-red-300 border-red-800' },
+  expiring: { label: 'Vencendo', cls: 'bg-orange-900/50 text-orange-300 border-orange-800' },
+  expired: { label: 'Vencido', cls: 'bg-zinc-700/50 text-zinc-400 border-zinc-600' },
+}
+
 export default function InsumoPage() {
   const router = useRouter()
   const [ingredients, setIngredients] = useState<IngredientWithRelations[]>([])
@@ -71,6 +80,7 @@ export default function InsumoPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
   const [movementOpen, setMovementOpen] = useState(false)
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientWithRelations | null>(null)
@@ -82,6 +92,7 @@ export default function InsumoPage() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (categoryFilter && categoryFilter !== 'all') params.set('categoryId', categoryFilter)
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
 
       const res = await fetch(`/api/ingredients?${params}`)
       if (res.ok) {
@@ -93,7 +104,7 @@ export default function InsumoPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, categoryFilter])
+  }, [search, categoryFilter, statusFilter])
 
   useEffect(() => {
     fetchIngredients()
@@ -149,13 +160,23 @@ export default function InsumoPage() {
             Gerencie o estoque de ingredientes
           </p>
         </div>
-        <Button
-          onClick={openNew}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Insumo
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => router.push('/estoque/inventario')}
+            variant="outline"
+            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+          >
+            <ClipboardList className="w-4 h-4 mr-2" />
+            Inventário
+          </Button>
+          <Button
+            onClick={openNew}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Insumo
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -190,19 +211,35 @@ export default function InsumoPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v ?? 'all')}
+        >
+          <SelectTrigger className="w-40 bg-zinc-900 border-zinc-700 text-white">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectItem value="all" className="text-zinc-200 focus:bg-zinc-800">Todos</SelectItem>
+            <SelectItem value="ok" className="text-zinc-200 focus:bg-zinc-800">OK</SelectItem>
+            <SelectItem value="low" className="text-zinc-200 focus:bg-zinc-800">Reposição</SelectItem>
+            <SelectItem value="critical" className="text-zinc-200 focus:bg-zinc-800">Crítico</SelectItem>
+            <SelectItem value="expiring" className="text-zinc-200 focus:bg-zinc-800">Vencendo</SelectItem>
+            <SelectItem value="expired" className="text-zinc-200 focus:bg-zinc-800">Vencido</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
+              <TableHead className="text-zinc-400">Código</TableHead>
               <TableHead className="text-zinc-400">Nome</TableHead>
-              <TableHead className="text-zinc-400">Categoria</TableHead>
               <TableHead className="text-zinc-400">Un.</TableHead>
               <TableHead className="text-zinc-400 text-right">Qtd. Atual</TableHead>
-              <TableHead className="text-zinc-400 text-right">Qtd. Mínima</TableHead>
-              <TableHead className="text-zinc-400 text-right">Custo Unit.</TableHead>
-              <TableHead className="text-zinc-400">Fornecedor</TableHead>
+              <TableHead className="text-zinc-400 text-right">Mín.</TableHead>
+              <TableHead className="text-zinc-400 text-right">CMP</TableHead>
+              <TableHead className="text-zinc-400 text-right">Valor Total</TableHead>
               <TableHead className="text-zinc-400">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -220,7 +257,7 @@ export default function InsumoPage() {
                   Nenhum insumo encontrado.{' '}
                   <button
                     onClick={openNew}
-                    className="text-orange-400 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Adicionar insumo
                   </button>
@@ -228,23 +265,28 @@ export default function InsumoPage() {
               </TableRow>
             ) : (
               ingredients.map((ingredient) => {
-                const isLow = ingredient.currentQty <= ingredient.minimumQty
+                const status = ingredient.stockStatus ?? 'ok'
+                const statusInfo = STOCK_STATUS[status]
+                const totalValue = ingredient.currentQty * ingredient.custoMedioPonderado
                 return (
                   <TableRow
                     key={ingredient.id}
                     className="border-zinc-800 hover:bg-zinc-800/50"
                   >
+                    <TableCell className="text-zinc-500 font-mono text-xs">
+                      {ingredient.codigoInterno ?? '—'}
+                    </TableCell>
                     <TableCell className="text-white font-medium">
                       {ingredient.name}
-                    </TableCell>
-                    <TableCell className="text-zinc-400">
-                      {ingredient.category?.name ?? '—'}
+                      {ingredient.subcategoria && (
+                        <span className="block text-xs text-zinc-500">{ingredient.subcategoria}</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-zinc-400">
                       {unitLabels[ingredient.unit] ?? ingredient.unit}
                     </TableCell>
                     <TableCell
-                      className={`text-right font-mono ${isLow ? 'text-red-400' : 'text-white'}`}
+                      className={`text-right font-mono ${status === 'critical' ? 'text-red-400' : status === 'low' ? 'text-amber-400' : 'text-white'}`}
                     >
                       {ingredient.currentQty.toFixed(3)}
                     </TableCell>
@@ -252,21 +294,15 @@ export default function InsumoPage() {
                       {ingredient.minimumQty.toFixed(3)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-zinc-300">
-                      {formatCurrency(ingredient.unitCost)}
+                      {formatCurrency(ingredient.custoMedioPonderado)}
                     </TableCell>
-                    <TableCell className="text-zinc-400">
-                      {ingredient.supplier?.name ?? '—'}
+                    <TableCell className="text-right font-mono text-zinc-300">
+                      {formatCurrency(totalValue)}
                     </TableCell>
                     <TableCell>
-                      {isLow ? (
-                        <Badge className="bg-red-900/50 text-red-300 border border-red-800 text-xs">
-                          Baixo Estoque
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-green-900/50 text-green-300 border border-green-800 text-xs">
-                          OK
-                        </Badge>
-                      )}
+                      <Badge className={`border text-xs ${statusInfo.cls}`}>
+                        {statusInfo.label}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

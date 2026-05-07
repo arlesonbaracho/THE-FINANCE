@@ -128,7 +128,7 @@ export default function MovimentacoesPage() {
         <h2 className="text-lg font-semibold text-white">Movimentos</h2>
         <Button
           onClick={() => setMovementOpen(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nova Movimentação

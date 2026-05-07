@@ -12,8 +12,8 @@ interface StatCardProps {
 
 const variantStyles = {
   default: {
-    icon: 'bg-blue-500/10 text-blue-400',
-    value: 'text-white',
+    icon: 'bg-primary/10 text-primary',
+    value: 'text-foreground',
   },
   warning: {
     icon: 'bg-yellow-500/10 text-yellow-400',
@@ -39,14 +39,14 @@ export function StatCard({
   const styles = variantStyles[variant]
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
+    <Card>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-sm text-zinc-400 font-medium">{title}</p>
+            <p className="text-sm text-muted-foreground font-medium">{title}</p>
             <p className={cn('text-3xl font-bold', styles.value)}>{value}</p>
             {description && (
-              <p className="text-xs text-zinc-500">{description}</p>
+              <p className="text-xs text-muted-foreground/70">{description}</p>
             )}
           </div>
           <div className={cn('p-3 rounded-xl', styles.icon)}>

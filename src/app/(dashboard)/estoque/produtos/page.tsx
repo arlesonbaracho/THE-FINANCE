@@ -166,7 +166,7 @@ export default function ProdutosPage() {
         </div>
         <Button
           onClick={openNew}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Produto
@@ -231,7 +231,7 @@ export default function ProdutosPage() {
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-zinc-500 py-12">
                   Nenhum produto encontrado.{' '}
-                  <button onClick={openNew} className="text-orange-400 hover:underline">
+                  <button onClick={openNew} className="text-primary hover:underline">
                     Adicionar produto
                   </button>
                 </TableCell>

@@ -1,24 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Plus, Trash2, Loader2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Plus, Trash2, Loader2, Search, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductIngredientWithRelations } from '@/types'
@@ -44,8 +30,12 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
-  const [newIngredientId, setNewIngredientId] = useState('')
-  const [newQty, setNewQty] = useState('')
+
+  // picker state
+  const [ingSearch, setIngSearch] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
+  const [selectedIng, setSelectedIng] = useState<Ingredient | null>(null)
+  const [selectedQty, setSelectedQty] = useState('')
 
   const fetchLinked = useCallback(async () => {
     try {
@@ -54,8 +44,7 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
         const data: ProductIngredientWithRelations[] = await res.json()
         setLinkedIngredients(data)
         const cost = data.reduce(
-          (sum: number, pi: ProductIngredientWithRelations) =>
-            sum + pi.ingredient.unitCost * pi.quantity,
+          (sum, pi) => sum + pi.ingredient.unitCost * pi.quantity,
           0
         )
         onCostChange?.(cost)
@@ -70,14 +59,24 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
   useEffect(() => {
     fetchLinked()
     fetch('/api/ingredients')
-      .then((r) => r.json())
+      .then(r => r.json())
       .then(setAllIngredients)
       .catch(() => {})
   }, [fetchLinked])
 
+  const linkedIds = linkedIngredients.map(li => li.ingredientId)
+
+  const filteredIngredients = useMemo(() =>
+    allIngredients
+      .filter(i => !linkedIds.includes(i.id))
+      .filter(i => i.name.toLowerCase().includes(ingSearch.toLowerCase())),
+    [allIngredients, linkedIds, ingSearch]
+  )
+
   async function handleAdd() {
-    if (!newIngredientId || !newQty || parseFloat(newQty) <= 0) {
-      toast.error('Selecione um insumo e informe uma quantidade válida')
+    const qty = parseFloat(selectedQty)
+    if (!selectedIng || !qty || qty <= 0) {
+      toast.error('Selecione um insumo e informe quantidade válida')
       return
     }
     setAdding(true)
@@ -85,21 +84,17 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
       const res = await fetch(`/api/products/${productId}/ingredients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ingredientId: newIngredientId,
-          quantity: parseFloat(newQty),
-        }),
+        body: JSON.stringify({ ingredientId: selectedIng.id, quantity: qty }),
       })
-
       if (!res.ok) {
         const data = await res.json()
         toast.error(data.error || 'Erro ao adicionar insumo')
         return
       }
-
       toast.success('Insumo adicionado!')
-      setNewIngredientId('')
-      setNewQty('')
+      setSelectedIng(null)
+      setSelectedQty('')
+      setIngSearch('')
       fetchLinked()
     } catch {
       toast.error('Erro de conexão')
@@ -125,111 +120,158 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
     }
   }
 
-  const linkedIds = linkedIngredients.map((li) => li.ingredientId)
-  const availableIngredients = allIngredients.filter((i) => !linkedIds.includes(i.id))
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-20 text-zinc-500">
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        Carregando...
+      <div className="flex items-center justify-center h-20 text-muted-foreground gap-2">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-sm">Carregando...</span>
       </div>
     )
   }
 
+  const totalCost = linkedIngredients.reduce(
+    (sum, pi) => sum + pi.ingredient.unitCost * pi.quantity,
+    0
+  )
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Select value={newIngredientId} onValueChange={(v) => setNewIngredientId(v ?? '')}>
-          <SelectTrigger className="flex-1 bg-zinc-800 border-zinc-700 text-white">
-            <SelectValue placeholder="Selecionar insumo..." />
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-900 border-zinc-700">
-            {availableIngredients.length === 0 ? (
-              <SelectItem value="empty" disabled className="text-zinc-500">
-                Nenhum insumo disponível
-              </SelectItem>
-            ) : (
-              availableIngredients.map((ing) => (
-                <SelectItem
-                  key={ing.id}
-                  value={ing.id}
-                  className="text-zinc-200 focus:bg-zinc-800"
-                >
-                  {ing.name} ({unitLabels[ing.unit] ?? ing.unit})
-                </SelectItem>
-              ))
+      {/* ── Picker row ── */}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1 space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Insumo</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-9"
+              placeholder={selectedIng ? selectedIng.name : 'Buscar insumo...'}
+              value={selectedIng ? selectedIng.name : ingSearch}
+              onChange={(e) => {
+                setIngSearch(e.target.value)
+                setSelectedIng(null)
+                setShowPicker(true)
+              }}
+              onFocus={() => setShowPicker(true)}
+              onBlur={() => setTimeout(() => setShowPicker(false), 150)}
+            />
+            {showPicker && filteredIngredients.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 rounded-lg border border-border bg-card shadow-lg max-h-44 overflow-y-auto">
+                {filteredIngredients.map(ing => (
+                  <button
+                    key={ing.id}
+                    type="button"
+                    onMouseDown={() => {
+                      setSelectedIng(ing)
+                      setIngSearch(ing.name)
+                      setShowPicker(false)
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary text-sm text-left"
+                  >
+                    <span className="font-medium text-foreground">{ing.name}</span>
+                    <span className="text-muted-foreground text-xs ml-2 shrink-0">
+                      {unitLabels[ing.unit] ?? ing.unit} · {formatCurrency(ing.unitCost)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
-          </SelectContent>
-        </Select>
-        <Input
-          type="number"
-          step="0.001"
-          min="0"
-          placeholder="Qtd."
-          value={newQty}
-          onChange={(e) => setNewQty(e.target.value)}
-          className="w-28 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-        />
+            {showPicker && filteredIngredients.length === 0 && ingSearch.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 rounded-lg border border-border bg-card shadow-lg px-3 py-2 text-sm text-muted-foreground">
+                Nenhum insumo encontrado
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="w-28 space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Quantidade</Label>
+          <Input
+            type="number"
+            step="0.001"
+            min="0"
+            placeholder="0.000"
+            value={selectedQty}
+            onChange={(e) => setSelectedQty(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          />
+        </div>
+
         <Button
           onClick={handleAdd}
           disabled={adding}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
         >
           {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
         </Button>
       </div>
 
+      {/* ── Ingredient list ── */}
       {linkedIngredients.length === 0 ? (
-        <div className="text-center py-8 text-zinc-500 text-sm border border-zinc-800 rounded-lg">
-          Nenhum insumo vinculado. Adicione ingredientes acima.
+        <div className="flex flex-col items-center justify-center py-10 border border-dashed border-border rounded-lg gap-2 text-muted-foreground">
+          <Package className="w-8 h-8 opacity-40" />
+          <p className="text-sm">Nenhum insumo vinculado</p>
+          <p className="text-xs opacity-70">Busque e adicione os ingredientes acima</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="text-zinc-400">Insumo</TableHead>
-              <TableHead className="text-zinc-400 text-right">Qtd.</TableHead>
-              <TableHead className="text-zinc-400 text-right">Custo Unit.</TableHead>
-              <TableHead className="text-zinc-400 text-right">Custo Total</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {linkedIngredients.map((pi) => {
-              const total = pi.ingredient.unitCost * pi.quantity
-              return (
-                <TableRow key={pi.id} className="border-zinc-800 hover:bg-zinc-800/30">
-                  <TableCell className="text-white">
-                    {pi.ingredient.name}
-                    <span className="text-zinc-500 text-xs ml-1">
-                      ({unitLabels[pi.ingredient.unit] ?? pi.ingredient.unit})
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-zinc-300">
-                    {pi.quantity.toFixed(3)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-zinc-400">
-                    {formatCurrency(pi.ingredient.unitCost)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-zinc-300">
-                    {formatCurrency(total)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-500 hover:text-red-400 hover:bg-red-950/30"
-                      onClick={() => handleRemove(pi.ingredientId)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+        <div className="rounded-lg border border-border overflow-hidden">
+          {/* header */}
+          <div className="grid grid-cols-[1fr_80px_90px_90px_36px] gap-2 px-4 py-2 bg-muted/50 border-b border-border">
+            <span className="text-xs font-medium text-muted-foreground">Insumo</span>
+            <span className="text-xs font-medium text-muted-foreground text-right">Qtd.</span>
+            <span className="text-xs font-medium text-muted-foreground text-right">Custo unit.</span>
+            <span className="text-xs font-medium text-muted-foreground text-right">Subtotal</span>
+            <span />
+          </div>
+
+          {linkedIngredients.map((pi, idx) => {
+            const subtotal = pi.ingredient.unitCost * pi.quantity
+            return (
+              <div
+                key={pi.id}
+                className={`grid grid-cols-[1fr_80px_90px_90px_36px] gap-2 px-4 py-2.5 items-center text-sm ${
+                  idx % 2 === 0 ? 'bg-card' : 'bg-muted/20'
+                }`}
+              >
+                <div>
+                  <span className="font-medium text-foreground">{pi.ingredient.name}</span>
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({unitLabels[pi.ingredient.unit] ?? pi.ingredient.unit})
+                  </span>
+                </div>
+                <span className="font-mono text-muted-foreground text-right text-xs">
+                  {pi.quantity.toFixed(3)}
+                </span>
+                <span className="font-mono text-muted-foreground text-right text-xs">
+                  {formatCurrency(pi.ingredient.unitCost)}
+                </span>
+                <span className="font-mono text-foreground text-right text-xs font-medium">
+                  {formatCurrency(subtotal)}
+                </span>
+                <div className="flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemove(pi.ingredientId)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* footer total */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50 border-t border-border">
+            <span className="text-xs text-muted-foreground">
+              {linkedIngredients.length} insumo(s)
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Custo total:</span>
+              <span className="text-sm font-semibold text-primary">{formatCurrency(totalCost)}</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

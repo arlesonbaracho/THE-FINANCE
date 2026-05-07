@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTenantId, unauthorizedResponse } from '@/lib/session'
+import { productSchema, zodErrorResponse } from '@/lib/validations'
 
 export async function GET(
   _req: Request,
@@ -25,7 +25,7 @@ export async function GET(
 
     return NextResponse.json(product)
   } catch (error) {
-    console.error('[PRODUCT GET]', error)
+    console.error('[PRODUCT GET]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -39,7 +39,10 @@ export async function PUT(
 
   try {
     const body = await req.json()
-    const { name, salePrice, categoryId, active } = body
+    const parsed = productSchema.partial().safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(zodErrorResponse(parsed.error), { status: 400 })
+    }
 
     const product = await prisma.product.findFirst({
       where: { id: params.id, tenantId },
@@ -49,12 +52,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 })
     }
 
+    const { name, salePrice, categoryId, active } = parsed.data
+
     const updated = await prisma.product.update({
       where: { id: params.id },
       data: {
         ...(name !== undefined && { name }),
         ...(salePrice !== undefined && { salePrice }),
-        ...(categoryId !== undefined && { categoryId: categoryId || null }),
+        ...(categoryId !== undefined && { categoryId: categoryId ?? null }),
         ...(active !== undefined && { active }),
       },
       include: {
@@ -65,7 +70,7 @@ export async function PUT(
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('[PRODUCT PUT]', error)
+    console.error('[PRODUCT PUT]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -90,7 +95,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Produto excluído' })
   } catch (error) {
-    console.error('[PRODUCT DELETE]', error)
+    console.error('[PRODUCT DELETE]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

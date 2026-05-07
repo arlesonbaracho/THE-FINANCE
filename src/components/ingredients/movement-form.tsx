@@ -23,15 +23,17 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const schema = z.object({
-  type: z.enum(['IN', 'OUT', 'ADJUSTMENT']),
+  type: z.enum(['IN', 'OUT', 'ADJUSTMENT', 'LOSS', 'EXPIRY', 'INTERNAL_USE']),
   quantity: z.number().positive('Quantidade deve ser maior que zero'),
+  unitCost: z.number().min(0).optional(),
   reason: z.string().optional(),
   note: z.string().optional(),
 })
 
 type FormValues = {
-  type: 'IN' | 'OUT' | 'ADJUSTMENT'
+  type: 'IN' | 'OUT' | 'ADJUSTMENT' | 'LOSS' | 'EXPIRY' | 'INTERNAL_USE'
   quantity: number
+  unitCost?: number
   reason?: string
   note?: string
 }
@@ -48,19 +50,25 @@ const movementTypeLabels: Record<string, string> = {
   IN: 'Entrada',
   OUT: 'Saída',
   ADJUSTMENT: 'Ajuste de Estoque',
+  LOSS: 'Perda',
+  EXPIRY: 'Vencimento',
+  INTERNAL_USE: 'Consumo Interno',
 }
 
 const typeColors: Record<string, string> = {
-  IN: 'text-green-400',
+  IN: 'text-emerald-400',
   OUT: 'text-red-400',
-  ADJUSTMENT: 'text-yellow-400',
+  ADJUSTMENT: 'text-amber-400',
+  LOSS: 'text-red-400',
+  EXPIRY: 'text-orange-400',
+  INTERNAL_USE: 'text-blue-400',
 }
 
 export function MovementForm({ open, onOpenChange, ingredientId, ingredientName, onSuccess }: MovementFormProps) {
   const [loading, setLoading] = useState(false)
 
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { type: 'IN', quantity: 0, reason: '', note: '' },
+    defaultValues: { type: 'IN', quantity: 0, unitCost: undefined, reason: '', note: '' },
   })
 
   const selectedType = watch('type')
@@ -148,6 +156,21 @@ export function MovementForm({ open, onOpenChange, ingredientId, ingredientName,
             {errors.quantity && <p className="text-red-400 text-sm">{errors.quantity.message}</p>}
           </div>
 
+          {selectedType === 'IN' && (
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Custo unitário (opcional)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
+                {...register('unitCost', { valueAsNumber: true })}
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+              <p className="text-xs text-zinc-500">Usado para recalcular o custo médio ponderado</p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-zinc-300">Motivo (opcional)</Label>
             <Input
@@ -175,7 +198,7 @@ export function MovementForm({ open, onOpenChange, ingredientId, ingredientName,
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registrando...</> : 'Registrar'}
             </Button>
           </div>

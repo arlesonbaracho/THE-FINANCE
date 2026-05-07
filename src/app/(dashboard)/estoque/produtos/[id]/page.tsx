@@ -153,7 +153,7 @@ export default function ProductDetailPage() {
           </Button>
           <Button
             onClick={() => setFormOpen(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
           >
             <Pencil className="w-4 h-4" />
             Editar
@@ -181,8 +181,8 @@ export default function ProductDetailPage() {
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/10">
-                <DollarSign className="w-4 h-4 text-orange-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-zinc-400">Custo Calculado</p>

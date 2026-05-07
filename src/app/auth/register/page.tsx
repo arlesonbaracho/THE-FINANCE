@@ -74,7 +74,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 py-8">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-500">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
             <ChefHat className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">THE FINANCE</h1>
@@ -104,7 +104,7 @@ export default function RegisterPage() {
                   value={formData.restaurantName}
                   onChange={handleChange}
                   required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
                 />
               </div>
               <div className="space-y-2">
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
                 />
               </div>
               <div className="space-y-2">
@@ -129,7 +129,7 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
                 />
               </div>
               <div className="space-y-2">
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
                 />
               </div>
               <div className="space-y-2">
@@ -155,14 +155,14 @@ export default function RegisterPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-orange-500"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
                 />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
               <Button
                 type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
                 disabled={loading}
               >
                 {loading ? (
@@ -176,7 +176,7 @@ export default function RegisterPage() {
               </Button>
               <p className="text-sm text-zinc-400 text-center">
                 Já tem conta?{' '}
-                <Link href="/auth/login" className="text-orange-400 hover:text-orange-300 font-medium">
+                <Link href="/auth/login" className="text-primary hover:text-primary/80 font-medium">
                   Fazer login
                 </Link>
               </p>

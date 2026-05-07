@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTenantId, unauthorizedResponse } from '@/lib/session'
+import { productIngredientSchema, zodErrorResponse } from '@/lib/validations'
 
 export async function GET(
   _req: Request,
@@ -11,6 +11,7 @@ export async function GET(
   if (!tenantId) return unauthorizedResponse()
 
   try {
+    // Verify product ownership before returning its ingredients
     const product = await prisma.product.findFirst({
       where: { id: params.id, tenantId },
     })
@@ -26,7 +27,7 @@ export async function GET(
 
     return NextResponse.json(productIngredients)
   } catch (error) {
-    console.error('[PRODUCT INGREDIENTS GET]', error)
+    console.error('[PRODUCT INGREDIENTS GET]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -40,14 +41,12 @@ export async function POST(
 
   try {
     const body = await req.json()
-    const { ingredientId, quantity } = body
-
-    if (!ingredientId || !quantity || quantity <= 0) {
-      return NextResponse.json(
-        { error: 'Insumo e quantidade válida são obrigatórios' },
-        { status: 400 }
-      )
+    const parsed = productIngredientSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(zodErrorResponse(parsed.error), { status: 400 })
     }
+
+    const { ingredientId, quantity } = parsed.data
 
     const product = await prisma.product.findFirst({
       where: { id: params.id, tenantId },
@@ -57,6 +56,7 @@ export async function POST(
       return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 })
     }
 
+    // Ensure the ingredient also belongs to this tenant (cross-tenant attack prevention)
     const ingredient = await prisma.ingredient.findFirst({
       where: { id: ingredientId, tenantId },
     })
@@ -72,18 +72,14 @@ export async function POST(
           ingredientId,
         },
       },
-      create: {
-        productId: params.id,
-        ingredientId,
-        quantity,
-      },
+      create: { productId: params.id, ingredientId, quantity },
       update: { quantity },
       include: { ingredient: true },
     })
 
     return NextResponse.json(productIngredient, { status: 201 })
   } catch (error) {
-    console.error('[PRODUCT INGREDIENTS POST]', error)
+    console.error('[PRODUCT INGREDIENTS POST]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
@@ -122,7 +118,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Insumo removido do produto' })
   } catch (error) {
-    console.error('[PRODUCT INGREDIENTS DELETE]', error)
+    console.error('[PRODUCT INGREDIENTS DELETE]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

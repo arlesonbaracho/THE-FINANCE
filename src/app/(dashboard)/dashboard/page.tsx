@@ -31,8 +31,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-1">
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--tf-txt)', margin: 0 }}>
+          Dashboard
+        </h1>
+        <p style={{ fontSize: 12.5, color: 'var(--tf-txt3)', marginTop: 3 }}>
           Visão geral do seu estabelecimento
         </p>
       </div>
@@ -69,16 +71,26 @@ export default async function DashboardPage() {
       </div>
 
       {lowStockIngredients > 0 && (
-        <div className="rounded-xl border border-red-800/50 bg-red-950/20 p-4">
+        <div
+          style={{
+            borderRadius: 10,
+            border: '1px solid var(--tf-red-bd)',
+            background: 'var(--tf-red-bg)',
+            padding: 16,
+          }}
+        >
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+            <AlertTriangle
+              className="w-5 h-5 mt-0.5 flex-shrink-0"
+              style={{ color: 'var(--tf-red)' }}
+            />
             <div>
-              <p className="text-red-300 font-medium text-sm">
+              <p className="font-medium text-sm" style={{ color: 'var(--tf-red)' }}>
                 Alerta de Estoque Baixo
               </p>
-              <p className="text-red-400/70 text-xs mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--tf-txt2)' }}>
                 {lowStockIngredients} insumo{lowStockIngredients !== 1 ? 's' : ''} está{lowStockIngredients !== 1 ? 'o' : ''} abaixo do estoque mínimo.{' '}
-                <a href="/estoque/insumos" className="underline hover:text-red-300">
+                <a href="/estoque/insumos" className="underline" style={{ color: 'var(--tf-red)' }}>
                   Ver insumos
                 </a>
               </p>

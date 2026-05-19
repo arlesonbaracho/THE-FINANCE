@@ -129,3 +129,195 @@ describe('isLowStock', () => {
     expect(isLowStock(0, 0)).toBe(true) // 0 <= 0, edge case: still an alert
   })
 })
+
+// ── Package cost calculation (IngredientForm embalagem logic) ─────────────────
+
+function calcCustoUnitario(
+  tipo: 'unidade' | 'pacote',
+  custoUnit: number,
+  custoTotalPacote: number,
+  qtdPorPacote: number
+): number {
+  if (tipo === 'unidade') return custoUnit
+  if (qtdPorPacote < 1) return 0
+  return custoTotalPacote / qtdPorPacote
+}
+
+function calcCustoParaProduto(custoUnitario: number, qtdDesejada: number): number {
+  return custoUnitario * qtdDesejada
+}
+
+describe('calcCustoUnitario — embalagem unidade', () => {
+  it('returns the unit cost directly', () => {
+    expect(calcCustoUnitario('unidade', 12.5, 0, 0)).toBe(12.5)
+  })
+
+  it('returns zero when unit cost is zero', () => {
+    expect(calcCustoUnitario('unidade', 0, 100, 10)).toBe(0)
+  })
+
+  it('ignores package fields in unidade mode', () => {
+    expect(calcCustoUnitario('unidade', 5, 99, 99)).toBe(5)
+  })
+})
+
+describe('calcCustoUnitario — embalagem pacote', () => {
+  it('divides package cost by units per package', () => {
+    expect(calcCustoUnitario('pacote', 0, 50, 10)).toBeCloseTo(5, 5)
+  })
+
+  it('handles non-round division', () => {
+    expect(calcCustoUnitario('pacote', 0, 100, 3)).toBeCloseTo(33.333, 2)
+  })
+
+  it('returns 0 when qtdPorPacote is 0 (avoid division by zero)', () => {
+    expect(calcCustoUnitario('pacote', 0, 50, 0)).toBe(0)
+  })
+
+  it('returns 0 when qtdPorPacote < 1', () => {
+    expect(calcCustoUnitario('pacote', 0, 50, 0.5)).toBe(0)
+  })
+
+  it('package cost 0 yields unit cost 0', () => {
+    expect(calcCustoUnitario('pacote', 0, 0, 12)).toBe(0)
+  })
+})
+
+describe('calcCustoParaProduto', () => {
+  it('multiplies unit cost by desired quantity', () => {
+    expect(calcCustoParaProduto(5, 2)).toBeCloseTo(10, 5)
+  })
+
+  it('handles fractional quantities (e.g. 0.250 kg)', () => {
+    expect(calcCustoParaProduto(8, 0.25)).toBeCloseTo(2, 5)
+  })
+
+  it('returns 0 when quantity is 0', () => {
+    expect(calcCustoParaProduto(10, 0)).toBe(0)
+  })
+})
+
+// ── Product margin & price simulator (ProductForm financial tab) ──────────────
+
+function calcMargem(precoVenda: number, custo: number): number {
+  if (precoVenda <= 0) return 0
+  return ((precoVenda - custo) / precoVenda) * 100
+}
+
+function margemDiag(m: number): string {
+  if (m >= 40) return '✓ Margem excelente — produto muito rentável.'
+  if (m >= 25) return '✓ Margem saudável para restaurantes.'
+  if (m >= 10) return '⚠ Margem baixa — considere revisar o preço.'
+  return '✗ Margem crítica — produto operando no prejuízo.'
+}
+
+function calcPrecoSugerido(custo: number, margemDesejada: number): number {
+  if (margemDesejada >= 100 || custo <= 0) return 0
+  return custo / (1 - margemDesejada / 100)
+}
+
+describe('calcMargem', () => {
+  it('returns 50% when cost is half of price', () => {
+    expect(calcMargem(20, 10)).toBeCloseTo(50, 5)
+  })
+
+  it('returns 0 when price is 0', () => {
+    expect(calcMargem(0, 5)).toBe(0)
+  })
+
+  it('returns negative when cost exceeds price', () => {
+    expect(calcMargem(10, 15)).toBeLessThan(0)
+  })
+
+  it('returns 0% at break-even', () => {
+    expect(calcMargem(10, 10)).toBeCloseTo(0, 5)
+  })
+
+  it('returns 100% with zero cost', () => {
+    expect(calcMargem(10, 0)).toBeCloseTo(100, 5)
+  })
+})
+
+describe('margemDiag', () => {
+  it('40% or above = excelente', () => {
+    expect(margemDiag(40)).toMatch(/excelente/)
+    expect(margemDiag(65)).toMatch(/excelente/)
+  })
+
+  it('25–39% = saudável', () => {
+    expect(margemDiag(25)).toMatch(/saudável/)
+    expect(margemDiag(39)).toMatch(/saudável/)
+  })
+
+  it('10–24% = baixa', () => {
+    expect(margemDiag(10)).toMatch(/baixa/)
+    expect(margemDiag(24)).toMatch(/baixa/)
+  })
+
+  it('below 10% = crítica', () => {
+    expect(margemDiag(9)).toMatch(/crítica/)
+    expect(margemDiag(0)).toMatch(/crítica/)
+    expect(margemDiag(-5)).toMatch(/crítica/)
+  })
+})
+
+describe('calcPrecoSugerido', () => {
+  it('computes suggested price for 35% margin', () => {
+    // cost=6.5, margin=35% → price = 6.5 / 0.65 ≈ 10.00
+    expect(calcPrecoSugerido(6.5, 35)).toBeCloseTo(10, 1)
+  })
+
+  it('returns 0 when cost is 0', () => {
+    expect(calcPrecoSugerido(0, 35)).toBe(0)
+  })
+
+  it('returns 0 when margin is 100%', () => {
+    expect(calcPrecoSugerido(10, 100)).toBe(0)
+  })
+
+  it('higher desired margin requires higher price', () => {
+    const p50 = calcPrecoSugerido(10, 50)
+    const p30 = calcPrecoSugerido(10, 30)
+    expect(p50).toBeGreaterThan(p30)
+  })
+
+  it('zero margin = price equals cost', () => {
+    expect(calcPrecoSugerido(15, 0)).toBeCloseTo(15, 5)
+  })
+})
+
+// ── Stock bar percentage (InventarioPage inline formula) ──────────────────────
+
+function calcStockBarPct(currentQty: number, pontoReposicao: number): number {
+  const max = Math.max(pontoReposicao * 2, currentQty, 1)
+  return Math.min((currentQty / max) * 100, 100)
+}
+
+describe('calcStockBarPct', () => {
+  it('returns 50% when stock equals reorder point (half of max)', () => {
+    // max = pontoReposicao * 2 = 20, pct = 10/20 * 100 = 50
+    expect(calcStockBarPct(10, 10)).toBeCloseTo(50, 5)
+  })
+
+  it('returns 100% when stock is double the reorder point', () => {
+    expect(calcStockBarPct(20, 10)).toBeCloseTo(100, 5)
+  })
+
+  it('caps at 100% even when stock exceeds double reorder point', () => {
+    expect(calcStockBarPct(100, 10)).toBe(100)
+  })
+
+  it('returns 0% when stock is 0', () => {
+    expect(calcStockBarPct(0, 10)).toBe(0)
+  })
+
+  it('handles zero pontoReposicao — uses currentQty as max', () => {
+    // max = Math.max(0, 5, 1) = 5, pct = 5/5 * 100 = 100
+    expect(calcStockBarPct(5, 0)).toBeCloseTo(100, 5)
+  })
+
+  it('handles all-zero input — max defaults to 1', () => {
+    // max = Math.max(0, 0, 1) = 1, pct = 0/1 * 100 = 0
+    expect(calcStockBarPct(0, 0)).toBe(0)
+  })
+})

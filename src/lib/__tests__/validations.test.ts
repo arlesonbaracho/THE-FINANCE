@@ -227,3 +227,30 @@ describe('productIngredientSchema', () => {
     expect(result.success).toBe(false)
   })
 })
+
+// ── zodErrorResponse ──────────────────────────────────────────────────────────
+
+import { zodErrorResponse } from '@/lib/validations'
+import { z } from 'zod'
+
+describe('zodErrorResponse', () => {
+  it('returns error message from first issue', () => {
+    const schema = z.object({ name: z.string().min(3, 'Mínimo 3 chars') })
+    const result = schema.safeParse({ name: 'x' })
+    expect(result.success).toBe(false)
+    const response = zodErrorResponse((result as { error: z.ZodError }).error)
+    expect(response.error).toBe('Mínimo 3 chars')
+  })
+
+  it('returns first issue when multiple fields fail', () => {
+    const schema = z.object({
+      a: z.string().min(1, 'A obrigatório'),
+      b: z.number().positive('B positivo'),
+    })
+    const result = schema.safeParse({ a: '', b: -1 })
+    expect(result.success).toBe(false)
+    const response = zodErrorResponse((result as { error: z.ZodError }).error)
+    expect(typeof response.error).toBe('string')
+    expect(response.error.length).toBeGreaterThan(0)
+  })
+})

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(taskkill /F /IM node.exe)",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem -Path . -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Read(//c/Users/gemes/.claude/projects/c--Users-gemes-Desktop-THE-FINANCE/memory/**)",
+      "Read(//c/Users/gemes/Downloads/**)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\gemes\\\\Desktop\\\\THE-FINANCE\" -Recurse -Directory | Where-Object { $_.Name -match \"estoque|dashboard\" } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(cd \"C:\\\\Users\\\\gemes\\\\Desktop\\\\THE-FINANCE\"; npx next build 2>&1 | Select-Object -Last 20; Write-Host \"Exit: $LASTEXITCODE\")",
+      "Bash(npx next *)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\gemes\\\\Desktop\\\\THE-FINANCE\\\\.next\")",
+      "Bash(Write-Host \"Done\")",
+      "Bash(npx vitest *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\gemes\\.claude\\projects\\c--Users-gemes-Desktop-THE-FINANCE\\memory"
+    ]
+  }
+}

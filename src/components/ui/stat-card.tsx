@@ -1,5 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { LucideIcon } from 'lucide-react'
 
 interface StatCardProps {
@@ -10,50 +8,77 @@ interface StatCardProps {
   variant?: 'default' | 'warning' | 'success' | 'danger'
 }
 
-const variantStyles = {
-  default: {
-    icon: 'bg-primary/10 text-primary',
-    value: 'text-foreground',
-  },
-  warning: {
-    icon: 'bg-yellow-500/10 text-yellow-400',
-    value: 'text-yellow-400',
-  },
-  success: {
-    icon: 'bg-green-500/10 text-green-400',
-    value: 'text-green-400',
-  },
-  danger: {
-    icon: 'bg-red-500/10 text-red-400',
-    value: 'text-red-400',
-  },
+const iconStyle: Record<NonNullable<StatCardProps['variant']>, React.CSSProperties> = {
+  default: { background: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)' },
+  success: { background: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)' },
+  warning: { background: 'var(--tf-yellow-bg)',   color: 'var(--tf-yellow)' },
+  danger:  { background: 'var(--tf-red-bg)',      color: 'var(--tf-red)' },
 }
 
-export function StatCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  variant = 'default',
-}: StatCardProps) {
-  const styles = variantStyles[variant]
+const valueColor: Record<NonNullable<StatCardProps['variant']>, string> = {
+  default: 'var(--tf-txt)',
+  success: 'var(--tf-green-ok)',
+  warning: 'var(--tf-yellow)',
+  danger:  'var(--tf-red)',
+}
 
+export function StatCard({ title, value, description, icon: Icon, variant = 'default' }: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground font-medium">{title}</p>
-            <p className={cn('text-3xl font-bold', styles.value)}>{value}</p>
-            {description && (
-              <p className="text-xs text-muted-foreground/70">{description}</p>
-            )}
-          </div>
-          <div className={cn('p-3 rounded-xl', styles.icon)}>
-            <Icon className="w-5 h-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div
+      style={{
+        background: 'var(--tf-surface)',
+        border: '1px solid var(--tf-border)',
+        borderRadius: 8,
+        padding: '16px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          ...iconStyle[variant],
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <p
+          style={{
+            fontSize: 10,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.03em',
+            color: 'var(--tf-txt3)',
+            margin: 0,
+          }}
+        >
+          {title}
+        </p>
+        <p
+          style={{
+            fontSize: 20,
+            fontWeight: 600,
+            color: valueColor[variant],
+            margin: '2px 0 0',
+            lineHeight: 1.2,
+          }}
+        >
+          {value}
+        </p>
+        {description && (
+          <p style={{ fontSize: 11, color: 'var(--tf-txt3)', margin: '2px 0 0' }}>
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
   )
 }

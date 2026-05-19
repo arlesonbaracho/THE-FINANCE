@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -38,7 +37,6 @@ import {
   XCircle,
   Clock,
   ArrowDown,
-  ArrowUp,
   ClipboardList,
   AlertTriangle,
   Loader2,
@@ -46,6 +44,7 @@ import {
   TrendingDown,
   BarChart3,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import type { StockStatus } from '@/types'
@@ -91,18 +90,52 @@ type InventarioDetail = Inventario & { items: InventarioItem[] }
 
 const unitLabels: Record<string, string> = { KG: 'kg', G: 'g', L: 'L', ML: 'ml', UN: 'un' }
 
-const STOCK_STATUS: Record<StockStatus, { label: string; bar: string; badge: string }> = {
-  ok:       { label: 'OK',        bar: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  low:      { label: 'Reposição', bar: 'bg-amber-500',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  critical: { label: 'Crítico',   bar: 'bg-red-500',     badge: 'bg-red-500/15 text-red-400 border-red-500/30' },
-  expiring: { label: 'Vencendo',  bar: 'bg-orange-500',  badge: 'bg-orange-500/15 text-orange-400 border-orange-500/30' },
-  expired:  { label: 'Vencido',   bar: 'bg-zinc-600',    badge: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
+const STOCK_STATUS: Record<StockStatus, { label: string; barColor: string; bg: string; color: string; border: string }> = {
+  ok:       { label: 'OK',        barColor: 'var(--tf-green-ok)', bg: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)',  border: '1px solid var(--tf-green-ok-bd)' },
+  low:      { label: 'Reposição', barColor: 'var(--tf-yellow)',   bg: 'var(--tf-yellow-bg)',   color: 'var(--tf-yellow)',    border: '1px solid var(--tf-yellow-bd)' },
+  critical: { label: 'Crítico',   barColor: 'var(--tf-red)',      bg: 'var(--tf-red-bg)',      color: 'var(--tf-red)',       border: '1px solid var(--tf-red-bd)' },
+  expiring: { label: 'Vencendo',  barColor: '#EA580C',            bg: 'rgba(234,88,12,0.08)',  color: '#EA580C',             border: '1px solid rgba(234,88,12,0.25)' },
+  expired:  { label: 'Vencido',   barColor: 'var(--tf-txt3)',     bg: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)',      border: '1px solid var(--tf-border)' },
 }
 
 const INV_STATUS = {
-  ABERTO:     { label: 'Em andamento', icon: Clock,        cls: 'text-blue-400' },
-  FINALIZADO: { label: 'Finalizado',   icon: CheckCircle,  cls: 'text-emerald-400' },
-  CANCELADO:  { label: 'Cancelado',    icon: XCircle,      cls: 'text-zinc-500' },
+  ABERTO:     { label: 'Em andamento', icon: Clock,       iconColor: '#3b82f6',            bg: 'rgba(59,130,246,0.1)',      color: '#3b82f6',            border: '1px solid rgba(59,130,246,0.3)' },
+  FINALIZADO: { label: 'Finalizado',   icon: CheckCircle, iconColor: 'var(--tf-green-ok)', bg: 'var(--tf-green-ok-bg)',    color: 'var(--tf-green-ok)', border: '1px solid var(--tf-green-ok-bd)' },
+  CANCELADO:  { label: 'Cancelado',    icon: XCircle,     iconColor: 'var(--tf-txt3)',     bg: 'var(--tf-input-bg)',       color: 'var(--tf-txt3)',     border: '1px solid var(--tf-border)' },
+}
+
+// ── Stat mini card ─────────────────────────────────────────────────────────────
+
+type StatMiniVariant = 'default' | 'success' | 'warning' | 'danger'
+
+const statIconStyle: Record<StatMiniVariant, { background: string; color: string }> = {
+  default: { background: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)' },
+  success: { background: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)' },
+  warning: { background: 'var(--tf-yellow-bg)',   color: 'var(--tf-yellow)' },
+  danger:  { background: 'var(--tf-red-bg)',      color: 'var(--tf-red)' },
+}
+
+const statValueColor: Record<StatMiniVariant, string> = {
+  default: 'var(--tf-txt)',
+  success: 'var(--tf-green-ok)',
+  warning: 'var(--tf-yellow)',
+  danger:  'var(--tf-red)',
+}
+
+function StatMini({ label, value, variant = 'default', icon: Icon }: {
+  label: string; value: number; variant?: StatMiniVariant; icon: LucideIcon
+}) {
+  return (
+    <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...statIconStyle[variant] }}>
+        <Icon size={18} />
+      </div>
+      <div>
+        <p style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.03em', color: 'var(--tf-txt3)', margin: 0 }}>{label}</p>
+        <p style={{ fontSize: 20, fontWeight: 600, color: statValueColor[variant], margin: '2px 0 0', lineHeight: 1.2 }}>{value}</p>
+      </div>
+    </div>
+  )
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -113,8 +146,12 @@ export default function InventarioPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Inventário</h1>
-        <p className="text-muted-foreground text-sm mt-1">Posição do estoque e contagens físicas</p>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--tf-txt)', margin: 0 }}>
+          Inventário
+        </h1>
+        <p style={{ fontSize: 12.5, color: 'var(--tf-txt3)', marginTop: 3 }}>
+          Posição do estoque e contagens físicas
+        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -169,17 +206,19 @@ function StockPosition() {
       .then(r => r.json()).then(setCategories).catch(() => {})
   }, [fetchIngredients])
 
-  const filtered = useMemo(() => {
-    return ingredients.filter(ing => {
-      const matchSearch = !search || ing.name.toLowerCase().includes(search.toLowerCase()) ||
-        (ing.codigoInterno ?? '').toLowerCase().includes(search.toLowerCase())
-      const matchStatus = statusFilter === 'all' || ing.stockStatus === statusFilter
-      const matchCat = categoryFilter === 'all' || ing.category?.id === categoryFilter
-      return matchSearch && matchStatus && matchCat
-    })
-  }, [ingredients, search, statusFilter, categoryFilter])
+  const filtered = useMemo(() => ingredients.filter(ing => {
+    const matchSearch = !search || ing.name.toLowerCase().includes(search.toLowerCase()) ||
+      (ing.codigoInterno ?? '').toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'all' || ing.stockStatus === statusFilter
+    const matchCat = categoryFilter === 'all' || ing.category?.id === categoryFilter
+    return matchSearch && matchStatus && matchCat
+  }), [ingredients, search, statusFilter, categoryFilter])
 
-  // Stats
+  const filteredValue = useMemo(
+    () => filtered.reduce((s, ing) => s + ing.currentQty * ing.unitCost, 0),
+    [filtered]
+  )
+
   const stats = useMemo(() => ({
     total: ingredients.length,
     ok: ingredients.filter(i => i.stockStatus === 'ok').length,
@@ -192,10 +231,10 @@ function StockPosition() {
     <div className="space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatMini label="Total de Itens"  value={stats.total}    color="text-foreground"      icon={Package} />
-        <StatMini label="Estoque OK"       value={stats.ok}       color="text-emerald-400"     icon={CheckCircle} />
-        <StatMini label="Em Reposição"     value={stats.low}      color="text-amber-400"       icon={TrendingDown} />
-        <StatMini label="Crítico / Vencido" value={stats.critical + stats.expiring} color="text-red-400" icon={AlertTriangle} />
+        <StatMini label="Total de Itens"    value={stats.total}                     variant="default" icon={Package} />
+        <StatMini label="Estoque OK"         value={stats.ok}                        variant="success" icon={CheckCircle} />
+        <StatMini label="Em Reposição"       value={stats.low}                       variant="warning" icon={TrendingDown} />
+        <StatMini label="Crítico / Vencido"  value={stats.critical + stats.expiring} variant="danger"  icon={AlertTriangle} />
       </div>
 
       {/* Filters */}
@@ -210,9 +249,7 @@ function StockPosition() {
           />
         </div>
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? 'all')}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="ok">OK</SelectItem>
@@ -223,9 +260,7 @@ function StockPosition() {
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={v => setCategoryFilter(v ?? 'all')}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
             {categories.map(cat => (
@@ -236,16 +271,15 @@ function StockPosition() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        {/* header */}
-        <div className="grid grid-cols-[40px_1fr_120px_180px_100px_80px_80px] gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-          <span className="text-xs font-medium text-muted-foreground">#</span>
-          <span className="text-xs font-medium text-muted-foreground">Nome</span>
-          <span className="text-xs font-medium text-muted-foreground">Categoria</span>
-          <span className="text-xs font-medium text-muted-foreground">Qtd. Atual</span>
-          <span className="text-xs font-medium text-muted-foreground text-right">Mínimo</span>
-          <span className="text-xs font-medium text-muted-foreground text-right">Status</span>
-          <span />
+      <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, overflow: 'hidden' }}>
+        {/* Header */}
+        <div
+          className="grid grid-cols-[40px_1fr_120px_180px_100px_90px_100px_80px] gap-2 px-4 py-2.5"
+          style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)' }}
+        >
+          {['#', 'Nome', 'Categoria', 'Qtd. Atual', 'Mínimo', 'Valor', 'Status', ''].map((h, i) => (
+            <span key={i} style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--tf-txt3)', textAlign: i >= 4 && i <= 5 ? 'right' : 'left' }}>{h}</span>
+          ))}
         </div>
 
         {loading ? (
@@ -261,57 +295,59 @@ function StockPosition() {
         ) : (
           filtered.map((ing, idx) => {
             const s = STOCK_STATUS[ing.stockStatus]
-            // qty bar: percentage relative to pontoReposicao * 2 as "full"
             const max = Math.max(ing.pontoReposicao * 2, ing.currentQty, 1)
             const pct = Math.min((ing.currentQty / max) * 100, 100)
 
             return (
               <div
                 key={ing.id}
-                className={`grid grid-cols-[40px_1fr_120px_180px_100px_80px_80px] gap-2 px-4 py-3 items-center text-sm border-b border-border last:border-0 ${
-                  idx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
-                }`}
+                className="grid grid-cols-[40px_1fr_120px_180px_100px_90px_100px_80px] gap-2 px-4 py-3 items-center text-sm hover:bg-muted/40"
+                style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--tf-border-light)' : undefined }}
               >
-                <span className="font-mono text-[10px] text-muted-foreground">{ing.codigoInterno ?? '—'}</span>
+                <span className="font-mono text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
+                  {ing.codigoInterno ?? '—'}
+                </span>
 
-                <div>
-                  <span className="font-medium text-foreground">{ing.name}</span>
-                </div>
+                <span className="font-medium" style={{ color: 'var(--tf-txt)' }}>{ing.name}</span>
 
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-xs truncate" style={{ color: 'var(--tf-txt3)' }}>
                   {ing.category?.name ?? '—'}
                 </span>
 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-foreground text-xs font-medium">
+                    <span className="font-mono text-xs font-medium" style={{ color: 'var(--tf-txt)' }}>
                       {ing.currentQty.toFixed(3)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
                       {unitLabels[ing.unit] ?? ing.unit}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${s.bar}`}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div style={{ height: 4, borderRadius: 9999, background: 'var(--tf-border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 9999, background: s.barColor, width: `${pct}%`, transition: 'width 300ms' }} />
                   </div>
                 </div>
 
-                <span className="font-mono text-muted-foreground text-right text-xs">
+                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt3)' }}>
                   {ing.minimumQty.toFixed(3)} {unitLabels[ing.unit] ?? ing.unit}
                 </span>
 
-                <div className="flex justify-center">
-                  <Badge className={`text-[10px] border px-1.5 py-0 ${s.badge}`}>{s.label}</Badge>
+                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt2)' }}>
+                  {formatCurrency(ing.currentQty * ing.unitCost)}
+                </span>
+
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <span style={{ background: s.bg, color: s.color, border: s.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
+                    {s.label}
+                  </span>
                 </div>
 
                 <div className="flex justify-end">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1"
+                    className="h-7 text-xs gap-1 hover:bg-primary/10"
+                    style={{ color: 'var(--tf-primary)' }}
                     onClick={() => setEntradaTarget(ing)}
                   >
                     <ArrowDown className="w-3 h-3" />
@@ -322,13 +358,15 @@ function StockPosition() {
             )
           })
         )}
+
+        {!loading && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid var(--tf-border)', background: 'var(--tf-surface2)' }}>
+            <span style={{ fontSize: 12, color: 'var(--tf-txt3)' }}>{filtered.length} de {ingredients.length} item(s)</span>
+            <span style={{ fontSize: 12, color: 'var(--tf-txt2)', fontWeight: 500 }}>Valor total: {formatCurrency(filteredValue)}</span>
+          </div>
+        )}
       </div>
 
-      <p className="text-xs text-muted-foreground text-right">
-        {filtered.length} de {ingredients.length} item(s)
-      </p>
-
-      {/* Entry Dialog */}
       <EntradaDialog
         ingredient={entradaTarget}
         onClose={() => setEntradaTarget(null)}
@@ -338,30 +376,10 @@ function StockPosition() {
   )
 }
 
-// ── Stat mini card ─────────────────────────────────────────────────────────────
-
-function StatMini({ label, value, color, icon: Icon }: {
-  label: string; value: number; color: string; icon: React.ElementType
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <Icon className={`w-5 h-5 shrink-0 ${color}`} />
-        <div>
-          <p className={`text-xl font-bold ${color}`}>{value}</p>
-          <p className="text-xs text-muted-foreground leading-tight">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 // ── Entrada Dialog ─────────────────────────────────────────────────────────────
 
 function EntradaDialog({
-  ingredient,
-  onClose,
-  onSuccess,
+  ingredient, onClose, onSuccess,
 }: {
   ingredient: Ingredient | null
   onClose: () => void
@@ -392,12 +410,7 @@ function EntradaDialog({
       const res = await fetch(`/api/ingredients/${ingredient.id}/movements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'IN',
-          quantity,
-          unitCost: isNaN(unitCost) ? undefined : unitCost,
-          reason: reason || undefined,
-        }),
+        body: JSON.stringify({ type: 'IN', quantity, unitCost: isNaN(unitCost) ? undefined : unitCost, reason: reason || undefined }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -413,87 +426,65 @@ function EntradaDialog({
     }
   }
 
+  const ss = ingredient ? STOCK_STATUS[ingredient.stockStatus] : null
+
   return (
     <Dialog open={!!ingredient} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/10">
-              <ArrowDown className="w-4 h-4 text-emerald-400" />
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'var(--tf-green-ok-bg)' }}>
+              <ArrowDown style={{ width: 16, height: 16, color: 'var(--tf-green-ok)' }} />
             </span>
             Registrar Entrada
           </DialogTitle>
         </DialogHeader>
 
-        {ingredient && (
+        {ingredient && ss && (
           <form onSubmit={handleSubmit} className="space-y-4 mt-1">
-            {/* ingredient summary */}
-            <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-center justify-between">
+            <div style={{ borderRadius: 8, border: '1px solid var(--tf-border)', background: 'var(--tf-surface2)', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p className="font-semibold text-foreground text-sm">{ingredient.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Estoque atual: <span className="font-mono font-medium text-foreground">
+                <p className="font-semibold text-sm" style={{ color: 'var(--tf-txt)' }}>{ingredient.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--tf-txt3)' }}>
+                  Estoque atual:{' '}
+                  <span className="font-mono font-medium" style={{ color: 'var(--tf-txt)' }}>
                     {ingredient.currentQty.toFixed(3)} {unitLabels[ingredient.unit] ?? ingredient.unit}
                   </span>
                 </p>
               </div>
-              <Badge className={`text-[10px] border ${STOCK_STATUS[ingredient.stockStatus].badge}`}>
-                {STOCK_STATUS[ingredient.stockStatus].label}
-              </Badge>
+              <span style={{ background: ss.bg, color: ss.color, border: ss.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
+                {ss.label}
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Quantidade recebida <span className="text-muted-foreground text-xs">({unitLabels[ingredient.unit] ?? ingredient.unit})</span></Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  placeholder="0.000"
-                  value={qty}
-                  onChange={e => setQty(e.target.value)}
-                  autoFocus
-                  required
-                />
+                <Label>Quantidade <span className="text-xs" style={{ color: 'var(--tf-txt3)' }}>({unitLabels[ingredient.unit] ?? ingredient.unit})</span></Label>
+                <Input type="number" step="0.001" min="0.001" placeholder="0.000" value={qty} onChange={e => setQty(e.target.value)} autoFocus required />
               </div>
               <div className="space-y-1.5">
                 <Label>Custo unitário (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  placeholder="0,0000"
-                  value={cost}
-                  onChange={e => setCost(e.target.value)}
-                />
+                <Input type="number" step="0.0001" min="0" placeholder="0,0000" value={cost} onChange={e => setCost(e.target.value)} />
               </div>
             </div>
 
             {qty && parseFloat(qty) > 0 && cost && parseFloat(cost) > 0 && (
-              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Total da entrada</span>
-                <span className="text-sm font-semibold text-emerald-400">
+              <div style={{ borderRadius: 8, background: 'var(--tf-green-ok-bg)', border: '1px solid var(--tf-green-ok-bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="text-xs" style={{ color: 'var(--tf-txt3)' }}>Total da entrada</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--tf-green-ok)' }}>
                   {formatCurrency(parseFloat(qty) * parseFloat(cost))}
                 </span>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label>Motivo / Observação <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-              <Input
-                placeholder="Ex: Compra fornecedor, NF 1234..."
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-              />
+              <Label>Motivo <span className="text-xs" style={{ color: 'var(--tf-txt3)' }}>(opcional)</span></Label>
+              <Input placeholder="Ex: Compra fornecedor, NF 1234..." value={reason} onChange={e => setReason(e.target.value)} />
             </div>
 
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
+              <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
                 {loading
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Salvando...</>
                   : <><ArrowDown className="w-4 h-4" />Confirmar Entrada</>
@@ -540,10 +531,7 @@ function PhysicalCounts() {
     setCreating(false)
     if (!res.ok) { toast.error('Erro ao criar inventário'); return }
     const data: InventarioDetail = await res.json()
-    setNewName('')
-    setShowNewForm(false)
-    setSelected(data)
-    loadList()
+    setNewName(''); setShowNewForm(false); setSelected(data); loadList()
     toast.success('Inventário criado — preencha as quantidades contadas')
   }
 
@@ -569,7 +557,6 @@ function PhysicalCounts() {
     const items = selected.items
       .filter(i => i.qtdContada !== null)
       .map(i => ({ itemId: i.id, qtdContada: i.qtdContada as number, observacao: i.observacao ?? undefined }))
-
     const res = await fetch(`/api/inventarios/${selected.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -582,14 +569,12 @@ function PhysicalCounts() {
 
   async function handleFinalize() {
     if (!selected) return
-    setFinalizing(true)
-    setConfirmFinalize(false)
+    setFinalizing(true); setConfirmFinalize(false)
     const res = await fetch(`/api/inventarios/${selected.id}/finalizar`, { method: 'POST' })
     setFinalizing(false)
     if (!res.ok) { toast.error('Erro ao finalizar'); return }
     toast.success('Inventário finalizado! Estoque atualizado.')
-    setSelected(null)
-    loadList()
+    setSelected(null); loadList()
   }
 
   async function handleCancel() {
@@ -604,50 +589,35 @@ function PhysicalCounts() {
     const total = selected.items.length
     const progress = total > 0 ? Math.round((counted / total) * 100) : 0
     const isOpen = selected.status === 'ABERTO'
-
     const visibleItems = selected.items.filter(i =>
       !searchCount || i.ingredient.name.toLowerCase().includes(searchCount.toLowerCase())
     )
 
     return (
       <div className="space-y-5">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <button
               onClick={() => setSelected(null)}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
+              className="flex items-center gap-1 text-sm mb-2 transition-colors hover:opacity-80"
+              style={{ color: 'var(--tf-txt3)' }}
             >
-              <ChevronLeft className="w-4 h-4" />
-              Voltar às contagens
+              <ChevronLeft className="w-4 h-4" />Voltar às contagens
             </button>
-            <h2 className="text-xl font-bold text-foreground">{selected.nome}</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {counted} de {total} itens contados
-            </p>
+            <h2 className="text-xl font-bold" style={{ color: 'var(--tf-txt)' }}>{selected.nome}</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--tf-txt3)' }}>{counted} de {total} itens contados</p>
           </div>
 
           {isOpen && (
             <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-                className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-              >
-                <XCircle className="w-4 h-4 mr-1.5" />
-                Cancelar
+              <Button variant="outline" size="sm" onClick={handleCancel} className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
+                <XCircle className="w-4 h-4 mr-1.5" />Cancelar
               </Button>
               <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
                 {saving ? 'Salvando...' : 'Salvar'}
               </Button>
-              <Button
-                size="sm"
-                disabled={finalizing || counted === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => setConfirmFinalize(true)}
-              >
+              <Button size="sm" disabled={finalizing || counted === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => setConfirmFinalize(true)}>
                 <CheckCircle className="w-4 h-4 mr-1.5" />
                 {finalizing ? 'Finalizando...' : 'Finalizar'}
               </Button>
@@ -655,39 +625,26 @@ function PhysicalCounts() {
           )}
         </div>
 
-        {/* Progress */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs" style={{ color: 'var(--tf-txt3)' }}>
             <span>Progresso</span>
-            <span className="font-semibold text-foreground">{progress}%</span>
+            <span className="font-semibold" style={{ color: 'var(--tf-txt)' }}>{progress}%</span>
           </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
+          <div style={{ height: 8, borderRadius: 9999, background: 'var(--tf-border)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--tf-primary)', borderRadius: 9999, width: `${progress}%`, transition: 'width 500ms' }} />
           </div>
         </div>
 
-        {/* Search within count */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar insumo na contagem..."
-            value={searchCount}
-            onChange={e => setSearchCount(e.target.value)}
-          />
+          <Input className="pl-9" placeholder="Buscar insumo na contagem..." value={searchCount} onChange={e => setSearchCount(e.target.value)} />
         </div>
 
-        {/* Count table */}
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-            <span className="text-xs font-medium text-muted-foreground">Código</span>
-            <span className="text-xs font-medium text-muted-foreground">Insumo</span>
-            <span className="text-xs font-medium text-muted-foreground text-right">Sistema</span>
-            <span className="text-xs font-medium text-muted-foreground text-right">Contado</span>
-            <span className="text-xs font-medium text-muted-foreground text-right">Diferença</span>
+        <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5" style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)' }}>
+            {['Código', 'Insumo', 'Sistema', 'Contado', 'Diferença'].map((h, i) => (
+              <span key={i} style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--tf-txt3)', textAlign: i >= 2 ? 'right' : 'left' }}>{h}</span>
+            ))}
           </div>
 
           {visibleItems.map((item, idx) => {
@@ -697,51 +654,36 @@ function PhysicalCounts() {
             return (
               <div
                 key={item.id}
-                className={`grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5 items-center text-sm border-b border-border last:border-0 ${
-                  idx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
-                }`}
+                className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5 items-center text-sm hover:bg-muted/40"
+                style={{ borderBottom: idx < visibleItems.length - 1 ? '1px solid var(--tf-border-light)' : undefined }}
               >
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="font-mono text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
                   {item.ingredient.codigoInterno ?? '—'}
                 </span>
 
                 <div className="flex items-center gap-2">
-                  {item.qtdContada !== null ? (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0" />
-                  )}
-                  <span className="font-medium text-foreground text-sm truncate">{item.ingredient.name}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: 9999, background: item.qtdContada !== null ? 'var(--tf-green-ok)' : 'var(--tf-border)', flexShrink: 0, display: 'inline-block' }} />
+                  <span className="font-medium text-sm truncate" style={{ color: 'var(--tf-txt)' }}>{item.ingredient.name}</span>
                 </div>
 
-                <span className="font-mono text-muted-foreground text-right text-xs">
+                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt3)' }}>
                   {item.qtdSistema.toFixed(3)} {unit}
                 </span>
 
                 <div className="flex justify-end">
                   {isOpen ? (
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.001"
-                      value={item.qtdContada ?? ''}
-                      onChange={e => updateItemCount(item.id, e.target.value)}
-                      className="w-28 text-right h-8 font-mono text-sm"
-                      placeholder="—"
-                    />
+                    <Input type="number" min="0" step="0.001" value={item.qtdContada ?? ''} onChange={e => updateItemCount(item.id, e.target.value)} className="w-28 text-right h-8 font-mono text-sm" placeholder="—" />
                   ) : (
-                    <span className="font-mono text-muted-foreground text-xs">
+                    <span className="font-mono text-xs" style={{ color: 'var(--tf-txt3)' }}>
                       {item.qtdContada !== null ? item.qtdContada.toFixed(3) : '—'}
                     </span>
                   )}
                 </div>
 
-                <span className={`font-mono text-right text-xs font-medium ${
-                  diff === null ? 'text-muted-foreground/40' :
-                  diff > 0  ? 'text-emerald-400' :
-                  diff < 0  ? 'text-red-400' :
-                  'text-muted-foreground'
-                }`}>
+                <span
+                  className="font-mono text-right text-xs font-medium"
+                  style={{ color: diff === null ? 'var(--tf-border)' : diff > 0 ? 'var(--tf-green-ok)' : diff < 0 ? 'var(--tf-red)' : 'var(--tf-txt3)' }}
+                >
                   {diff !== null ? (diff >= 0 ? '+' : '') + diff.toFixed(3) : '—'}
                 </span>
               </div>
@@ -749,7 +691,6 @@ function PhysicalCounts() {
           })}
         </div>
 
-        {/* Confirm finalize dialog */}
         <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -762,12 +703,8 @@ function PhysicalCounts() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleFinalize}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <CheckCircle className="w-4 h-4 mr-1.5" />
-                Sim, finalizar
+              <AlertDialogAction onClick={handleFinalize} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <CheckCircle className="w-4 h-4 mr-1.5" />Sim, finalizar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -780,22 +717,18 @@ function PhysicalCounts() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm" style={{ color: 'var(--tf-txt3)' }}>
           Realize contagens físicas periódicas para auditar e ajustar o estoque.
         </p>
-        <Button
-          onClick={() => setShowNewForm(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Contagem
+        <Button onClick={() => setShowNewForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+          <Plus className="w-4 h-4" />Nova Contagem
         </Button>
       </div>
 
       {showNewForm && (
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm font-medium text-foreground mb-3">Nova Contagem Física</p>
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--tf-txt)' }}>Nova Contagem Física</p>
             <div className="flex gap-2">
               <Input
                 value={newName}
@@ -804,16 +737,10 @@ function PhysicalCounts() {
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
                 autoFocus
               />
-              <Button
-                onClick={handleCreate}
-                disabled={creating || !newName.trim()}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
-              >
+              <Button onClick={handleCreate} disabled={creating || !newName.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0">
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar'}
               </Button>
-              <Button variant="outline" onClick={() => { setShowNewForm(false); setNewName('') }}>
-                Cancelar
-              </Button>
+              <Button variant="outline" onClick={() => { setShowNewForm(false); setNewName('') }}>Cancelar</Button>
             </div>
           </CardContent>
         </Card>
@@ -825,10 +752,10 @@ function PhysicalCounts() {
           <span className="text-sm">Carregando...</span>
         </div>
       ) : list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 gap-3 text-center">
-          <ClipboardList className="w-10 h-10 text-muted-foreground/30" />
-          <p className="text-muted-foreground font-medium text-sm">Nenhuma contagem realizada</p>
-          <p className="text-muted-foreground/60 text-xs">Crie uma contagem para auditar o estoque fisicamente</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px dashed var(--tf-border)', padding: '64px 16px', gap: 12, textAlign: 'center' }}>
+          <ClipboardList style={{ width: 40, height: 40, color: 'var(--tf-txt3)', opacity: 0.4 }} />
+          <p className="font-medium text-sm" style={{ color: 'var(--tf-txt3)' }}>Nenhuma contagem realizada</p>
+          <p className="text-xs" style={{ color: 'var(--tf-txt3)', opacity: 0.7 }}>Crie uma contagem para auditar o estoque fisicamente</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -839,25 +766,22 @@ function PhysicalCounts() {
               <button
                 key={inv.id}
                 onClick={() => openInventario(inv.id)}
-                className="w-full flex items-center justify-between rounded-xl border border-border bg-card px-5 py-4 hover:bg-secondary/40 transition-colors text-left"
+                className="w-full flex items-center justify-between rounded-lg px-5 py-4 text-left hover:bg-muted/40 transition-colors"
+                style={{ border: '1px solid var(--tf-border)', background: 'var(--tf-surface)' }}
               >
                 <div className="flex items-center gap-4">
-                  <Icon className={`h-5 w-5 shrink-0 ${s.cls}`} />
+                  <Icon style={{ width: 20, height: 20, color: s.iconColor, flexShrink: 0 }} />
                   <div>
-                    <p className="font-medium text-foreground text-sm">{inv.nome}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">
+                    <p className="font-medium text-sm" style={{ color: 'var(--tf-txt)' }}>{inv.nome}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--tf-txt3)' }}>
                       {inv._count.items} insumos · {new Date(inv.iniciadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                       {inv.finalizadoEm && ` · Finalizado em ${new Date(inv.finalizadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`}
                     </p>
                   </div>
                 </div>
-                <Badge className={`text-xs border ${
-                  inv.status === 'ABERTO' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                  inv.status === 'FINALIZADO' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                  'bg-muted text-muted-foreground border-border'
-                }`}>
+                <span style={{ background: s.bg, color: s.color, border: s.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999 }}>
                   {s.label}
-                </Badge>
+                </span>
               </button>
             )
           })}

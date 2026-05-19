@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/api/usuarios/[id]/reset-senha\")",
+      "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/api/recuperar-senha/validate/[token]\")",
+      "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/api/convite/validate/[token]\")",
+      "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/auth/recuperar-senha/[token]\")",
+      "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/auth/convite/[token]\")",
+      "Bash(npm test *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\gemes\\Desktop\\THE-FINANCE\\src\\app\\api\\usuarios\\[id]",
+      "c:\\Users\\gemes\\Desktop\\THE-FINANCE\\src\\app\\auth\\recuperar-senha",
+      "c:\\Users\\gemes\\Desktop\\THE-FINANCE\\src\\app\\auth\\convite"
+    ]
+  }
+}

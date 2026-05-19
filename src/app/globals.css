@@ -30,66 +30,138 @@
   --font-heading: var(--font-heading);
 }
 
-/* ── Light mode (default) ─────────────────────────────────────────────────── */
+/* ── Light mode / Tema Normal (default) ───────────────────────────────────── */
 :root {
-  --background:           #F2F2F7;
-  --foreground:           #1C1C1E;
+  --background:           #f0f4f8;
+  --foreground:           #111827;
   --card:                 #FFFFFF;
-  --card-foreground:      #1C1C1E;
+  --card-foreground:      #111827;
   --popover:              #FFFFFF;
-  --popover-foreground:   #1C1C1E;
-  --primary:              #2D6A4F;
-  --primary-dark:         #1B4332;
+  --popover-foreground:   #111827;
+  --primary:              #2a9d6f;
+  --primary-dark:         #207d58;
   --primary-foreground:   #FFFFFF;
-  --secondary:            #E5E5EA;
-  --secondary-foreground: #1C1C1E;
-  --muted:                #E5E5EA;
-  --muted-foreground:     #636366;
-  --accent:               #E5E5EA;
-  --accent-foreground:    #1C1C1E;
-  --destructive:          #dc2663;
+  --secondary:            #f7fafc;
+  --secondary-foreground: #111827;
+  --muted:                #f0f4f8;
+  --muted-foreground:     #94a3b8;
+  --accent:               #e0f5ee;
+  --accent-foreground:    #111827;
+  --destructive:          #dc2626;
   --destructive-foreground: #FFFFFF;
-  --border:               rgba(0, 0, 0, 0.08);
-  --input:                rgba(0, 0, 0, 0.06);
-  --ring:                 #2D6A4F;
-  --radius:               0.625rem;
+  --border:               #dbe8f0;
+  --input:                #dbe8f0;
+  --ring:                 #2a9d6f;
+  --radius:               0.5rem;
 
-  /* sidebar lighter than card in light */
-  --sidebar:              #FFFFFF;
-  --sidebar-border:       rgba(0, 0, 0, 0.07);
+  /* sidebar — dark navy in Normal theme */
+  --sidebar:              #1a2e3a;
+  --sidebar-border:       #243848;
+
+  /* ── THE FINANCE custom tokens — Tema Normal ──────────────────────────── */
+  --tf-bg:               #f0f4f8;
+  --tf-surface:          #ffffff;
+  --tf-surface2:         #f7fafc;
+  --tf-border:           #dbe8f0;
+  --tf-border-light:     #eaf1f7;
+  --tf-input-bg:         #ffffff;
+  --tf-input-border:     #dbe8f0;
+  --tf-txt:              #111827;
+  --tf-txt2:             #4b6070;
+  --tf-txt3:             #94a3b8;
+  --tf-primary:          #2a9d6f;
+  --tf-primary-hov:      #207d58;
+  --tf-primary-txt:      #ffffff;
+  --tf-primary-bg:       rgba(42,157,111,0.08);
+  --tf-primary-bd:       rgba(42,157,111,0.25);
+  --tf-green-ok:         #16a34a;
+  --tf-green-ok-bg:      #f0fdf4;
+  --tf-green-ok-bd:      #bbf7d0;
+  --tf-yellow:           #b45309;
+  --tf-yellow-bg:        #fffbeb;
+  --tf-yellow-bd:        #fde68a;
+  --tf-red:              #dc2626;
+  --tf-red-bg:           #fef2f2;
+  --tf-red-bd:           #fecaca;
+  --tf-sidebar:          #1a2e3a;
+  --tf-sidebar-bd:       #243848;
+  --tf-sidebar-hov:      #1f3749;
+  --tf-sidebar-active:   #162636;
+  --tf-sidebar-txt:      #94afc0;
+  --tf-sidebar-txt-on:   #ffffff;
+  --tf-font-display:     var(--font-instrument-serif), Georgia, serif;
+  /* backward-compat aliases */
+  --tf-border-color:     var(--tf-border);
+  --tf-content-bg:       var(--tf-bg);
 }
 
-/* ── Dark mode ────────────────────────────────────────────────────────────── */
+/* ── Dark mode / Tema Dark ────────────────────────────────────────────────── */
 .dark {
-  --background:           #1C1C1E;
-  --foreground:           #FFFFFF;
-  --card:                 #252528;
-  --card-foreground:      #FFFFFF;
-  --popover:              #2C2C2E;
-  --popover-foreground:   #FFFFFF;
-  --primary:              #2D6A4F;
-  --primary-dark:         #1B4332;
-  --primary-foreground:   #FFFFFF;
-  --secondary:            #3A3A3C;
-  --secondary-foreground: rgba(255, 255, 255, 0.85);
-  --muted:                #3A3A3C;
-  --muted-foreground:     #8E8E93;
-  --accent:               #3A3A3C;
-  --accent-foreground:    #FFFFFF;
-  --destructive:          #0411a3;
-  --destructive-foreground: #FFFFFF;
-  --border:               rgba(255, 255, 255, 0.08);
+  --background:           #1c1f1e;
+  --foreground:           #e8ede9;
+  --card:                 #1e2220;
+  --card-foreground:      #e8ede9;
+  --popover:              #1e2220;
+  --popover-foreground:   #e8ede9;
+  --primary:              #2d6a4f;
+  --primary-dark:         #235a41;
+  --primary-foreground:   #f0ebe1;
+  --secondary:            #2a2e2c;
+  --secondary-foreground: #8a9e92;
+  --muted:                #2a2e2c;
+  --muted-foreground:     #4a5e52;
+  --accent:               #0d2b1f;
+  --accent-foreground:    #e8ede9;
+  --destructive:          #f87171;
+  --destructive-foreground: #1c1f1e;
+  --border:               #2a2e2c;
   --input:                rgba(255, 255, 255, 0.06);
-  --ring:                 #2D6A4F;
+  --ring:                 #2d6a4f;
 
-  /* sidebar slightly lighter than main bg */
-  --sidebar:              #252528;
-  --sidebar-border:       rgba(255, 255, 255, 0.07);
+  /* sidebar — dark slate in Dark theme */
+  --sidebar:              #161918;
+  --sidebar-border:       #2a2e2c;
+
+  /* ── THE FINANCE custom tokens — Tema Dark ────────────────────────────── */
+  --tf-bg:               #1c1f1e;
+  --tf-surface:          #1e2220;
+  --tf-surface2:         #191c1b;
+  --tf-border:           #2a2e2c;
+  --tf-border-light:     #222624;
+  --tf-input-bg:         rgba(255,255,255,0.06);
+  --tf-input-border:     rgba(255,255,255,0.12);
+  --tf-txt:              #e8ede9;
+  --tf-txt2:             #8a9e92;
+  --tf-txt3:             #4a5e52;
+  --tf-primary:          #2d6a4f;
+  --tf-primary-hov:      #235a41;
+  --tf-primary-txt:      #f0ebe1;
+  --tf-primary-bg:       rgba(45,106,79,0.12);
+  --tf-primary-bd:       rgba(45,106,79,0.35);
+  --tf-green-ok:         #52b788;
+  --tf-green-ok-bg:      rgba(82,183,136,0.12);
+  --tf-green-ok-bd:      rgba(82,183,136,0.25);
+  --tf-yellow:           #fbbf24;
+  --tf-yellow-bg:        rgba(251,191,36,0.10);
+  --tf-yellow-bd:        rgba(251,191,36,0.25);
+  --tf-red:              #f87171;
+  --tf-red-bg:           rgba(248,113,113,0.10);
+  --tf-red-bd:           rgba(248,113,113,0.25);
+  --tf-sidebar:          #161918;
+  --tf-sidebar-bd:       #2a2e2c;
+  --tf-sidebar-hov:      #1e2220;
+  --tf-sidebar-active:   #0d2b1f;
+  --tf-sidebar-txt:      #6b8c7a;
+  --tf-sidebar-txt-on:   #e8ede9;
+  /* backward-compat aliases */
+  --tf-border-color:     var(--tf-border);
+  --tf-content-bg:       var(--tf-bg);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
   }
   body {
     @apply bg-background text-foreground;

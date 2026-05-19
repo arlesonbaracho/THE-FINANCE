@@ -23,8 +23,6 @@ import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import type { IngredientWithRelations } from '@/types'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
 type FormValues = {
   name: string
   unit: 'KG' | 'G' | 'L' | 'ML' | 'UN'
@@ -39,7 +37,7 @@ type FormValues = {
 type TipoEmbalagem = 'unidade' | 'pacote'
 
 interface Category { id: string; name: string }
-interface Supplier { id: string; name: string }
+interface Supplier  { id: string; name: string }
 
 export interface IngredientFormProps {
   open: boolean
@@ -48,17 +46,13 @@ export interface IngredientFormProps {
   onSuccess: () => void
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-
 const UNITS: { value: 'KG' | 'G' | 'L' | 'ML' | 'UN'; label: string; short: string; step: number }[] = [
-  { value: 'KG', label: 'kg',  short: 'kg', step: 0.1 },
-  { value: 'G',  label: 'g',   short: 'g',  step: 0.1 },
-  { value: 'L',  label: 'L',   short: 'L',  step: 0.1 },
-  { value: 'ML', label: 'ml',  short: 'ml', step: 0.1 },
-  { value: 'UN', label: 'un',  short: 'un', step: 1 },
+  { value: 'KG', label: 'kg', short: 'kg', step: 0.1 },
+  { value: 'G',  label: 'g',  short: 'g',  step: 0.1 },
+  { value: 'L',  label: 'L',  short: 'L',  step: 0.1 },
+  { value: 'ML', label: 'ml', short: 'ml', step: 0.1 },
+  { value: 'UN', label: 'un', short: 'un', step: 1   },
 ]
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmtQty(n: number) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
@@ -66,33 +60,39 @@ function fmtQty(n: number) {
 
 function segBtn(active: boolean): React.CSSProperties {
   return active
-    ? { background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)', border: '1px solid var(--tf-primary)', borderRadius: 5, padding: '5px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all 150ms' }
-    : { background: 'var(--tf-input-bg)', color: 'var(--tf-txt3)', border: '1px solid var(--tf-border)', borderRadius: 5, padding: '5px 14px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 150ms' }
+    ? { background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)', border: '1px solid var(--tf-primary)', borderRadius: 5, padding: '4px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }
+    : { background: 'transparent', color: 'var(--tf-txt3)', border: '1px solid var(--tf-border)', borderRadius: 5, padding: '4px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
+const inp: React.CSSProperties = {
+  background: 'var(--tf-input-bg)',
+  borderColor: 'var(--tf-input-border)',
+  color: 'var(--tf-txt)',
+}
+
+const selTrigger: React.CSSProperties = {
+  background: 'var(--tf-input-bg)',
+  borderColor: 'var(--tf-input-border)',
+  color: 'var(--tf-txt)',
+  height: 32,
+}
 
 export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: IngredientFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [suppliers,  setSuppliers]  = useState<Supplier[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Embalagem
-  const [tipoEmbalagem, setTipoEmbalagem] = useState<TipoEmbalagem>('unidade')
+  const [tipoEmbalagem,   setTipoEmbalagem]   = useState<TipoEmbalagem>('unidade')
   const [custoTotalPacote, setCustoTotalPacote] = useState('')
-  const [qtdPorPacote, setQtdPorPacote] = useState('')
+  const [qtdPorPacote,    setQtdPorPacote]    = useState('')
+  const [qtdDesejada,     setQtdDesejada]     = useState(1)
 
-  // Calculator
-  const [qtdDesejada, setQtdDesejada] = useState(1)
+  const { register, handleSubmit, control, reset, watch, formState: { errors } } =
+    useForm<FormValues>({ defaultValues: { name: '', unit: 'KG', currentQty: 0, minimumQty: 0, pontoReposicao: 0, unitCost: 0 } })
 
-  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { name: '', unit: 'KG', currentQty: 0, minimumQty: 0, pontoReposicao: 0, unitCost: 0 },
-  })
-
-  const watchedUnit = watch('unit')
-  const watchedUnitCost = watch('unitCost') ?? 0
+  const watchedUnit       = watch('unit')
+  const watchedUnitCost   = watch('unitCost') ?? 0
   const watchedCurrentQty = watch('currentQty') ?? 0
-
   const unitMeta = UNITS.find(u => u.value === watchedUnit) ?? UNITS[0]
 
   const custoUnitario =
@@ -114,66 +114,40 @@ export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: In
   useEffect(() => {
     if (ingredient) {
       reset({
-        name: ingredient.name,
-        unit: ingredient.unit,
-        currentQty: ingredient.currentQty,
-        minimumQty: ingredient.minimumQty,
-        pontoReposicao: ingredient.pontoReposicao ?? 0,
-        unitCost: ingredient.unitCost,
-        categoryId: ingredient.categoryId ?? undefined,
-        supplierId: ingredient.supplierId ?? undefined,
+        name: ingredient.name, unit: ingredient.unit,
+        currentQty: ingredient.currentQty, minimumQty: ingredient.minimumQty,
+        pontoReposicao: ingredient.pontoReposicao ?? 0, unitCost: ingredient.unitCost,
+        categoryId: ingredient.categoryId ?? undefined, supplierId: ingredient.supplierId ?? undefined,
       })
     } else {
       reset({ name: '', unit: 'KG', currentQty: 0, minimumQty: 0, pontoReposicao: 0, unitCost: 0 })
     }
-    setTipoEmbalagem('unidade')
-    setCustoTotalPacote('')
-    setQtdPorPacote('')
-    setQtdDesejada(1)
+    setTipoEmbalagem('unidade'); setCustoTotalPacote(''); setQtdPorPacote(''); setQtdDesejada(1)
   }, [ingredient, reset, open])
 
   async function onSubmit(values: FormValues) {
-    const finalUnitCost =
-      tipoEmbalagem === 'pacote'
-        ? parseFloat(custoTotalPacote) / parseFloat(qtdPorPacote)
-        : values.unitCost
+    const finalUnitCost = tipoEmbalagem === 'pacote'
+      ? parseFloat(custoTotalPacote) / parseFloat(qtdPorPacote)
+      : values.unitCost
 
-    if (!(finalUnitCost > 0)) {
-      toast.error('Custo deve ser maior que zero')
-      return
-    }
+    if (!(finalUnitCost > 0)) { toast.error('Custo deve ser maior que zero'); return }
     if (tipoEmbalagem === 'pacote' && !(parseFloat(qtdPorPacote) >= 1)) {
-      toast.error('Informe a quantidade por pacote (mínimo 1)')
-      return
+      toast.error('Informe a quantidade por pacote (mínimo 1)'); return
     }
 
     setLoading(true)
     try {
-      const url = ingredient ? `/api/ingredients/${ingredient.id}` : '/api/ingredients'
+      const url    = ingredient ? `/api/ingredients/${ingredient.id}` : '/api/ingredients'
       const method = ingredient ? 'PUT' : 'POST'
       const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...values,
-          unitCost: finalUnitCost,
-          categoryId: values.categoryId || null,
-          supplierId: values.supplierId || null,
-        }),
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...values, unitCost: finalUnitCost, categoryId: values.categoryId || null, supplierId: values.supplierId || null }),
       })
-      if (!res.ok) {
-        const data = await res.json()
-        toast.error(data.error || 'Erro ao salvar insumo')
-        return
-      }
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Erro ao salvar insumo'); return }
       toast.success(ingredient ? 'Insumo atualizado!' : 'Insumo criado!')
-      onSuccess()
-      onOpenChange(false)
-    } catch {
-      toast.error('Erro de conexão')
-    } finally {
-      setLoading(false)
-    }
+      onSuccess(); onOpenChange(false)
+    } catch { toast.error('Erro de conexão') }
+    finally { setLoading(false) }
   }
 
   function adjustQtd(delta: number) {
@@ -184,248 +158,196 @@ export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: In
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-lg"
-        style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', padding: 0 }}
+        style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', padding: 0, display: 'flex', flexDirection: 'column', maxHeight: '92vh', overflow: 'hidden' }}
       >
         {/* Header */}
-        <DialogHeader style={{ padding: '20px 24px 0' }}>
-          <DialogTitle style={{ color: 'var(--tf-txt)', fontSize: 16, fontWeight: 600 }}>
+        <DialogHeader style={{ padding: '16px 24px 14px', borderBottom: '1px solid var(--tf-border)', flexShrink: 0 }}>
+          <DialogTitle style={{ color: 'var(--tf-txt)', fontSize: 15, fontWeight: 600 }}>
             {ingredient ? 'Editar Insumo' : 'Novo Insumo'}
           </DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          style={{ overflowY: 'auto', maxHeight: '78vh', padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}
-        >
+        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Nome */}
-          <div className="space-y-1.5">
-            <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Nome *</Label>
-            <Input
-              placeholder="Ex: Farinha de Trigo"
-              {...register('name', { required: 'Nome é obrigatório' })}
-            />
-            {errors.name && (
-              <p style={{ color: 'var(--tf-red)', fontSize: 11, marginTop: 2 }}>{errors.name.message}</p>
-            )}
-          </div>
+          {/* Scrollable body */}
+          <div style={{ overflowY: 'auto', flex: 1, minHeight: 0, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Tipo de embalagem */}
-          <div className="space-y-2">
-            <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Tipo de embalagem</Label>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" onClick={() => setTipoEmbalagem('unidade')} style={segBtn(tipoEmbalagem === 'unidade')}>
-                Unidade
-              </button>
-              <button type="button" onClick={() => setTipoEmbalagem('pacote')} style={segBtn(tipoEmbalagem === 'pacote')}>
-                Pacote / Caixa
-              </button>
+            {/* Nome */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Nome *</Label>
+              <Input placeholder="Ex: Farinha de Trigo" style={inp} {...register('name', { required: 'Nome é obrigatório' })} />
+              {errors.name && <p style={{ color: 'var(--tf-red)', fontSize: 11 }}>{errors.name.message}</p>}
             </div>
 
-            {tipoEmbalagem === 'unidade' ? (
-              <div className="space-y-1.5">
-                <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Custo unitário (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  {...register('unitCost', { valueAsNumber: true })}
-                />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Custo total do pacote (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0,00"
-                    value={custoTotalPacote}
-                    onChange={e => setCustoTotalPacote(e.target.value)}
-                  />
+            {/* Embalagem + Custo — duas colunas */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Tipo de embalagem</Label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button type="button" onClick={() => setTipoEmbalagem('unidade')} style={segBtn(tipoEmbalagem === 'unidade')}>Unidade</button>
+                  <button type="button" onClick={() => setTipoEmbalagem('pacote')}  style={segBtn(tipoEmbalagem === 'pacote')}>Pacote</button>
                 </div>
-                <div className="space-y-1.5">
-                  <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Unidades por pacote</Label>
-                  <Input
-                    type="number"
-                    step="1"
-                    min="1"
-                    placeholder="Ex: 12"
-                    value={qtdPorPacote}
-                    onChange={e => setQtdPorPacote(e.target.value)}
-                  />
+              </div>
+
+              {tipoEmbalagem === 'unidade' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Custo unitário (R$)</Label>
+                  <Input type="number" step="0.01" min="0" placeholder="0,00" style={inp} {...register('unitCost', { valueAsNumber: true })} />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Custo do pacote (R$)</Label>
+                  <Input type="number" step="0.01" min="0" placeholder="0,00" style={inp} value={custoTotalPacote} onChange={e => setCustoTotalPacote(e.target.value)} />
+                </div>
+              )}
+            </div>
+
+            {/* Pacote: qtd por pacote + custo calculado */}
+            {tipoEmbalagem === 'pacote' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Unidades por pacote</Label>
+                  <Input type="number" step="1" min="1" placeholder="Ex: 12" style={inp} value={qtdPorPacote} onChange={e => setQtdPorPacote(e.target.value)} />
                 </div>
                 {custoUnitario > 0 && (
-                  <div
-                    className="col-span-2 flex items-center justify-between"
-                    style={{ background: 'var(--tf-primary-bg)', border: '1px solid var(--tf-primary-bd)', borderRadius: 6, padding: '8px 12px' }}
-                  >
-                    <span style={{ fontSize: 12, color: 'var(--tf-txt3)' }}>Custo por unidade calculado</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tf-primary)' }}>
-                      {formatCurrency(custoUnitario)}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--tf-primary-bg)', border: '1px solid var(--tf-primary-bd)', borderRadius: 6, padding: '7px 12px' }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--tf-txt3)' }}>Custo por unidade calculado</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tf-primary)' }}>{formatCurrency(custoUnitario)}</span>
                   </div>
                 )}
               </div>
             )}
-          </div>
 
-          {/* Unidade de medida */}
-          <div className="space-y-2">
-            <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Unidade de medida</Label>
-            <Controller
-              name="unit"
-              control={control}
-              render={({ field }) => (
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {UNITS.map(u => (
-                    <button key={u.value} type="button" onClick={() => field.onChange(u.value)} style={segBtn(field.value === u.value)}>
-                      {u.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            />
-          </div>
-
-          {/* Quantidades */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Qtd. Atual</Label>
-              <Input type="number" step="0.001" min="0" placeholder="0,000" {...register('currentQty', { valueAsNumber: true })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Qtd. Mínima</Label>
-              <Input type="number" step="0.001" min="0" placeholder="0,000" {...register('minimumQty', { valueAsNumber: true })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Ponto reposição</Label>
-              <Input type="number" step="0.001" min="0" placeholder="0,000" {...register('pontoReposicao', { valueAsNumber: true })} />
-            </div>
-          </div>
-
-          {/* Categoria + Fornecedor */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Categoria</Label>
+            {/* Unidade de medida */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Unidade de medida</Label>
               <Controller
-                name="categoryId"
-                control={control}
+                name="unit" control={control}
                 render={({ field }) => (
-                  <Select value={field.value ?? 'none'} onValueChange={v => field.onChange(v === 'none' ? undefined : v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem categoria</SelectItem>
-                      {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {UNITS.map(u => (
+                      <button key={u.value} type="button" onClick={() => field.onChange(u.value)} style={segBtn(field.value === u.value)}>
+                        {u.label}
+                      </button>
+                    ))}
+                  </div>
                 )}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Fornecedor</Label>
-              <Controller
-                name="supplierId"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value ?? 'none'} onValueChange={v => field.onChange(v === 'none' ? undefined : v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem fornecedor</SelectItem>
-                      {suppliers.map(sup => (
-                        <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+
+            {/* Quantidades */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Qtd. Atual</Label>
+                <Input type="number" step="0.001" min="0" placeholder="0,000" style={inp} {...register('currentQty', { valueAsNumber: true })} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Qtd. Mínima</Label>
+                <Input type="number" step="0.001" min="0" placeholder="0,000" style={inp} {...register('minimumQty', { valueAsNumber: true })} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Ponto reposição</Label>
+                <Input type="number" step="0.001" min="0" placeholder="0,000" style={inp} {...register('pontoReposicao', { valueAsNumber: true })} />
+              </div>
             </div>
+
+            {/* Categoria + Fornecedor */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Categoria</Label>
+                <Controller
+                  name="categoryId" control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
+                      <SelectTrigger className="w-full" style={selTrigger}>
+                        <SelectValue placeholder="Sem categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.value && <SelectItem value="__none__">Sem categoria</SelectItem>}
+                        {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <Label style={{ color: 'var(--tf-txt2)', fontSize: 11.5 }}>Fornecedor</Label>
+                <Controller
+                  name="supplierId" control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
+                      <SelectTrigger className="w-full" style={selTrigger}>
+                        <SelectValue placeholder="Sem fornecedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.value && <SelectItem value="__none__">Sem fornecedor</SelectItem>}
+                        {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Calculadora */}
+            <div style={{ border: '1px solid var(--tf-border)', borderRadius: 8, overflow: 'hidden' }}>
+
+              <div style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)', padding: '6px 14px' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--tf-txt3)' }}>
+                  Calcular custo para produto
+                </span>
+              </div>
+
+              {/* Resumo custo/unidade/estoque */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--tf-border-light)' }}>
+                {[
+                  { label: 'Custo unitário', val: formatCurrency(custoUnitario) },
+                  { label: 'Unidade',        val: unitMeta.short },
+                  { label: 'Estoque atual',  val: watchedCurrentQty > 0 ? `${fmtQty(watchedCurrentQty)} ${unitMeta.short}` : '—' },
+                ].map((item, i) => (
+                  <div key={i} style={{ padding: '8px 12px', borderRight: i < 2 ? '1px solid var(--tf-border-light)' : undefined }}>
+                    <p style={{ fontSize: 10, color: 'var(--tf-txt3)', margin: 0 }}>{item.label}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--tf-txt)', margin: '2px 0 0' }}>{item.val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* +/- quantidade */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--tf-border-light)' }}>
+                <button type="button" onClick={() => adjustQtd(-unitMeta.step)}
+                  style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--tf-border)', background: 'var(--tf-input-bg)', color: 'var(--tf-txt2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, lineHeight: 1 }}>
+                  −
+                </button>
+                <Input
+                  type="number" step={unitMeta.step} min={0} value={qtdDesejada}
+                  onChange={e => setQtdDesejada(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="text-center font-mono font-semibold"
+                  style={{ flex: 1, ...inp }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--tf-txt3)', fontWeight: 500, flexShrink: 0 }}>{unitMeta.short}</span>
+                <button type="button" onClick={() => adjustQtd(unitMeta.step)}
+                  style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--tf-border)', background: 'var(--tf-input-bg)', color: 'var(--tf-txt2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, lineHeight: 1 }}>
+                  +
+                </button>
+                <span style={{ fontSize: 11.5, color: 'var(--tf-txt3)', flexShrink: 0 }}>de insumo</span>
+              </div>
+
+              {/* Total */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--tf-primary-bg)' }}>
+                <span style={{ fontSize: 12, color: 'var(--tf-txt2)' }}>Custo total para o produto</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--tf-primary)' }}>
+                  {formatCurrency(custoParaProduto)}
+                </span>
+              </div>
+            </div>
+
           </div>
 
-          {/* ── Calcular custo para produto ── */}
-          <div style={{ border: '1px solid var(--tf-border)', borderRadius: 6, overflow: 'hidden' }}>
-
-            {/* Section header */}
-            <div style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)', padding: '7px 14px' }}>
-              <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--tf-txt3)' }}>
-                Calcular custo para produto
-              </span>
-            </div>
-
-            {/* Summary: custo unit | unidade | estoque atual */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--tf-border-light)' }}>
-              {[
-                { label: 'Custo unitário', val: formatCurrency(custoUnitario) },
-                { label: 'Unidade',        val: unitMeta.short || '—' },
-                { label: 'Estoque atual',  val: watchedCurrentQty > 0 ? `${fmtQty(watchedCurrentQty)} ${unitMeta.short}` : '—' },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '10px 14px',
-                    borderRight: i < 2 ? '1px solid var(--tf-border-light)' : undefined,
-                  }}
-                >
-                  <p style={{ fontSize: 10, color: 'var(--tf-txt3)', margin: 0 }}>{item.label}</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--tf-txt)', margin: '3px 0 0' }}>{item.val}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* +/- quantity row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--tf-border-light)' }}>
-              <button
-                type="button"
-                onClick={() => adjustQtd(-unitMeta.step)}
-                style={{ width: 30, height: 30, borderRadius: 5, border: '1px solid var(--tf-border)', background: 'var(--tf-input-bg)', color: 'var(--tf-txt2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, lineHeight: 1 }}
-              >
-                −
-              </button>
-              <Input
-                type="number"
-                step={unitMeta.step}
-                min={0}
-                value={qtdDesejada}
-                onChange={e => setQtdDesejada(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="text-center font-mono font-semibold"
-                style={{ flex: 1 }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--tf-txt3)', fontWeight: 500, flexShrink: 0 }}>
-                {unitMeta.short}
-              </span>
-              <button
-                type="button"
-                onClick={() => adjustQtd(unitMeta.step)}
-                style={{ width: 30, height: 30, borderRadius: 5, border: '1px solid var(--tf-border)', background: 'var(--tf-input-bg)', color: 'var(--tf-txt2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, lineHeight: 1 }}
-              >
-                +
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--tf-txt3)', flexShrink: 0 }}>de insumo</span>
-            </div>
-
-            {/* Total cost */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--tf-primary-bg)' }}>
-              <span style={{ fontSize: 12.5, color: 'var(--tf-txt2)' }}>Custo total para o produto</span>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--tf-primary)' }}>
-                {formatCurrency(custoParaProduto)}
-              </span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
+          {/* Footer fixo */}
+          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--tf-border)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0, background: 'var(--tf-surface)' }}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              {loading
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
-                : 'Salvar'
-              }
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</> : 'Salvar'}
             </Button>
           </div>
         </form>

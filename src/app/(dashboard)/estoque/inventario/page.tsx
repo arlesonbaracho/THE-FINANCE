@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -43,10 +42,12 @@ import {
   ChevronLeft,
   TrendingDown,
   BarChart3,
+  Download,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
+import { StatCard } from '@/components/ui/stat-card'
 import type { StockStatus } from '@/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -90,97 +91,93 @@ type InventarioDetail = Inventario & { items: InventarioItem[] }
 
 const unitLabels: Record<string, string> = { KG: 'kg', G: 'g', L: 'L', ML: 'ml', UN: 'un' }
 
-const STOCK_STATUS: Record<StockStatus, { label: string; barColor: string; bg: string; color: string; border: string }> = {
-  ok:       { label: 'OK',        barColor: 'var(--tf-green-ok)', bg: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)',  border: '1px solid var(--tf-green-ok-bd)' },
-  low:      { label: 'Reposição', barColor: 'var(--tf-yellow)',   bg: 'var(--tf-yellow-bg)',   color: 'var(--tf-yellow)',    border: '1px solid var(--tf-yellow-bd)' },
-  critical: { label: 'Crítico',   barColor: 'var(--tf-red)',      bg: 'var(--tf-red-bg)',      color: 'var(--tf-red)',       border: '1px solid var(--tf-red-bd)' },
-  expiring: { label: 'Vencendo',  barColor: '#EA580C',            bg: 'rgba(234,88,12,0.08)',  color: '#EA580C',             border: '1px solid rgba(234,88,12,0.25)' },
-  expired:  { label: 'Vencido',   barColor: 'var(--tf-txt3)',     bg: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)',      border: '1px solid var(--tf-border)' },
+const STATUS_STYLES: Record<StockStatus, { label: string; color: string; bg: string; bd: string; icon: LucideIcon }> = {
+  ok:       { label: 'OK',        color: 'var(--tf-green-light)', bg: 'var(--tf-accent-bg)',        bd: 'var(--tf-accent-bd)',        icon: CheckCircle  },
+  low:      { label: 'Reposição', color: 'var(--tf-yellow)',      bg: 'var(--tf-yellow-bg)',        bd: 'var(--tf-yellow-bd)',        icon: TrendingDown },
+  critical: { label: 'Crítico',   color: 'var(--tf-red)',         bg: 'var(--tf-red-bg)',           bd: 'var(--tf-red-bd)',           icon: AlertTriangle },
+  expiring: { label: 'Vencendo',  color: '#EA580C',               bg: 'rgba(234,88,12,0.08)',       bd: 'rgba(234,88,12,0.25)',       icon: Clock        },
+  expired:  { label: 'Vencido',   color: 'var(--tf-txt3)',        bg: 'var(--tf-input-bg)',         bd: 'var(--tf-border)',           icon: XCircle      },
 }
 
 const INV_STATUS = {
-  ABERTO:     { label: 'Em andamento', icon: Clock,       iconColor: '#3b82f6',            bg: 'rgba(59,130,246,0.1)',      color: '#3b82f6',            border: '1px solid rgba(59,130,246,0.3)' },
-  FINALIZADO: { label: 'Finalizado',   icon: CheckCircle, iconColor: 'var(--tf-green-ok)', bg: 'var(--tf-green-ok-bg)',    color: 'var(--tf-green-ok)', border: '1px solid var(--tf-green-ok-bd)' },
-  CANCELADO:  { label: 'Cancelado',    icon: XCircle,     iconColor: 'var(--tf-txt3)',     bg: 'var(--tf-input-bg)',       color: 'var(--tf-txt3)',     border: '1px solid var(--tf-border)' },
+  ABERTO:     { label: 'Em andamento', icon: Clock,       iconColor: '#3b82f6',            bg: 'rgba(59,130,246,0.1)',   color: '#3b82f6',            border: '1px solid rgba(59,130,246,0.3)' },
+  FINALIZADO: { label: 'Finalizado',   icon: CheckCircle, iconColor: 'var(--tf-green-ok)', bg: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)', border: '1px solid var(--tf-green-ok-bd)' },
+  CANCELADO:  { label: 'Cancelado',    icon: XCircle,     iconColor: 'var(--tf-txt3)',     bg: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)',     border: '1px solid var(--tf-border)' },
 }
 
-// ── Stat mini card ─────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-type StatMiniVariant = 'default' | 'success' | 'warning' | 'danger'
-
-const statIconStyle: Record<StatMiniVariant, { background: string; color: string }> = {
-  default: { background: 'var(--tf-input-bg)',    color: 'var(--tf-txt3)' },
-  success: { background: 'var(--tf-green-ok-bg)', color: 'var(--tf-green-ok)' },
-  warning: { background: 'var(--tf-yellow-bg)',   color: 'var(--tf-yellow)' },
-  danger:  { background: 'var(--tf-red-bg)',      color: 'var(--tf-red)' },
+function calcCoverage(current: number, minimum: number): number {
+  if (minimum <= 0) return 999
+  return Math.min((current / minimum) * 100, 999)
 }
 
-const statValueColor: Record<StatMiniVariant, string> = {
-  default: 'var(--tf-txt)',
-  success: 'var(--tf-green-ok)',
-  warning: 'var(--tf-yellow)',
-  danger:  'var(--tf-red)',
+function coverageColor(pct: number): string {
+  if (pct >= 999) return 'var(--tf-green-light)'
+  if (pct >= 60)  return 'var(--tf-green-light)'
+  if (pct >= 20)  return 'var(--tf-yellow)'
+  return 'var(--tf-red)'
 }
 
-function StatMini({ label, value, variant = 'default', icon: Icon }: {
-  label: string; value: number; variant?: StatMiniVariant; icon: LucideIcon
-}) {
-  return (
-    <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...statIconStyle[variant] }}>
-        <Icon size={18} />
-      </div>
-      <div>
-        <p style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.03em', color: 'var(--tf-txt3)', margin: 0 }}>{label}</p>
-        <p style={{ fontSize: 20, fontWeight: 600, color: statValueColor[variant], margin: '2px 0 0', lineHeight: 1.2 }}>{value}</p>
-      </div>
-    </div>
-  )
+function tabStyle(active: boolean): React.CSSProperties {
+  return active
+    ? { background: 'var(--tf-accent-bg)', color: 'var(--tf-green-light)', border: '1px solid #1e3d2e', borderRadius: 6, padding: '7px 16px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }
+    : { background: 'transparent', color: 'var(--tf-muted)', border: '1px solid transparent', borderRadius: 6, padding: '7px 16px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InventarioPage() {
-  const [activeTab, setActiveTab] = useState('stock')
+  const [activeTab, setActiveTab] = useState<'stock' | 'counts'>('stock')
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  const handleFetched = useCallback(() => setLastUpdate(new Date()), [])
+
+  const timestamp = lastUpdate
+    ? `Atualizado às ${String(lastUpdate.getHours()).padStart(2, '0')}:${String(lastUpdate.getMinutes()).padStart(2, '0')}`
+    : ''
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Page Header */}
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--tf-txt)', margin: 0 }}>
           Inventário
         </h1>
-        <p style={{ fontSize: 12.5, color: 'var(--tf-txt3)', marginTop: 3 }}>
+        <p style={{ fontSize: 12, color: 'var(--tf-muted)', marginTop: 3 }}>
           Posição do estoque e contagens físicas
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="stock" className="gap-2">
-            <BarChart3 className="w-4 h-4" />
+      {/* Tab pill bar + timestamp */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, padding: 3, display: 'inline-flex', gap: 2 }}>
+          <button style={tabStyle(activeTab === 'stock')} onClick={() => setActiveTab('stock')}>
+            <BarChart3 size={13} />
             Posição do Estoque
-          </TabsTrigger>
-          <TabsTrigger value="counts" className="gap-2">
-            <ClipboardList className="w-4 h-4" />
+          </button>
+          <button style={tabStyle(activeTab === 'counts')} onClick={() => setActiveTab('counts')}>
+            <ClipboardList size={13} />
             Contagens Físicas
-          </TabsTrigger>
-        </TabsList>
+          </button>
+        </div>
+        {timestamp && (
+          <span style={{ fontSize: 11, color: 'var(--tf-muted)' }}>{timestamp}</span>
+        )}
+      </div>
 
-        <TabsContent value="stock" className="mt-6">
-          <StockPosition />
-        </TabsContent>
-
-        <TabsContent value="counts" className="mt-6">
-          <PhysicalCounts />
-        </TabsContent>
-      </Tabs>
+      {/* Content */}
+      {activeTab === 'stock'  && <StockPosition onFetched={handleFetched} />}
+      {activeTab === 'counts' && <PhysicalCounts />}
     </div>
   )
 }
 
 // ── Tab 1: Stock Position ─────────────────────────────────────────────────────
 
-function StockPosition() {
+const COLS = '36px 1fr 100px 150px 68px 82px 92px 104px 104px'
+
+function StockPosition({ onFetched }: { onFetched: () => void }) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -192,64 +189,88 @@ function StockPosition() {
   const fetchIngredients = useCallback(async () => {
     try {
       const res = await fetch('/api/ingredients')
-      if (res.ok) setIngredients(await res.json())
+      if (res.ok) {
+        setIngredients(await res.json())
+        onFetched()
+      }
     } catch {
       toast.error('Erro ao carregar estoque')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onFetched])
 
   useEffect(() => {
     fetchIngredients()
-    fetch('/api/categories?type=INGREDIENT')
-      .then(r => r.json()).then(setCategories).catch(() => {})
+    fetch('/api/categories?type=INGREDIENT').then(r => r.json()).then(setCategories).catch(() => {})
   }, [fetchIngredients])
 
   const filtered = useMemo(() => ingredients.filter(ing => {
-    const matchSearch = !search || ing.name.toLowerCase().includes(search.toLowerCase()) ||
-      (ing.codigoInterno ?? '').toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search
+      || ing.name.toLowerCase().includes(search.toLowerCase())
+      || (ing.codigoInterno ?? '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || ing.stockStatus === statusFilter
     const matchCat = categoryFilter === 'all' || ing.category?.id === categoryFilter
     return matchSearch && matchStatus && matchCat
   }), [ingredients, search, statusFilter, categoryFilter])
 
   const filteredValue = useMemo(
-    () => filtered.reduce((s, ing) => s + ing.currentQty * ing.unitCost, 0),
-    [filtered]
+    () => filtered.reduce((s, i) => s + i.currentQty * i.unitCost, 0),
+    [filtered],
   )
 
   const stats = useMemo(() => ({
-    total: ingredients.length,
-    ok: ingredients.filter(i => i.stockStatus === 'ok').length,
-    low: ingredients.filter(i => i.stockStatus === 'low').length,
+    total:    ingredients.length,
+    ok:       ingredients.filter(i => i.stockStatus === 'ok').length,
+    low:      ingredients.filter(i => i.stockStatus === 'low').length,
     critical: ingredients.filter(i => ['critical', 'expired'].includes(i.stockStatus)).length,
     expiring: ingredients.filter(i => i.stockStatus === 'expiring').length,
   }), [ingredients])
 
+  function handleExport() {
+    const headers = ['Código', 'Nome', 'Categoria', 'Qtd. Atual', 'Unidade', 'Mínimo', 'Cobertura%', 'Valor (R$)', 'Status']
+    const rows = filtered.map(ing => {
+      const cov = calcCoverage(ing.currentQty, ing.minimumQty)
+      return [
+        ing.codigoInterno ?? '',
+        ing.name,
+        ing.category?.name ?? '',
+        ing.currentQty.toFixed(3),
+        unitLabels[ing.unit] ?? ing.unit,
+        ing.minimumQty.toFixed(3),
+        cov >= 999 ? '—' : cov.toFixed(1),
+        (ing.currentQty * ing.unitCost).toFixed(2).replace('.', ','),
+        STATUS_STYLES[ing.stockStatus].label,
+      ].join(';')
+    })
+    const csv = [headers.join(';'), ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `inventario-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="space-y-5">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatMini label="Total de Itens"    value={stats.total}                     variant="default" icon={Package} />
-        <StatMini label="Estoque OK"         value={stats.ok}                        variant="success" icon={CheckCircle} />
-        <StatMini label="Em Reposição"       value={stats.low}                       variant="warning" icon={TrendingDown} />
-        <StatMini label="Crítico / Vencido"  value={stats.critical + stats.expiring} variant="danger"  icon={AlertTriangle} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Metric cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+        <StatCard title="Total de Itens"    value={stats.total}                       icon={Package}       variant="default" />
+        <StatCard title="Estoque OK"         value={stats.ok}                          icon={CheckCircle}   variant="success" />
+        <StatCard title="Em Reposição"       value={stats.low}                         icon={TrendingDown}  variant="warning" />
+        <StatCard title="Crítico / Vencido"  value={stats.critical + stats.expiring}  icon={AlertTriangle} variant="danger"  />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou código..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      {/* Toolbar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--tf-muted)', pointerEvents: 'none' }} />
+          <Input placeholder="Buscar por nome ou código..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
         </div>
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? 'all')}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger style={{ width: 160 }}><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="ok">OK</SelectItem>
@@ -260,7 +281,7 @@ function StockPosition() {
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={v => setCategoryFilter(v ?? 'all')}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectTrigger style={{ width: 180 }}><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
             {categories.map(cat => (
@@ -268,101 +289,142 @@ function StockPosition() {
             ))}
           </SelectContent>
         </Select>
+        <button
+          onClick={handleExport}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12.5, fontWeight: 500, border: '1px solid var(--tf-border)', background: 'var(--tf-surface)', color: 'var(--tf-txt2)', cursor: 'pointer' }}
+        >
+          <Download size={13} />
+          Exportar
+        </button>
       </div>
 
       {/* Table */}
-      <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, overflow: 'hidden' }}>
-        {/* Header */}
-        <div
-          className="grid grid-cols-[40px_1fr_120px_180px_100px_90px_100px_80px] gap-2 px-4 py-2.5"
-          style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)' }}
-        >
-          {['#', 'Nome', 'Categoria', 'Qtd. Atual', 'Mínimo', 'Valor', 'Status', ''].map((h, i) => (
-            <span key={i} style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--tf-txt3)', textAlign: i >= 4 && i <= 5 ? 'right' : 'left' }}>{h}</span>
+      <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 10, overflow: 'hidden' }}>
+        {/* th */}
+        <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 8, padding: '8px 16px', background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)' }}>
+          {['#', 'Nome', 'Categoria', 'Qtd. Atual', 'Cobertura', 'Mínimo', 'Valor', 'Status', 'Ações'].map((h, i) => (
+            <span key={i} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--tf-muted)', textAlign: i >= 4 && i <= 6 ? 'right' : 'left' }}>
+              {h}
+            </span>
           ))}
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '64px 16px', color: 'var(--tf-muted)' }}>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Carregando...</span>
+            <span style={{ fontSize: 13 }}>Carregando...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
-            <Package className="w-8 h-8 opacity-30" />
-            <p className="text-sm">Nenhum item encontrado</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', gap: 8 }}>
+            <Package style={{ width: 32, height: 32, color: 'var(--tf-muted)', opacity: 0.3 }} />
+            <p style={{ fontSize: 13, color: 'var(--tf-muted)', margin: 0 }}>Nenhum item encontrado</p>
           </div>
-        ) : (
-          filtered.map((ing, idx) => {
-            const s = STOCK_STATUS[ing.stockStatus]
-            const max = Math.max(ing.pontoReposicao * 2, ing.currentQty, 1)
-            const pct = Math.min((ing.currentQty / max) * 100, 100)
+        ) : filtered.map((ing, idx) => {
+          const s = STATUS_STYLES[ing.stockStatus]
+          const StatusIcon = s.icon
+          const cov = calcCoverage(ing.currentQty, ing.minimumQty)
+          const covColor = coverageColor(cov)
+          const isCritical = ['critical', 'expired'].includes(ing.stockStatus)
+          const isLast = idx === filtered.length - 1
 
-            return (
-              <div
-                key={ing.id}
-                className="grid grid-cols-[40px_1fr_120px_180px_100px_90px_100px_80px] gap-2 px-4 py-3 items-center text-sm hover:bg-muted/40"
-                style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--tf-border-light)' : undefined }}
-              >
-                <span className="font-mono text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
-                  {ing.codigoInterno ?? '—'}
-                </span>
+          return (
+            <div
+              key={ing.id}
+              style={{ display: 'grid', gridTemplateColumns: COLS, gap: 8, padding: '12px 16px', alignItems: 'center', borderBottom: isLast ? 'none' : '1px solid var(--tf-border-light)', background: 'transparent', transition: 'background 150ms' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--tf-surface2)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+            >
+              {/* # */}
+              <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--tf-muted)' }}>
+                {ing.codigoInterno ?? '—'}
+              </span>
 
-                <span className="font-medium" style={{ color: 'var(--tf-txt)' }}>{ing.name}</span>
+              {/* Nome */}
+              <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--tf-txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {ing.name}
+              </span>
 
-                <span className="text-xs truncate" style={{ color: 'var(--tf-txt3)' }}>
-                  {ing.category?.name ?? '—'}
-                </span>
+              {/* Categoria */}
+              <span style={{ fontSize: 12, color: 'var(--tf-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {ing.category?.name ?? '—'}
+              </span>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-medium" style={{ color: 'var(--tf-txt)' }}>
-                      {ing.currentQty.toFixed(3)}
-                    </span>
-                    <span className="text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
-                      {unitLabels[ing.unit] ?? ing.unit}
-                    </span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 9999, background: 'var(--tf-border)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 9999, background: s.barColor, width: `${pct}%`, transition: 'width 300ms' }} />
-                  </div>
-                </div>
-
-                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt3)' }}>
-                  {ing.minimumQty.toFixed(3)} {unitLabels[ing.unit] ?? ing.unit}
-                </span>
-
-                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt2)' }}>
-                  {formatCurrency(ing.currentQty * ing.unitCost)}
-                </span>
-
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <span style={{ background: s.bg, color: s.color, border: s.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
-                    {s.label}
+              {/* Qtd. Atual + mini bar */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: covColor }}>
+                    {ing.currentQty.toFixed(3)}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'var(--tf-muted)' }}>
+                    {unitLabels[ing.unit] ?? ing.unit}
                   </span>
                 </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs gap-1 hover:bg-primary/10"
-                    style={{ color: 'var(--tf-primary)' }}
-                    onClick={() => setEntradaTarget(ing)}
-                  >
-                    <ArrowDown className="w-3 h-3" />
-                    Entrada
-                  </Button>
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--tf-border-row, var(--tf-border))', overflow: 'hidden', marginTop: 4, maxWidth: 120 }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: covColor, width: `${Math.min(cov, 100)}%`, transition: 'width 300ms' }} />
                 </div>
               </div>
-            )
-          })
-        )}
 
+              {/* Cobertura % */}
+              <span style={{ fontSize: 13, fontWeight: 600, color: covColor, textAlign: 'right' }}>
+                {cov >= 999 ? '—' : `${cov.toFixed(0)}%`}
+              </span>
+
+              {/* Mínimo */}
+              <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--tf-muted)', textAlign: 'right' }}>
+                {ing.minimumQty.toFixed(3)}
+              </span>
+
+              {/* Valor */}
+              <span style={{ fontFamily: 'monospace', fontSize: 12, color: covColor, textAlign: 'right' }}>
+                {formatCurrency(ing.currentQty * ing.unitCost)}
+              </span>
+
+              {/* Status badge */}
+              <div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: s.bg, color: s.color, border: `1px solid ${s.bd}`, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
+                  <StatusIcon size={10} />
+                  {s.label}
+                </span>
+              </div>
+
+              {/* Ações */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setEntradaTarget(ing)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: isCritical ? 'var(--tf-red-bg)' : 'var(--tf-accent-bg)',
+                    color: isCritical ? 'var(--tf-red)' : 'var(--tf-green-light)',
+                    border: `1px solid ${isCritical ? 'var(--tf-red-bd)' : 'var(--tf-accent-bd)'}`,
+                    borderRadius: 9999, fontSize: 11, fontWeight: 500, padding: '4px 10px', cursor: 'pointer',
+                  }}
+                >
+                  <ArrowDown size={11} />
+                  Entrada
+                </button>
+                <button
+                  style={{ background: 'transparent', border: 'none', color: 'var(--tf-muted)', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', fontSize: 16, letterSpacing: 2 }}
+                  title="Mais ações"
+                >
+                  ···
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* tfoot */}
         {!loading && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid var(--tf-border)', background: 'var(--tf-surface2)' }}>
-            <span style={{ fontSize: 12, color: 'var(--tf-txt3)' }}>{filtered.length} de {ingredients.length} item(s)</span>
-            <span style={{ fontSize: 12, color: 'var(--tf-txt2)', fontWeight: 500 }}>Valor total: {formatCurrency(filteredValue)}</span>
+            <span style={{ fontSize: 12, color: 'var(--tf-muted)' }}>
+              {filtered.length} item(s)
+            </span>
+            <span style={{ fontSize: 12 }}>
+              <span style={{ color: 'var(--tf-muted)' }}>Valor total: </span>
+              <strong style={{ color: 'var(--tf-green-light)', fontFamily: 'monospace' }}>
+                {formatCurrency(filteredValue)}
+              </strong>
+            </span>
           </div>
         )}
       </div>
@@ -426,21 +488,21 @@ function EntradaDialog({
     }
   }
 
-  const ss = ingredient ? STOCK_STATUS[ingredient.stockStatus] : null
+  const s = ingredient ? STATUS_STYLES[ingredient.stockStatus] : null
 
   return (
     <Dialog open={!!ingredient} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'var(--tf-green-ok-bg)' }}>
-              <ArrowDown style={{ width: 16, height: 16, color: 'var(--tf-green-ok)' }} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'var(--tf-accent-bg)' }}>
+              <ArrowDown style={{ width: 16, height: 16, color: 'var(--tf-green-light)' }} />
             </span>
             Registrar Entrada
           </DialogTitle>
         </DialogHeader>
 
-        {ingredient && ss && (
+        {ingredient && s && (
           <form onSubmit={handleSubmit} className="space-y-4 mt-1">
             <div style={{ borderRadius: 8, border: '1px solid var(--tf-border)', background: 'var(--tf-surface2)', padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
@@ -452,8 +514,8 @@ function EntradaDialog({
                   </span>
                 </p>
               </div>
-              <span style={{ background: ss.bg, color: ss.color, border: ss.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
-                {ss.label}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: s.bg, color: s.color, border: `1px solid ${s.bd}`, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
+                {s.label}
               </span>
             </div>
 
@@ -469,9 +531,9 @@ function EntradaDialog({
             </div>
 
             {qty && parseFloat(qty) > 0 && cost && parseFloat(cost) > 0 && (
-              <div style={{ borderRadius: 8, background: 'var(--tf-green-ok-bg)', border: '1px solid var(--tf-green-ok-bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="text-xs" style={{ color: 'var(--tf-txt3)' }}>Total da entrada</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--tf-green-ok)' }}>
+              <div style={{ borderRadius: 8, background: 'var(--tf-accent-bg)', border: '1px solid var(--tf-accent-bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="text-xs" style={{ color: 'var(--tf-muted)' }}>Total da entrada</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--tf-green-light)' }}>
                   {formatCurrency(parseFloat(qty) * parseFloat(cost))}
                 </span>
               </div>
@@ -600,12 +662,12 @@ function PhysicalCounts() {
             <button
               onClick={() => setSelected(null)}
               className="flex items-center gap-1 text-sm mb-2 transition-colors hover:opacity-80"
-              style={{ color: 'var(--tf-txt3)' }}
+              style={{ color: 'var(--tf-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <ChevronLeft className="w-4 h-4" />Voltar às contagens
             </button>
             <h2 className="text-xl font-bold" style={{ color: 'var(--tf-txt)' }}>{selected.nome}</h2>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--tf-txt3)' }}>{counted} de {total} itens contados</p>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--tf-muted)' }}>{counted} de {total} itens contados</p>
           </div>
 
           {isOpen && (
@@ -626,7 +688,7 @@ function PhysicalCounts() {
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs" style={{ color: 'var(--tf-txt3)' }}>
+          <div className="flex justify-between text-xs" style={{ color: 'var(--tf-muted)' }}>
             <span>Progresso</span>
             <span className="font-semibold" style={{ color: 'var(--tf-txt)' }}>{progress}%</span>
           </div>
@@ -636,14 +698,14 @@ function PhysicalCounts() {
         </div>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--tf-muted)' }} />
           <Input className="pl-9" placeholder="Buscar insumo na contagem..." value={searchCount} onChange={e => setSearchCount(e.target.value)} />
         </div>
 
-        <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 10, overflow: 'hidden' }}>
           <div className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5" style={{ background: 'var(--tf-surface2)', borderBottom: '1px solid var(--tf-border-light)' }}>
             {['Código', 'Insumo', 'Sistema', 'Contado', 'Diferença'].map((h, i) => (
-              <span key={i} style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--tf-txt3)', textAlign: i >= 2 ? 'right' : 'left' }}>{h}</span>
+              <span key={i} style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--tf-muted)', textAlign: i >= 2 ? 'right' : 'left' }}>{h}</span>
             ))}
           </div>
 
@@ -654,10 +716,10 @@ function PhysicalCounts() {
             return (
               <div
                 key={item.id}
-                className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5 items-center text-sm hover:bg-muted/40"
+                className="grid grid-cols-[80px_1fr_120px_140px_110px] gap-2 px-4 py-2.5 items-center text-sm"
                 style={{ borderBottom: idx < visibleItems.length - 1 ? '1px solid var(--tf-border-light)' : undefined }}
               >
-                <span className="font-mono text-[10px]" style={{ color: 'var(--tf-txt3)' }}>
+                <span className="font-mono text-[10px]" style={{ color: 'var(--tf-muted)' }}>
                   {item.ingredient.codigoInterno ?? '—'}
                 </span>
 
@@ -666,7 +728,7 @@ function PhysicalCounts() {
                   <span className="font-medium text-sm truncate" style={{ color: 'var(--tf-txt)' }}>{item.ingredient.name}</span>
                 </div>
 
-                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-txt3)' }}>
+                <span className="font-mono text-right text-xs" style={{ color: 'var(--tf-muted)' }}>
                   {item.qtdSistema.toFixed(3)} {unit}
                 </span>
 
@@ -674,7 +736,7 @@ function PhysicalCounts() {
                   {isOpen ? (
                     <Input type="number" min="0" step="0.001" value={item.qtdContada ?? ''} onChange={e => updateItemCount(item.id, e.target.value)} className="w-28 text-right h-8 font-mono text-sm" placeholder="—" />
                   ) : (
-                    <span className="font-mono text-xs" style={{ color: 'var(--tf-txt3)' }}>
+                    <span className="font-mono text-xs" style={{ color: 'var(--tf-muted)' }}>
                       {item.qtdContada !== null ? item.qtdContada.toFixed(3) : '—'}
                     </span>
                   )}
@@ -715,12 +777,15 @@ function PhysicalCounts() {
 
   // ── Count list view ──
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: 'var(--tf-txt3)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ fontSize: 13, color: 'var(--tf-muted)' }}>
           Realize contagens físicas periódicas para auditar e ajustar o estoque.
         </p>
-        <Button onClick={() => setShowNewForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+        <Button
+          onClick={() => setShowNewForm(true)}
+          style={{ background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
           <Plus className="w-4 h-4" />Nova Contagem
         </Button>
       </div>
@@ -747,18 +812,31 @@ function PhysicalCounts() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '64px 16px', color: 'var(--tf-muted)' }}>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Carregando...</span>
+          <span style={{ fontSize: 13 }}>Carregando...</span>
         </div>
       ) : list.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px dashed var(--tf-border)', padding: '64px 16px', gap: 12, textAlign: 'center' }}>
-          <ClipboardList style={{ width: 40, height: 40, color: 'var(--tf-txt3)', opacity: 0.4 }} />
-          <p className="font-medium text-sm" style={{ color: 'var(--tf-txt3)' }}>Nenhuma contagem realizada</p>
-          <p className="text-xs" style={{ color: 'var(--tf-txt3)', opacity: 0.7 }}>Crie uma contagem para auditar o estoque fisicamente</p>
+        // ── Empty state estruturado ──
+        <div style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 10, padding: '64px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 12, background: 'var(--tf-surface2)', border: '1px solid var(--tf-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ClipboardList style={{ width: 26, height: 26, color: 'var(--tf-muted)' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--tf-txt)', margin: '0 0 6px' }}>Nenhuma contagem realizada</p>
+            <p style={{ fontSize: 12, color: 'var(--tf-muted)', margin: 0 }}>
+              Crie uma contagem para auditar o estoque fisicamente e corrigir divergências.
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowNewForm(true)}
+            style={{ background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4 }}
+          >
+            <Plus className="w-4 h-4" />Iniciar nova contagem
+          </Button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {list.map(inv => {
             const s = INV_STATUS[inv.status]
             const Icon = s.icon
@@ -766,20 +844,21 @@ function PhysicalCounts() {
               <button
                 key={inv.id}
                 onClick={() => openInventario(inv.id)}
-                className="w-full flex items-center justify-between rounded-lg px-5 py-4 text-left hover:bg-muted/40 transition-colors"
-                style={{ border: '1px solid var(--tf-border)', background: 'var(--tf-surface)' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 8, padding: '14px 20px', textAlign: 'left', border: '1px solid var(--tf-border)', background: 'var(--tf-surface)', cursor: 'pointer', width: '100%', transition: 'background 150ms' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--tf-surface2)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--tf-surface)' }}
               >
-                <div className="flex items-center gap-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <Icon style={{ width: 20, height: 20, color: s.iconColor, flexShrink: 0 }} />
                   <div>
-                    <p className="font-medium text-sm" style={{ color: 'var(--tf-txt)' }}>{inv.nome}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--tf-txt3)' }}>
+                    <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--tf-txt)', margin: 0 }}>{inv.nome}</p>
+                    <p style={{ fontSize: 12, color: 'var(--tf-muted)', margin: '3px 0 0' }}>
                       {inv._count.items} insumos · {new Date(inv.iniciadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                       {inv.finalizadoEm && ` · Finalizado em ${new Date(inv.finalizadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`}
                     </p>
                   </div>
                 </div>
-                <span style={{ background: s.bg, color: s.color, border: s.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999 }}>
+                <span style={{ background: s.bg, color: s.color, border: s.border, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
                   {s.label}
                 </span>
               </button>

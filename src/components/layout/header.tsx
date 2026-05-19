@@ -32,10 +32,18 @@ export function Header() {
     : 'U'
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
+    <header
+      className="flex items-center justify-between px-6"
+      style={{
+        height: 52,
+        background: 'var(--tf-surface)',
+        borderBottom: '1px solid var(--tf-border)',
+        flexShrink: 0,
+      }}
+    >
       <div className="flex items-center gap-2">
-        <Store className="w-4 h-4 text-muted-foreground" />
-        <span className="text-foreground text-sm font-medium">
+        <Store className="w-4 h-4" style={{ color: 'var(--tf-txt3)' }} />
+        <span style={{ color: 'var(--tf-txt)', fontSize: 13.5, fontWeight: 500 }}>
           {session?.user?.tenantName ?? 'Carregando...'}
         </span>
       </div>
@@ -44,7 +52,10 @@ export function Header() {
         {mounted && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--tf-txt3)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--tf-surface2)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--tf-txt)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--tf-txt3)' }}
             aria-label="Alternar tema"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -52,17 +63,17 @@ export function Header() {
         )}
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-secondary transition-colors outline-none">
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors outline-none hover:bg-secondary">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="text-left hidden sm:block">
-              <p className="text-sm text-foreground font-medium leading-none">
+              <p className="text-sm font-medium leading-none" style={{ color: 'var(--tf-txt)' }}>
                 {session?.user?.name ?? 'Usuário'}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{session?.user?.email}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--tf-txt3)' }}>{session?.user?.email}</p>
             </div>
           </DropdownMenuTrigger>
 

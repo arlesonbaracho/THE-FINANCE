@@ -90,6 +90,14 @@
   --tf-sidebar-txt:      #94afc0;
   --tf-sidebar-txt-on:   #ffffff;
   --tf-font-display:     var(--font-instrument-serif), Georgia, serif;
+  /* semantic aliases — spec §3 themeNormal */
+  --tf-muted:            #4b6070;
+  --tf-muted2:           #94a3b8;
+  --tf-accent-bg:        #e0f5ee;
+  --tf-accent-bd:        #a7dfca;
+  --tf-green:            #2a9d6f;
+  --tf-green-light:      #4bc994;
+  --tf-border-row:       #eaf1f7;
   /* backward-compat aliases */
   --tf-border-color:     var(--tf-border);
   --tf-content-bg:       var(--tf-bg);
@@ -153,6 +161,14 @@
   --tf-sidebar-active:   #0d2b1f;
   --tf-sidebar-txt:      #6b8c7a;
   --tf-sidebar-txt-on:   #e8ede9;
+  /* semantic aliases — spec §3 themeDark */
+  --tf-muted:            #3d6050;
+  --tf-muted2:           #2d5040;
+  --tf-accent-bg:        #071a0f;
+  --tf-accent-bd:        #0d3322;
+  --tf-green:            #4bc994;
+  --tf-green-light:      #95d5b2;
+  --tf-border-row:       #1a2820;
   /* backward-compat aliases */
   --tf-border-color:     var(--tf-border);
   --tf-content-bg:       var(--tf-bg);

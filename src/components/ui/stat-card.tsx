@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 interface StatCardProps {
   title: string
@@ -22,24 +22,48 @@ const valueColor: Record<NonNullable<StatCardProps['variant']>, string> = {
   danger:  'var(--tf-red)',
 }
 
+const glowColor: Record<NonNullable<StatCardProps['variant']>, string> = {
+  default: 'var(--tf-txt3)',
+  success: 'var(--tf-green-ok)',
+  warning: 'var(--tf-yellow)',
+  danger:  'var(--tf-red)',
+}
+
 export function StatCard({ title, value, description, icon: Icon, variant = 'default' }: StatCardProps) {
   return (
     <div
       style={{
         background: 'var(--tf-surface)',
         border: '1px solid var(--tf-border)',
-        borderRadius: 8,
-        padding: '16px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
+        borderRadius: 10,
+        padding: '18px 20px',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Glow decorativo — canto superior direito */}
       <div
         style={{
-          width: 36,
-          height: 36,
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: glowColor[variant],
+          filter: 'blur(30px)',
+          opacity: 0.12,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Ícone */}
+      <div
+        style={{
+          width: 38,
+          height: 38,
           borderRadius: 8,
+          marginBottom: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -47,38 +71,42 @@ export function StatCard({ title, value, description, icon: Icon, variant = 'def
           ...iconStyle[variant],
         }}
       >
-        <Icon size={18} />
+        <Icon size={17} />
       </div>
-      <div>
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            textTransform: 'uppercase',
-            letterSpacing: '0.03em',
-            color: 'var(--tf-txt3)',
-            margin: 0,
-          }}
-        >
-          {title}
-        </p>
-        <p
-          style={{
-            fontSize: 20,
-            fontWeight: 600,
-            color: valueColor[variant],
-            margin: '2px 0 0',
-            lineHeight: 1.2,
-          }}
-        >
-          {value}
-        </p>
-        {description && (
-          <p style={{ fontSize: 11, color: 'var(--tf-txt3)', margin: '2px 0 0' }}>
-            {description}
-          </p>
-        )}
+
+      {/* Valor */}
+      <div
+        style={{
+          fontSize: 28,
+          fontWeight: 600,
+          color: valueColor[variant],
+          lineHeight: 1,
+          letterSpacing: '-0.5px',
+        }}
+      >
+        {value}
       </div>
+
+      {/* Título */}
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--tf-muted, var(--tf-txt3))',
+          marginTop: 5,
+        }}
+      >
+        {title}
+      </div>
+
+      {/* Descrição opcional */}
+      {description && (
+        <p style={{ fontSize: 11, color: 'var(--tf-txt3)', margin: '3px 0 0' }}>
+          {description}
+        </p>
+      )}
     </div>
   )
 }

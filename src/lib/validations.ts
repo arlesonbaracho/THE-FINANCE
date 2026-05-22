@@ -85,6 +85,47 @@ export const productIngredientSchema = z.object({
 
 export type ProductIngredientInput = z.infer<typeof productIngredientSchema>
 
+// ── Usuários ─────────────────────────────────────────────────────────────────
+
+export const convidarFuncionarioSchema = z.object({
+  email: z.string().email('Email inválido'),
+  roleId: z.string().cuid('ID de cargo inválido').min(1, 'Selecione um cargo'),
+})
+
+export type ConvidarFuncionarioInput = z.infer<typeof convidarFuncionarioSchema>
+
+export const convidarCozinheiroSchema = z
+  .object({
+    nome: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+    pin: z
+      .string()
+      .length(4, 'PIN deve ter exatamente 4 dígitos')
+      .regex(/^\d{4}$/, 'PIN deve conter apenas dígitos'),
+    confirmPin: z.string().length(4, 'PIN deve ter exatamente 4 dígitos'),
+    roleId: z.string().cuid('ID de cargo inválido').optional(),
+  })
+  .refine((d) => d.pin === d.confirmPin, {
+    message: 'Os PINs não coincidem',
+    path: ['confirmPin'],
+  })
+
+export type ConvidarCozinheiroInput = z.infer<typeof convidarCozinheiroSchema>
+
+export const redefinirPinSchema = z
+  .object({
+    pin: z
+      .string()
+      .length(4, 'PIN deve ter exatamente 4 dígitos')
+      .regex(/^\d{4}$/, 'PIN deve conter apenas dígitos'),
+    confirmPin: z.string().length(4, 'PIN deve ter exatamente 4 dígitos'),
+  })
+  .refine((d) => d.pin === d.confirmPin, {
+    message: 'Os PINs não coincidem',
+    path: ['confirmPin'],
+  })
+
+export type RedefinirPinInput = z.infer<typeof redefinirPinSchema>
+
 // ── Helper ───────────────────────────────────────────────────────────────────
 
 /** Returns a 400 response body from a ZodError */

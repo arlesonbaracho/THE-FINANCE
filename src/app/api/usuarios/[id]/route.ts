@@ -49,6 +49,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const allowed = await checkPermission(session.user.id, session.user.tenantId, PERMISSIONS.USUARIOS_GERENCIAR)
   if (!allowed) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
+  // Handle pending invite deletion
+  if (id.startsWith('invite:')) {
+    const inviteId = id.slice('invite:'.length)
+    const invite = await prisma.invite.findFirst({ where: { id: inviteId, tenantId: session.user.tenantId } })
+    if (!invite) return NextResponse.json({ error: 'Convite não encontrado' }, { status: 404 })
+    await prisma.invite.delete({ where: { id: inviteId } })
+    return NextResponse.json({ ok: true })
+  }
+
   if (id === session.user.id) {
     return NextResponse.json({ error: 'Não é possível remover sua própria conta' }, { status: 400 })
   }

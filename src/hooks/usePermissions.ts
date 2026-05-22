@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import type { Permission } from '@/lib/permissions'
+import type { Permission } from '@/lib/permissions-constants'
 
 export function usePermissions() {
   const { data: session } = useSession()

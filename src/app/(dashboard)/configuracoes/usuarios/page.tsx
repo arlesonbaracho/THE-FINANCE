@@ -1,428 +1,786 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { toast } from 'sonner'
+import {
+  UserPlus, Users, Shield, Trash2, Plus, Search,
+  MoreVertical, Pencil, KeyRound, UserCheck, UserX,
+  Mail, ChefHat, RefreshCw,
+} from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { UserPlus, Mail, Shield, UserX, UserCheck, Trash2, Copy, Check, Hash } from 'lucide-react'
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { StatCard } from '@/components/ui/stat-card'
+import { usePermissions } from '@/hooks/usePermissions'
+import { PERMISSIONS } from '@/lib/permissions-constants'
+import type { UserItem, RoleItem } from '@/components/usuarios/user-card'
+import { InviteSheet } from '@/components/usuarios/invite-sheet'
+import { EditUserSheet } from '@/components/usuarios/edit-user-sheet'
+import { ResetPinSheet } from '@/components/usuarios/reset-pin-sheet'
+import { RoleDetail } from '@/components/usuarios/role-detail'
 
-type UserItem = {
-  id: string
-  name: string | null
-  email: string | null
-  role: string
-  status: string
-  ultimoAcesso: string | null
-  avatarUrl: string | null
-  customRole: { id: string; name: string } | null
+// ── Cores ─────────────────────────────────────────────────────────────────────
+
+const C = {
+  txt:         '#e8f0ec',
+  surface:     '#111a16',
+  surface2:    '#0d1410',
+  border:      '#1e2e26',
+  borderLight: '#141e19',
+  rowHover:    '#0d1a14',
+  txt2:        '#c8dcd2',
+  muted:       '#3d6050',
+  dim:         '#2d5040',
+  subtle:      '#5a7a6a',
+  green:       '#2a9d6f',
+  greenLight:  '#4bc994',
+  greenBg:     '#0d2b1f',
+  yellow:      '#d4a017',
+  yellowBg:    '#1c1500',
 }
 
-type RoleItem = {
-  id: string
-  name: string
-  isDefault: boolean
-  permissions: string[]
-  _count: { users: number }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function initials(name?: string | null, email?: string | null): string {
+  const src = name || email || '?'
+  return src.slice(0, 2).toUpperCase()
 }
+
+function lastSeen(user: UserItem): string {
+  if (user.status === 'PENDING') {
+    if (!user.createdAt) return 'Convite enviado'
+    try {
+      return `Convidado ${formatDistanceToNow(new Date(user.createdAt), { addSuffix: true, locale: ptBR })}`
+    } catch { return 'Convite enviado' }
+  }
+  if (!user.email) return 'Acesso via PIN'
+  if (!user.ultimoAcesso) return 'Nunca acessou'
+  try {
+    return formatDistanceToNow(new Date(user.ultimoAcesso), { addSuffix: true, locale: ptBR })
+  } catch { return '—' }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    ACTIVE:   { label: 'Ativo',    bg: '#071a0f', color: C.greenLight, border: '#0d3322' },
+    PENDING:  { label: 'Pendente', bg: C.yellowBg, color: C.yellow,   border: '#3a2a00' },
+    INACTIVE: { label: 'Inativo',  bg: C.yellowBg, color: C.yellow,   border: '#3a2a00' },
+  }
+  const s = map[status] ?? map.INACTIVE
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 9999,
+      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+      whiteSpace: 'nowrap',
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+      {s.label}
+    </span>
+  )
+}
+
+const ALL_PERMS = [
+  { key: 'estoque.ver',          label: 'Ver estoque' },
+  { key: 'estoque.criar',        label: 'Criar insumos' },
+  { key: 'estoque.editar',       label: 'Editar insumos' },
+  { key: 'estoque.deletar',      label: 'Excluir insumos' },
+  { key: 'estoque.movimentar',   label: 'Movimentar estoque' },
+  { key: 'produtos.ver',         label: 'Ver produtos' },
+  { key: 'produtos.criar',       label: 'Criar produtos' },
+  { key: 'produtos.editar',      label: 'Editar produtos' },
+  { key: 'produtos.deletar',     label: 'Excluir produtos' },
+  { key: 'usuarios.ver',         label: 'Ver usuários' },
+  { key: 'usuarios.gerenciar',   label: 'Gerenciar usuários' },
+  { key: 'relatorios.ver',       label: 'Ver relatórios' },
+  { key: 'configuracoes.ver',    label: 'Ver configurações' },
+  { key: 'configuracoes.editar', label: 'Editar configurações' },
+  { key: 'cozinha.ver',          label: 'Ver cozinha' },
+  { key: 'cozinha.gerenciar',    label: 'Gerenciar cozinha' },
+]
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function UsuariosPage() {
   const { data: session } = useSession()
-  const [users, setUsers] = useState<UserItem[]>([])
-  const [roles, setRoles] = useState<RoleItem[]>([])
+  const { can } = usePermissions()
+  const [users, setUsers]   = useState<UserItem[]>([])
+  const [roles, setRoles]   = useState<RoleItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRoleId, setInviteRoleId] = useState('')
-  const [inviteLoading, setInviteLoading] = useState(false)
-  const [inviteLink, setInviteLink] = useState('')
-  const [inviteError, setInviteError] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [pinModal, setPinModal] = useState<{ userId: string; name: string } | null>(null)
-  const [newPin, setNewPin] = useState('')
-  const [pinSaving, setPinSaving] = useState(false)
-  const [pinMsg, setPinMsg] = useState('')
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
 
-  async function load() {
+  const [search, setSearch]                 = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [filterRole, setFilterRole]         = useState('all')
+  const [filterStatus, setFilterStatus]     = useState('all')
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [activeTab, setActiveTab] = useState<'funcionarios' | 'cargos'>('funcionarios')
+
+  const [inviteOpen, setInviteOpen]               = useState(false)
+  const [editUser, setEditUser]                   = useState<UserItem | null>(null)
+  const [resetPINUser, setResetPINUser]           = useState<UserItem | null>(null)
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserItem | null>(null)
+  const [removeUser, setRemoveUser]               = useState<UserItem | null>(null)
+  const [selectedRoleId, setSelectedRoleId]       = useState<string | null>(null)
+
+  const [newRoleOpen, setNewRoleOpen]   = useState(false)
+  const [newRoleName, setNewRoleName]   = useState('')
+  const [newRolePerms, setNewRolePerms] = useState<string[]>([])
+  const [roleSaving, setRoleSaving]     = useState(false)
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleItem | null>(null)
+
+  const load = useCallback(async () => {
     const [ur, rr] = await Promise.all([fetch('/api/usuarios'), fetch('/api/roles')])
     const [ud, rd] = await Promise.all([ur.json(), rr.json()])
     if (Array.isArray(ud)) setUsers(ud)
     if (Array.isArray(rd)) setRoles(rd)
     setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  function handleSearchChange(v: string) {
+    setSearch(v)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => setDebouncedSearch(v), 300)
   }
 
-  useEffect(() => { load() }, [])
-
-  async function sendInvite(e: React.FormEvent) {
-    e.preventDefault()
-    setInviteLoading(true)
-    setInviteError('')
-    const res = await fetch('/api/usuarios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: inviteEmail, roleId: inviteRoleId || undefined }),
-    })
-    const data = await res.json()
-    setInviteLoading(false)
-    if (!res.ok) { setInviteError(data.error); return }
-    setInviteLink(data.inviteUrl)
-    setInviteEmail('')
-    setInviteRoleId('')
+  function handleTabChange(tab: 'funcionarios' | 'cargos') {
+    setActiveTab(tab)
+    if (tab === 'cargos' && selectedRoleId === null && roles.length > 0) setSelectedRoleId(roles[0].id)
+    if (tab === 'funcionarios') setSelectedRoleId(null)
   }
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(inviteLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const filtered = users.filter((u) => {
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase()
+      if (!u.name?.toLowerCase().includes(q) && !u.email?.toLowerCase().includes(q)) return false
+    }
+    if (filterRole !== 'all' && u.customRole?.id !== filterRole) return false
+    if (filterStatus !== 'all' && u.status !== filterStatus) return false
+    return true
+  })
 
-  async function toggleStatus(user: UserItem) {
-    const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    await fetch(`/api/usuarios/${user.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    })
-    load()
-  }
-
-  async function savePin(e: React.FormEvent) {
-    e.preventDefault()
-    if (!pinModal || !/^\d{4}$/.test(newPin)) return
-    setPinSaving(true)
-    const res = await fetch(`/api/usuarios/${pinModal.userId}/pin`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: newPin }),
-    })
-    setPinSaving(false)
-    if (res.ok) {
-      setPinMsg('PIN redefinido com sucesso!')
-      setTimeout(() => { setPinModal(null); setPinMsg(''); setNewPin('') }, 1500)
+  async function handleAction(action: string, userId: string) {
+    const user = users.find((u) => u.id === userId)
+    if (!user) return
+    switch (action) {
+      case 'edit':          setEditUser(user); break
+      case 'resetPassword': setResetPasswordUser(user); break
+      case 'resetPIN':      setResetPINUser(user); break
+      case 'deactivate':    await patchStatus(userId, 'INACTIVE'); break
+      case 'activate':      await patchStatus(userId, 'ACTIVE'); break
+      case 'resendInvite':  await resendInvite(user); break
+      case 'remove':        setRemoveUser(user); break
     }
   }
 
-  async function changeRole(userId: string, roleId: string) {
-    await fetch(`/api/usuarios/${userId}`, {
+  async function patchStatus(userId: string, status: 'ACTIVE' | 'INACTIVE') {
+    const res = await fetch(`/api/usuarios/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customRoleId: roleId || null }),
+      body: JSON.stringify({ status }),
     })
-    load()
+    if (res.ok) {
+      toast.success(status === 'ACTIVE' ? 'Funcionário reativado' : 'Funcionário desativado')
+      load()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Erro ao atualizar status')
+    }
   }
 
-  function statusBadge(status: string) {
-    if (status === 'ACTIVE') return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Ativo</Badge>
-    if (status === 'PENDING') return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Pendente</Badge>
-    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Inativo</Badge>
+  async function resendInvite(user: UserItem) {
+    if (!user.email) return
+    const res = await fetch('/api/usuarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, roleId: user.customRole?.id }),
+    })
+    if (res.ok) {
+      toast.success(`Convite reenviado para ${user.email}`)
+      load()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Erro ao reenviar convite')
+    }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Usuários</h1>
-          <p className="text-zinc-400 text-sm mt-1">Gerencie os membros do seu restaurante</p>
-        </div>
-        {isAdmin && (
-          <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) { setInviteLink(''); setInviteError('') } }}>
-            <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600">
-              <UserPlus className="h-4 w-4" /> Convidar usuário
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
-              <DialogHeader>
-                <DialogTitle>Convidar usuário</DialogTitle>
-              </DialogHeader>
-              {!inviteLink ? (
-                <form onSubmit={sendInvite} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-zinc-300">Email</Label>
-                    <Input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      required
-                      placeholder="colaborador@email.com"
-                      className="bg-zinc-800 border-zinc-700 text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-zinc-300">Função</Label>
-                    <select
-                      value={inviteRoleId}
-                      onChange={(e) => setInviteRoleId(e.target.value)}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white"
-                    >
-                      <option value="">Sem função específica</option>
-                      {roles.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {inviteError && <p className="text-sm text-red-400">{inviteError}</p>}
-                  <Button type="submit" disabled={inviteLoading} className="w-full bg-zinc-700 hover:bg-zinc-600">
-                    <Mail className="h-4 w-4 mr-2" />
-                    {inviteLoading ? 'Gerando...' : 'Gerar link de convite'}
-                  </Button>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-zinc-400">Link gerado com validade de 48 horas. Compartilhe com o colaborador.</p>
-                  <div className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2">
-                    <code className="text-xs text-zinc-300 flex-1 break-all">{inviteLink}</code>
-                    <button onClick={copyLink} className="shrink-0 text-zinc-400 hover:text-white">
-                      {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <Button onClick={() => { setInviteLink(''); setInviteOpen(false) }} className="w-full bg-zinc-700 hover:bg-zinc-600">
-                    Fechar
-                  </Button>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      <Card className="border-zinc-800 bg-zinc-900">
-        <CardHeader>
-          <CardTitle className="text-white text-base">Membros ({users.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Carregando...</div>
-          ) : users.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">Nenhum usuário encontrado</div>
-          ) : (
-            <div className="divide-y divide-zinc-800">
-              {users.map((user) => (
-                <div key={user.id} className="flex items-center gap-4 px-6 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-sm font-semibold text-white">
-                    {(user.name ?? user.email ?? '?')[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{user.name ?? '(sem nome)'}</p>
-                    <p className="text-xs text-zinc-500 truncate">{user.email}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {isAdmin && user.id !== session?.user?.id ? (
-                      <select
-                        value={user.customRole?.id ?? ''}
-                        onChange={(e) => changeRole(user.id, e.target.value)}
-                        className="text-xs rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-zinc-300"
-                      >
-                        <option value="">Função padrão</option>
-                        {roles.map((r) => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs text-zinc-500">
-                        <Shield className="h-3 w-3" />
-                        {user.customRole?.name ?? user.role}
-                      </span>
-                    )}
-                    {statusBadge(user.status)}
-                    {isAdmin && user.id !== session?.user?.id && (
-                      <>
-                        <button
-                          onClick={() => { setPinModal({ userId: user.id, name: user.name ?? user.email ?? '' }); setNewPin('') }}
-                          title="Redefinir PIN"
-                          className="text-zinc-500 hover:text-zinc-300 transition-colors"
-                        >
-                          <Hash className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleStatus(user)}
-                          title={user.status === 'ACTIVE' ? 'Desativar' : 'Ativar'}
-                          className="text-zinc-500 hover:text-white transition-colors"
-                        >
-                          {user.status === 'ACTIVE' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                        </button>
-                      </>
-                    )}
-                    {user.id === session?.user?.id && (
-                      <span className="text-xs text-zinc-600">você</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {isAdmin && (
-        <RolesSection roles={roles} onChanged={load} />
-      )}
-
-      {/* Modal de redefinição de PIN */}
-      <Dialog open={!!pinModal} onOpenChange={(o) => { if (!o) { setPinModal(null); setNewPin(''); setPinMsg('') } }}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Redefinir PIN — {pinModal?.name}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={savePin} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-zinc-300">Novo PIN (4 dígitos)</Label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                required
-                placeholder="0000"
-                autoFocus
-                className="bg-zinc-800 border-zinc-700 text-center text-2xl tracking-widest text-white"
-              />
-            </div>
-            {pinMsg && <p className="text-sm text-emerald-400">{pinMsg}</p>}
-            <Button
-              type="submit"
-              disabled={pinSaving || newPin.length < 4}
-              className="w-full bg-zinc-700 hover:bg-zinc-600"
-            >
-              {pinSaving ? 'Salvando...' : 'Salvar PIN'}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-function RolesSection({ roles, onChanged }: { roles: RoleItem[]; onChanged: () => void }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [selectedPerms, setSelectedPerms] = useState<string[]>([])
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  const ALL_PERMS = [
-    { key: 'estoque.ver', label: 'Ver estoque' },
-    { key: 'estoque.criar', label: 'Criar insumos' },
-    { key: 'estoque.editar', label: 'Editar insumos' },
-    { key: 'estoque.deletar', label: 'Excluir insumos' },
-    { key: 'estoque.movimentar', label: 'Movimentar estoque' },
-    { key: 'produtos.ver', label: 'Ver produtos' },
-    { key: 'produtos.criar', label: 'Criar produtos' },
-    { key: 'produtos.editar', label: 'Editar produtos' },
-    { key: 'produtos.deletar', label: 'Excluir produtos' },
-    { key: 'usuarios.ver', label: 'Ver usuários' },
-    { key: 'usuarios.gerenciar', label: 'Gerenciar usuários' },
-    { key: 'relatorios.ver', label: 'Ver relatórios' },
-    { key: 'configuracoes.ver', label: 'Ver configurações' },
-    { key: 'configuracoes.editar', label: 'Editar configurações' },
-    { key: 'cozinha.ver', label: 'Ver cozinha' },
-    { key: 'cozinha.gerenciar', label: 'Gerenciar cozinha' },
-  ]
-
-  function togglePerm(key: string) {
-    setSelectedPerms((prev) => prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key])
+  async function confirmRemove() {
+    if (!removeUser) return
+    const res = await fetch(`/api/usuarios/${removeUser.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('Funcionário removido')
+      setRemoveUser(null)
+      load()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Erro ao remover')
+    }
   }
 
-  async function save(e: React.FormEvent) {
+  async function confirmResetPassword() {
+    if (!resetPasswordUser) return
+    const res = await fetch(`/api/usuarios/${resetPasswordUser.id}/reset-senha`, { method: 'POST' })
+    const d = await res.json()
+    if (res.ok) {
+      toast.success(`Link de reset enviado para ${resetPasswordUser.email}`)
+    } else {
+      toast.error(d.error ?? 'Erro ao enviar reset')
+    }
+    setResetPasswordUser(null)
+  }
+
+  async function createRole(e: React.FormEvent) {
     e.preventDefault()
-    if (selectedPerms.length === 0) { setError('Selecione ao menos uma permissão'); return }
-    setSaving(true)
-    setError('')
+    if (newRolePerms.length === 0) { toast.error('Selecione ao menos uma permissão'); return }
+    setRoleSaving(true)
     const res = await fetch('/api/roles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, permissions: selectedPerms }),
+      body: JSON.stringify({ name: newRoleName, permissions: newRolePerms }),
     })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) { setError(data.error); return }
-    setOpen(false)
-    setName('')
-    setSelectedPerms([])
-    onChanged()
+    const d = await res.json()
+    setRoleSaving(false)
+    if (!res.ok) { toast.error(d.error ?? 'Erro ao criar cargo'); return }
+    toast.success(`Cargo "${newRoleName}" criado`)
+    setNewRoleOpen(false)
+    setNewRoleName('')
+    setNewRolePerms([])
+    load()
   }
 
-  async function deleteRole(id: string) {
-    if (!confirm('Remover função?')) return
-    await fetch(`/api/roles/${id}`, { method: 'DELETE' })
-    onChanged()
+  async function deleteRole() {
+    if (!deleteRoleTarget) return
+    await fetch(`/api/roles/${deleteRoleTarget.id}`, { method: 'DELETE' })
+    toast.success(`Cargo "${deleteRoleTarget.name}" removido`)
+    setDeleteRoleTarget(null)
+    if (selectedRoleId === deleteRoleTarget.id) setSelectedRoleId(null)
+    load()
+  }
+
+  function handlePermissionsUpdate(roleId: string, permissions: string[]) {
+    setRoles((prev) => prev.map((r) => r.id === roleId ? { ...r, permissions } : r))
+  }
+
+  const selectedRole  = roles.find((r) => r.id === selectedRoleId) ?? null
+  const usersOfRole   = selectedRole ? users.filter((u) => u.customRole?.id === selectedRole.id) : []
+  const activeCount   = users.filter((u) => u.status === 'ACTIVE').length
+  const inactiveCount = users.filter((u) => u.status === 'INACTIVE').length
+
+  if (!can(PERMISSIONS.USUARIOS_GERENCIAR) && !can(PERMISSIONS.USUARIOS_VER)) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Shield size={48} style={{ color: 'var(--tf-txt3)', marginBottom: 12 }} />
+        <p style={{ fontSize: 15, color: 'var(--tf-txt2)' }}>Sem permissão para acessar esta área.</p>
+      </div>
+    )
+  }
+
+  function tabStyle(tab: 'funcionarios' | 'cargos'): React.CSSProperties {
+    const on = activeTab === tab
+    return {
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '6px 14px', fontSize: 13, fontWeight: 500,
+      borderRadius: 6, border: 'none', cursor: 'pointer',
+      transition: 'background 0.12s, color 0.12s',
+      background: on ? C.greenBg : 'transparent',
+      color:      on ? C.greenLight : C.dim,
+      outline:    on ? `1px solid #1e3d2e` : '1px solid transparent',
+    }
   }
 
   return (
-    <Card className="border-zinc-800 bg-zinc-900">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-white text-base">Funções ({roles.length})</CardTitle>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(''); setSelectedPerms([]) } }}>
-          <DialogTrigger className="inline-flex items-center justify-center rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-600">
-            Nova função
-          </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Nova função personalizada</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={save} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-zinc-300">Nome da função</Label>
+    <div className="space-y-5">
+      <style>{`
+        .tf-urow:hover td { background: ${C.rowHover} !important; }
+        .tf-role-item:hover { background: ${C.rowHover}; }
+        .tf-chef-btn:hover { background: ${C.greenBg} !important; color: ${C.greenLight} !important; }
+      `}</style>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: C.txt, margin: 0 }}>
+            Funcionários
+          </h1>
+          <p style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
+            {users.filter((u) => u.status !== 'INACTIVE').length} funcionários · {roles.length} cargos
+          </p>
+        </div>
+        {can(PERMISSIONS.USUARIOS_GERENCIAR) && (
+          <Button onClick={() => setInviteOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-2" /> Convidar funcionário
+          </Button>
+        )}
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard title="Total de funcionários" value={users.length} icon={Users} />
+        <StatCard title="Ativos" value={activeCount} icon={UserCheck} variant="success" />
+        <StatCard title="Cargos" value={roles.length} icon={Shield} variant="warning" />
+      </div>
+
+      {/* Pill tabs */}
+      <div style={{
+        display: 'inline-flex', background: C.surface,
+        border: `1px solid ${C.border}`, borderRadius: 8, padding: 3, gap: 2,
+      }}>
+        <button onClick={() => handleTabChange('funcionarios')} style={tabStyle('funcionarios')}>
+          <Users size={14} /> Funcionários
+        </button>
+        <button onClick={() => handleTabChange('cargos')} style={tabStyle('cargos')}>
+          <Shield size={14} /> Cargos e Permissões
+        </button>
+      </div>
+
+      {/* ── Tab 1: Funcionários ────────────────────────────────────────────────── */}
+      {activeTab === 'funcionarios' && (
+        <div>
+          {/* Filters */}
+          <div className="flex gap-3 flex-wrap" style={{ marginBottom: 16 }}>
+            <div className="relative flex-1 min-w-[200px]">
+              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: C.subtle }} />
+              <Input
+                placeholder="Buscar por nome ou email..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}
+              />
+            </div>
+            <Select value={filterRole} onValueChange={setFilterRole}>
+              <SelectTrigger className="w-44" style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}>
+                <SelectValue placeholder="Todos os cargos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os cargos</SelectItem>
+                {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-36" style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ACTIVE">Ativo</SelectItem>
+                <SelectItem value="INACTIVE">Inativo</SelectItem>
+                <SelectItem value="PENDING">Pendente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Table */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+            <Table>
+              <TableHeader>
+                <TableRow style={{ background: C.surface2, borderColor: C.borderLight }} className="hover:bg-transparent">
+                  <TableHead style={{ color: C.dim, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Funcionário</TableHead>
+                  <TableHead style={{ color: C.dim, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Cargo</TableHead>
+                  <TableHead style={{ color: C.dim, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Status</TableHead>
+                  <TableHead style={{ color: C.dim, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Último acesso</TableHead>
+                  <TableHead style={{ width: 40 }} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} style={{ textAlign: 'center', padding: '48px 0', color: C.dim, fontSize: 13 }}>
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} style={{ textAlign: 'center', padding: '48px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                        <Users size={40} style={{ color: C.muted }} />
+                        <p style={{ fontSize: 14, color: C.subtle, margin: 0 }}>
+                          {search || filterRole !== 'all' || filterStatus !== 'all'
+                            ? 'Nenhum resultado encontrado'
+                            : 'Nenhum funcionário cadastrado'}
+                        </p>
+                        {!search && filterRole === 'all' && filterStatus === 'all' && can(PERMISSIONS.USUARIOS_GERENCIAR) && (
+                          <button
+                            onClick={() => setInviteOpen(true)}
+                            style={{ fontSize: 13, color: C.greenLight, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            Convidar funcionário
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((user) => {
+                    const isSelf = user.id === session?.user?.id
+                    const avatarStyle: React.CSSProperties = isSelf
+                      ? { background: C.greenBg, border: `2px solid ${C.green}`, color: C.greenLight }
+                      : user.status === 'ACTIVE'
+                        ? { background: '#1a3a2a', color: '#fff' }
+                        : { background: '#1a1a1a', color: C.subtle }
+                    return (
+                      <TableRow key={user.id} className="tf-urow" style={{ borderColor: C.borderLight }}>
+                        <TableCell>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Avatar style={{ width: 34, height: 34, borderRadius: '50%', ...avatarStyle, flexShrink: 0 }}>
+                              <AvatarFallback style={{ ...avatarStyle, fontSize: 12, fontWeight: 600, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                                {user.email ? initials(user.name, user.email) : <ChefHat size={14} />}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 13, fontWeight: 500, color: user.status === 'INACTIVE' ? C.subtle : C.txt2 }}>
+                                  {user.name ?? user.email ?? 'Sem nome'}
+                                </span>
+                                {isSelf && (
+                                  <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: C.greenBg, color: C.greenLight, border: `1px solid ${C.green}` }}>
+                                    você
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 11, color: C.dim }}>
+                                {user.email ?? 'Acesso por PIN'}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <span style={{
+                            fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em',
+                            padding: '2px 8px', borderRadius: 9999,
+                            background: C.surface2,
+                            color: user.status === 'INACTIVE' ? C.muted : C.dim,
+                            border: `1px solid ${C.border}`,
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {user.customRole?.name ?? (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' ? 'Administrador' : 'Funcionário')}
+                          </span>
+                        </TableCell>
+
+                        <TableCell><StatusBadge status={user.status} /></TableCell>
+
+                        <TableCell style={{ fontSize: 12, color: user.ultimoAcesso ? C.subtle : C.dim }}>
+                          {lastSeen(user)}
+                        </TableCell>
+
+                        <TableCell>
+                          {!isSelf && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className="inline-flex items-center justify-center h-8 w-8 rounded-md transition-colors"
+                                style={{ color: C.dim, background: 'transparent' }}
+                                aria-label="Opções"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('edit', user.id)}>
+                                  <Pencil className="w-4 h-4" /> Editar
+                                </DropdownMenuItem>
+                                {user.email && (
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('resetPassword', user.id)}>
+                                    <KeyRound className="w-4 h-4" /> Resetar senha
+                                  </DropdownMenuItem>
+                                )}
+                                {user.hasPin && (
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('resetPIN', user.id)}>
+                                    <RefreshCw className="w-4 h-4" /> Resetar PIN
+                                  </DropdownMenuItem>
+                                )}
+                                {user.status === 'PENDING' && user.email && (
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('resendInvite', user.id)}>
+                                    <Mail className="w-4 h-4" /> Reenviar convite
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                {user.status === 'INACTIVE' ? (
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('activate', user.id)}>
+                                    <UserCheck className="w-4 h-4" /> Reativar
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleAction('deactivate', user.id)}>
+                                    <UserX className="w-4 h-4" /> Desativar
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem className="text-destructive gap-2 cursor-pointer" onClick={() => handleAction('remove', user.id)}>
+                                  <Trash2 className="w-4 h-4" /> Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+
+            {!loading && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 16px',
+                borderTop: `1px solid ${C.borderLight}`,
+                background: C.surface2,
+              }}>
+                <span style={{ fontSize: 12, color: C.dim }}>
+                  {filtered.length} funcionário{filtered.length !== 1 ? 's' : ''} exibido{filtered.length !== 1 ? 's' : ''}
+                </span>
+                <span style={{ fontSize: 12, color: C.subtle, fontWeight: 500 }}>
+                  {activeCount} ativo{activeCount !== 1 ? 's' : ''} · {inactiveCount} inativo{inactiveCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 2: Cargos e Permissões ─────────────────────────────────────────── */}
+      {activeTab === 'cargos' && (
+        <div style={{ display: 'flex', gap: 12 }}>
+
+          {/* Lista de cargos */}
+          <div style={{
+            width: 320, flexShrink: 0,
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 10, overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ padding: '12px 16px', background: C.surface2, borderBottom: `1px solid ${C.border}` }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', color: C.dim, letterSpacing: '0.06em', fontWeight: 600 }}>
+                CARGOS
+              </span>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {roles.map((role) => {
+                const active = selectedRoleId === role.id
+                return (
+                  <div
+                    key={role.id}
+                    onClick={() => setSelectedRoleId(role.id)}
+                    className={!active ? 'tf-role-item' : ''}
+                    style={{
+                      padding: '14px 16px',
+                      borderBottom: `1px solid ${C.borderLight}`,
+                      borderLeft: `2px solid ${active ? C.green : 'transparent'}`,
+                      background: active ? C.greenBg : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      transition: 'background 0.1s',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: active ? C.greenLight : C.txt2, margin: 0 }}>
+                        {role.name}
+                      </p>
+                      <p style={{ fontSize: 11, color: C.dim, margin: 0 }}>
+                        {role._count.users} usuário{role._count.users !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      {role.isDefault ? (
+                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: C.surface2, color: C.dim, border: `1px solid ${C.border}` }}>
+                          Padrão
+                        </span>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 20, background: C.greenBg, color: C.greenLight, border: `1px solid #1e3d2e` }}>
+                            Custom
+                          </span>
+                          {can(PERMISSIONS.USUARIOS_GERENCIAR) && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteRoleTarget(role) }}
+                              disabled={role._count.users > 0}
+                              title={role._count.users > 0 ? 'Remova os usuários deste cargo antes' : 'Excluir cargo'}
+                              style={{ background: 'none', border: 'none', cursor: role._count.users > 0 ? 'not-allowed' : 'pointer', color: C.muted, padding: 2, opacity: role._count.users > 0 ? 0.4 : 1 }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {can(PERMISSIONS.USUARIOS_GERENCIAR) && (
+              <button
+                onClick={() => setNewRoleOpen(true)}
+                className="tf-chef-btn"
+                style={{
+                  width: '100%', padding: '12px 16px',
+                  borderTop: `1px solid ${C.border}`,
+                  background: 'transparent', border: 'none',
+                  color: C.dim, cursor: 'pointer', fontSize: 13,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+              >
+                <Plus size={14} /> Novo cargo
+              </button>
+            )}
+          </div>
+
+          {/* Painel de detalhe */}
+          {selectedRole ? (
+            <RoleDetail
+              key={selectedRole.id}
+              role={selectedRole}
+              users={usersOfRole}
+              onPermissionsUpdate={handlePermissionsUpdate}
+            />
+          ) : (
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: C.dim, fontSize: 14,
+              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+            }}>
+              Selecione um cargo para ver as permissões
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal novo cargo */}
+      {newRoleOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setNewRoleOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.surface, borderRadius: 12, padding: 24, width: '90%', maxWidth: 500, maxHeight: '80vh', overflowY: 'auto', border: `1px solid ${C.border}` }}
+          >
+            <h3 style={{ fontWeight: 700, fontSize: 16, color: C.txt2, margin: '0 0 16px' }}>
+              Novo cargo personalizado
+            </h3>
+            <form onSubmit={createRole} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: C.subtle, marginBottom: 6 }}>
+                  Nome do cargo *
+                </label>
                 <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
+                  required value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
                   placeholder="Ex: Supervisor"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  style={{ background: C.surface2, border: `1px solid ${C.border}`, color: C.txt2 }}
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Permissões</Label>
-                <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: C.subtle, marginBottom: 8 }}>
+                  Permissões *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {ALL_PERMS.map((p) => (
-                    <label key={p.key} className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: C.txt2 }}>
                       <input
                         type="checkbox"
-                        checked={selectedPerms.includes(p.key)}
-                        onChange={() => togglePerm(p.key)}
-                        className="accent-zinc-400"
+                        checked={newRolePerms.includes(p.key)}
+                        onChange={() => setNewRolePerms((prev) =>
+                          prev.includes(p.key) ? prev.filter((x) => x !== p.key) : [...prev, p.key]
+                        )}
+                        style={{ accentColor: C.green }}
                       />
                       {p.label}
                     </label>
                   ))}
                 </div>
               </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button type="submit" disabled={saving} className="w-full bg-zinc-700 hover:bg-zinc-600">
-                {saving ? 'Salvando...' : 'Criar função'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y divide-zinc-800">
-          {roles.map((role) => (
-            <div key={role.id} className="flex items-center gap-3 px-6 py-3">
-              <Shield className="h-4 w-4 text-zinc-500 shrink-0" />
-              <div className="flex-1">
-                <span className="text-sm text-white">{role.name}</span>
-                {role.isDefault && <Badge className="ml-2 bg-zinc-700 text-zinc-400 text-[10px]">Padrão</Badge>}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Button type="submit" disabled={roleSaving} className="flex-1">
+                  {roleSaving ? 'Salvando...' : 'Criar cargo'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setNewRoleOpen(false)}>
+                  Cancelar
+                </Button>
               </div>
-              <span className="text-xs text-zinc-500">{role._count.users} usuário{role._count.users !== 1 ? 's' : ''}</span>
-              {!role.isDefault && (
-                <button onClick={() => deleteRole(role.id)} className="text-zinc-600 hover:text-red-400 transition-colors">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            </form>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Sheets */}
+      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} roles={roles} onSuccess={load} />
+      <EditUserSheet user={editUser} roles={roles} onOpenChange={(v) => { if (!v) setEditUser(null) }} onSuccess={load} />
+      <ResetPinSheet user={resetPINUser} onOpenChange={(v) => { if (!v) setResetPINUser(null) }} onSuccess={load} />
+
+      {/* AlertDialog: Reset password */}
+      <AlertDialog open={!!resetPasswordUser} onOpenChange={(v) => { if (!v) setResetPasswordUser(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resetar senha de {resetPasswordUser?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Será enviado um email para <strong>{resetPasswordUser?.email}</strong> com um link de
+              redefinição de senha válido por 2 horas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setResetPasswordUser(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetPassword} style={{ background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)' }}>
+              Enviar link de reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog: Remove user */}
+      <AlertDialog open={!!removeUser} onOpenChange={(v) => { if (!v) setRemoveUser(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover {removeUser?.name ?? removeUser?.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação desativará o acesso do funcionário ao sistema e pode ser revertida reativando o usuário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRemoveUser(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove} className="bg-red-600 hover:bg-red-700 text-white">
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog: Delete role */}
+      <AlertDialog open={!!deleteRoleTarget} onOpenChange={(v) => { if (!v) setDeleteRoleTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover cargo "{deleteRoleTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este cargo será excluído permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteRoleTarget(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteRole} className="bg-red-600 hover:bg-red-700 text-white">
+              Remover cargo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   )
 }

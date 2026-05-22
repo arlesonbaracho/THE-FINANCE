@@ -18,17 +18,25 @@ function AuthLeft() {
       <div style={{ position: 'absolute', bottom: -60, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 360 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TFMark size={24} main="rgba(255,255,255,0.92)" accent="rgba(255,255,255,0.60)" />
+          <div style={{ width: 64, height: 64, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TFMark size={34} main="rgba(255,255,255,0.92)" accent="rgba(255,255,255,0.60)" />
           </div>
-          <span style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 20, color: 'white' }}>THE FINANCE</span>
+          <span style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 22, color: 'white' }}>THE FINANCE</span>
         </div>
         <h1 style={{ fontFamily: 'var(--tf-font-display)', fontSize: 36, lineHeight: 1.2, color: 'white', margin: '0 0 16px 0', fontWeight: 400 }}>
           Sua operação sob controle, em tempo real.
         </h1>
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, margin: '0 0 32px 0' }}>
           Estoque, cozinha e financeiro integrados para restaurantes que crescem.
         </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {['Estoque com custo médio automático', 'Painel da cozinha em tempo real', 'Relatórios financeiros integrados'].map((text) => (
+            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span style={{ fontSize: 14, color: 'white' }}>{text}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <p style={{ position: 'absolute', bottom: 24, left: 56, fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>© 2026 THE FINANCE</p>
     </div>

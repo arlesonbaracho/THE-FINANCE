@@ -5,6 +5,9 @@ import {
   movementSchema,
   productSchema,
   productIngredientSchema,
+  convidarFuncionarioSchema,
+  convidarCozinheiroSchema,
+  redefinirPinSchema,
 } from '@/lib/validations'
 
 // ── registerSchema ────────────────────────────────────────────────────────────
@@ -252,5 +255,62 @@ describe('zodErrorResponse', () => {
     const response = zodErrorResponse((result as { error: z.ZodError }).error)
     expect(typeof response.error).toBe('string')
     expect(response.error.length).toBeGreaterThan(0)
+  })
+})
+
+// ── convidarFuncionarioSchema ─────────────────────────────────────────────────
+
+describe('convidarFuncionarioSchema', () => {
+  const validCuid = 'clxxxxxxxxxxxxxxxxxxxxxx'
+
+  it('aceita email válido e roleId cuid', () => {
+    expect(convidarFuncionarioSchema.safeParse({ email: 'a@b.com', roleId: validCuid }).success).toBe(true)
+  })
+
+  it('rejeita email inválido', () => {
+    const r = convidarFuncionarioSchema.safeParse({ email: 'nao-email', roleId: validCuid })
+    expect(r.success).toBe(false)
+  })
+
+  it('rejeita quando roleId está ausente', () => {
+    expect(convidarFuncionarioSchema.safeParse({ email: 'a@b.com' }).success).toBe(false)
+  })
+})
+
+// ── convidarCozinheiroSchema ──────────────────────────────────────────────────
+
+describe('convidarCozinheiroSchema', () => {
+  const base = { nome: 'João', pin: '1234', confirmPin: '1234' }
+
+  it('aceita nome, pin 4 dígitos e confirmPin iguais', () => {
+    expect(convidarCozinheiroSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rejeita pin com menos de 4 dígitos', () => {
+    expect(convidarCozinheiroSchema.safeParse({ ...base, pin: '123', confirmPin: '123' }).success).toBe(false)
+  })
+
+  it('rejeita pin com letras', () => {
+    expect(convidarCozinheiroSchema.safeParse({ ...base, pin: '12AB', confirmPin: '12AB' }).success).toBe(false)
+  })
+
+  it('rejeita quando pins não coincidem, com path em confirmPin', () => {
+    const r = convidarCozinheiroSchema.safeParse({ ...base, confirmPin: '9999' })
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0].path).toContain('confirmPin')
+  })
+})
+
+// ── redefinirPinSchema ────────────────────────────────────────────────────────
+
+describe('redefinirPinSchema', () => {
+  it('aceita pin e confirmPin iguais', () => {
+    expect(redefinirPinSchema.safeParse({ pin: '4321', confirmPin: '4321' }).success).toBe(true)
+  })
+
+  it('rejeita pins diferentes, com path em confirmPin', () => {
+    const r = redefinirPinSchema.safeParse({ pin: '1111', confirmPin: '2222' })
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0].path).toContain('confirmPin')
   })
 })

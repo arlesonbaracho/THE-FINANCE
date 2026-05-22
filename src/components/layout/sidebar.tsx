@@ -95,17 +95,17 @@ export function Sidebar() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 12,
           padding: '18px 20px',
           borderBottom: '1px solid var(--tf-sidebar-bd)',
         }}
       >
-        <TFMark size={28} />
+        <TFMark size={40} main="#4bc994" accent="#2a9d6f" />
         <div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--tf-sidebar-txt-on)', lineHeight: 1.2 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--tf-sidebar-txt-on)', lineHeight: 1.2 }}>
             The Finance
           </p>
-          <p style={{ fontSize: 9, color: 'var(--tf-sidebar-txt)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 1 }}>
+          <p style={{ fontSize: 10, color: 'var(--tf-sidebar-txt)', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 1 }}>
             Restaurantes
           </p>
         </div>

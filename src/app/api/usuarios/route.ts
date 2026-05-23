@@ -125,13 +125,6 @@ export async function POST(req: NextRequest) {
   const parsed = inviteEmailSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
 
-  const existing = await prisma.invite.findUnique({
-    where: { email_tenantId: { email: parsed.data.email, tenantId: session.user.tenantId } },
-  })
-  if (existing && existing.status === 'PENDING' && existing.expiresAt > new Date()) {
-    return NextResponse.json({ error: 'Convite já enviado para este email' }, { status: 409 })
-  }
-
   const existingUser = await prisma.user.findFirst({
     where: { email: parsed.data.email, tenantId: session.user.tenantId },
   })

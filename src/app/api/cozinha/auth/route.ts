@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 
 const schema = z.object({
   tenantSlug: z.string().min(1),
-  userId: z.string().cuid(),
+  userId: z.string().min(1),
   pin: z.string().length(4).regex(/^\d{4}$/),
 })
 
@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   if (!slug) return NextResponse.json({ error: 'Slug obrigatório' }, { status: 400 })
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug },
+  // Aceita tanto o slug de URL quanto o ID do tenant
+  const tenant = await prisma.tenant.findFirst({
+    where: { OR: [{ slug }, { id: slug }] },
     select: { id: true, name: true },
   })
   if (!tenant) return NextResponse.json({ error: 'Restaurante não encontrado' }, { status: 404 })
@@ -39,19 +40,28 @@ export async function POST(req: NextRequest) {
 
   const { tenantSlug, userId, pin } = parsed.data
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } })
+  const tenant = await prisma.tenant.findFirst({ where: { OR: [{ slug: tenantSlug }, { id: tenantSlug }] } })
   if (!tenant) return NextResponse.json({ error: 'Restaurante não encontrado' }, { status: 404 })
 
   const user = await prisma.user.findFirst({
-    where: { id: userId, tenantId: tenant.id, status: 'ACTIVE' },
+    where: { id: userId, tenantId: tenant.id },
     include: { customRole: true },
   })
 
-  const dummyHash = '$2a$12$dummyhashtopreventtimingattacks.padpadpadpa'
-  const pinToCheck = user?.pin ?? dummyHash
-  const valid = await bcrypt.compare(pin, pinToCheck)
+  if (!user) {
+    console.error('[cozinha/auth POST] user not found – userId:', userId, 'tenantId:', tenant.id)
+    return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 401 })
+  }
+  if (user.status !== 'ACTIVE') {
+    return NextResponse.json({ error: 'Usuário inativo' }, { status: 401 })
+  }
+  if (!user.pin) {
+    return NextResponse.json({ error: 'PIN não configurado para este usuário' }, { status: 401 })
+  }
 
-  if (!user || !user.pin || !valid) {
+  const valid = await bcrypt.compare(pin, user.pin)
+  if (!valid) {
+    console.error('[cozinha/auth POST] wrong pin – userId:', userId)
     return NextResponse.json({ error: 'PIN incorreto' }, { status: 401 })
   }
 

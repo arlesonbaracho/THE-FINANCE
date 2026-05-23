@@ -24,6 +24,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -32,6 +33,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -69,6 +72,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+
+  @@index([tenantId])
 }
 
 enum UserRole {
@@ -98,6 +103,7 @@ model Role {
   updatedAt   DateTime @updatedAt
 
   @@unique([name, tenantId])
+  @@index([tenantId])
 }
 
 // ── Password Reset Tokens ─────────────────────────────────────────────────────
@@ -112,6 +118,8 @@ model PasswordResetToken {
   requestIp   String?
   initiatedBy String?   @default("USER")
   createdAt   DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // ── User Access Log ───────────────────────────────────────────────────────────
@@ -126,6 +134,9 @@ model UserAccessLog {
   userAgent String?
   action    String   @default("login")
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
 }
 
 // ── Invites ───────────────────────────────────────────────────────────────────
@@ -144,6 +155,7 @@ model Invite {
   createdAt  DateTime     @default(now())
 
   @@unique([email, tenantId])
+  @@index([tenantId])
 }
 
 enum InviteStatus {
@@ -236,6 +248,8 @@ model Invoice {
   paidAt      DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  @@index([tenantId])
 }
 
 enum InvoiceStatus {
@@ -272,6 +286,8 @@ model AdminPasswordResetToken {
   usedAt      DateTime?
   requestIp   String?
   createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
 }
 
 enum AdminRole {
@@ -286,6 +302,8 @@ model AdminLog {
   details     Json?
   ip          String?
   createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
 }
 
 // ── Categories & Suppliers ────────────────────────────────────────────────────
@@ -302,6 +320,7 @@ model Category {
   updatedAt   DateTime     @updatedAt
 
   @@unique([name, type, tenantId])
+  @@index([tenantId])
 }
 
 enum CategoryType {
@@ -324,6 +343,8 @@ model Supplier {
   ingredientesSecundarios Ingredient[] @relation("FornecedorSecundario")
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
+
+  @@index([tenantId])
 }
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -368,6 +389,8 @@ model Ingredient {
   updatedAt            DateTime             @updatedAt
 
   @@unique([codigoInterno, tenantId])
+  @@index([tenantId])
+  @@index([categoryId])
 }
 
 model IngredientMovement {
@@ -384,6 +407,10 @@ model IngredientMovement {
   note         String?
   createdBy    String?
   createdAt    DateTime         @default(now())
+
+  @@index([tenantId])
+  @@index([ingredientId])
+  @@index([tenantId, createdAt])
 }
 
 enum MovementType {
@@ -408,6 +435,9 @@ model Product {
   ingredients ProductIngredient[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([categoryId])
 }
 
 model ProductIngredient {
@@ -435,6 +465,8 @@ model Inventario {
   items        InventarioItem[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+
+  @@index([tenantId])
 }
 
 enum InventarioStatus {
@@ -471,6 +503,8 @@ model PlanHistory {
   reason       String?
   scheduledFor DateTime?
   createdAt    DateTime            @default(now())
+
+  @@index([tenantId])
 }
 
 model CancellationRequest {

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'
 import { PasswordResetEmail } from './templates/password-reset'
 import { PasswordChangedEmail } from './templates/password-changed'
@@ -8,25 +9,38 @@ import { AdminPasswordResetEmail } from './templates/admin-password-reset'
 
 const FROM = process.env.EMAIL_FROM ?? 'THE FINANCE <noreply@thefinance.app>'
 
-// Instanciação lazy — evita erro no build quando RESEND_API_KEY não está definida
 let _resend: Resend | null = null
 function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? 'placeholder')
   return _resend
 }
 
-function isDev() {
-  return !process.env.RESEND_API_KEY || process.env.NODE_ENV === 'development'
-}
-
 async function send(to: string, subject: string, html: string) {
-  if (isDev()) {
-    console.log(`\n📧 [EMAIL DEV] To: ${to}\nSubject: ${subject}\n`)
-    return { id: 'dev-mode' }
+  // Prioridade 1: Resend
+  if (process.env.RESEND_API_KEY) {
+    const { data, error } = await getResend().emails.send({ from: FROM, to, subject, html })
+    if (error) throw new Error(`Resend failed: ${error.message}`)
+    return data
   }
-  const { data, error } = await getResend().emails.send({ from: FROM, to, subject, html })
-  if (error) throw new Error(`Email send failed: ${error.message}`)
-  return data
+
+  // Prioridade 2: SMTP via Nodemailer (Gmail, Brevo, Mailgun, etc.)
+  if (process.env.EMAIL_SMTP_HOST) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_SMTP_HOST,
+      port: Number(process.env.EMAIL_SMTP_PORT ?? 587),
+      secure: process.env.EMAIL_SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.EMAIL_SMTP_USER,
+        pass: process.env.EMAIL_SMTP_PASS,
+      },
+    })
+    const info = await transporter.sendMail({ from: FROM, to, subject, html })
+    return { id: info.messageId }
+  }
+
+  // Sem provider configurado — loga no console
+  console.log(`\n📧 [EMAIL DEV] To: ${to}\nSubject: ${subject}\n`)
+  return { id: 'dev-mode' }
 }
 
 export const emailService = {

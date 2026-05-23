@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import {
@@ -140,11 +140,19 @@ export default function UsuariosPage() {
   const [removeUser, setRemoveUser]               = useState<UserItem | null>(null)
   const [selectedRoleId, setSelectedRoleId]       = useState<string | null>(null)
 
+  const [tenantInfo, setTenantInfo] = useState<{ name: string; slug: string } | null>(null)
   const [newRoleOpen, setNewRoleOpen]   = useState(false)
   const [newRoleName, setNewRoleName]   = useState('')
   const [newRolePerms, setNewRolePerms] = useState<string[]>([])
   const [roleSaving, setRoleSaving]     = useState(false)
   const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleItem | null>(null)
+
+  useEffect(() => {
+    fetch('/api/perfil/tenant')
+      .then((r) => r.json())
+      .then((d) => { if (d.slug) setTenantInfo(d) })
+      .catch(() => {})
+  }, [])
 
   const load = useCallback(async () => {
     const [ur, rr] = await Promise.all([fetch('/api/usuarios'), fetch('/api/roles')])
@@ -168,7 +176,7 @@ export default function UsuariosPage() {
     if (tab === 'funcionarios') setSelectedRoleId(null)
   }
 
-  const filtered = users.filter((u) => {
+  const filtered = useMemo(() => users.filter((u) => {
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase()
       if (!u.name?.toLowerCase().includes(q) && !u.email?.toLowerCase().includes(q)) return false
@@ -176,7 +184,7 @@ export default function UsuariosPage() {
     if (filterRole !== 'all' && u.customRole?.id !== filterRole) return false
     if (filterStatus !== 'all' && u.status !== filterStatus) return false
     return true
-  })
+  }), [users, debouncedSearch, filterRole, filterStatus])
 
   async function handleAction(action: string, userId: string) {
     const user = users.find((u) => u.id === userId)
@@ -338,6 +346,42 @@ export default function UsuariosPage() {
         <StatCard title="Ativos" value={activeCount} icon={UserCheck} variant="success" />
         <StatCard title="Cargos" value={roles.length} icon={Shield} variant="warning" />
       </div>
+
+      {/* Kitchen link banner */}
+      {tenantInfo && (
+        <div style={{
+          background: C.greenBg, border: '1px solid #1e3d2e',
+          borderRadius: 10, padding: '14px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ChefHat size={16} style={{ color: C.greenLight, flexShrink: 0 }} />
+            <div>
+              <span style={{ fontSize: 12, color: C.muted, display: 'block' }}>
+                Link de acesso da cozinha (PIN)
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: C.greenLight, fontFamily: 'monospace' }}>
+                {typeof window !== 'undefined' ? window.location.origin : ''}/{tenantInfo.slug}/cozinha
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const url = `${window.location.origin}/${tenantInfo.slug}/cozinha`
+              navigator.clipboard.writeText(url)
+              toast.success('Link copiado!')
+            }}
+            style={{
+              padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+              background: C.greenBg, border: '1px solid #2a9d6f',
+              color: C.greenLight, cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            Copiar link
+          </button>
+        </div>
+      )}
 
       {/* Pill tabs */}
       <div style={{

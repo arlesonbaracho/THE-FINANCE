@@ -7,23 +7,31 @@ export async function GET() {
   if (!tenantId) return unauthorizedResponse()
 
   try {
-    const ingredients = await prisma.ingredient.findMany({
-      where: { tenantId },
-      select: {
-        id: true,
-        name: true,
-        unit: true,
-        currentQty: true,
-        minimumQty: true,
-        pontoReposicao: true,
-        custoMedioPonderado: true,
-        dataValidade: true,
-      },
-    })
-
     const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+    const [ingredients, recentMovements] = await Promise.all([
+      prisma.ingredient.findMany({
+        where: { tenantId },
+        select: {
+          id: true,
+          name: true,
+          unit: true,
+          currentQty: true,
+          minimumQty: true,
+          pontoReposicao: true,
+          custoMedioPonderado: true,
+          dataValidade: true,
+        },
+      }),
+      prisma.ingredientMovement.groupBy({
+        by: ['type'],
+        where: { tenantId, createdAt: { gte: thirtyDaysAgo } },
+        _sum: { quantity: true, totalCost: true },
+      }),
+    ])
 
     let totalValue = 0
     let critical = 0
@@ -42,14 +50,6 @@ export async function GET() {
         else if (ing.dataValidade <= sevenDays) expiring++
       }
     }
-
-    // Turnover: movements in last 30 days
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    const recentMovements = await prisma.ingredientMovement.groupBy({
-      by: ['type'],
-      where: { tenantId, createdAt: { gte: thirtyDaysAgo } },
-      _sum: { quantity: true, totalCost: true },
-    })
 
     const inMovements = recentMovements.find((m) => m.type === 'IN')
     const outMovements = recentMovements.filter((m) =>

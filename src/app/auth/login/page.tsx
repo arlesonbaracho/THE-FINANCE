@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -159,6 +159,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showChef, setShowChef] = useState(false)
+  const [chefQuery, setChefQuery] = useState('')
+  const [chefResults, setChefResults] = useState<{ name: string; slug: string }[]>([])
+  const [chefSearching, setChefSearching] = useState(false)
+  const chefTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleChefQuery(v: string) {
+    setChefQuery(v)
+    if (chefTimer.current) clearTimeout(chefTimer.current)
+    chefTimer.current = setTimeout(async () => {
+      if (v.trim().length < 2) { setChefResults([]); return }
+      setChefSearching(true)
+      try {
+        const r = await fetch(`/api/cozinha/buscar?q=${encodeURIComponent(v)}`)
+        const d = await r.json()
+        setChefResults(Array.isArray(d) ? d : [])
+      } finally {
+        setChefSearching(false)
+      }
+    }, 350)
+  }
 
   const parsedError = error ? parseError(error) : null
 
@@ -413,11 +434,12 @@ export default function LoginPage() {
             <button
               type="button"
               className="login-chef"
+              onClick={() => setShowChef((v) => !v)}
               style={{
                 width: '100%', padding: '12px', borderRadius: 7,
-                background: 'transparent',
-                border: `1px solid ${C.border}`,
-                color: C.subtle, cursor: 'pointer',
+                background: showChef ? C.greenBg : 'transparent',
+                border: `1px solid ${showChef ? C.green : C.border}`,
+                color: showChef ? C.greenLight : C.subtle, cursor: 'pointer',
                 fontWeight: 500, fontSize: 13,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 transition: 'background 0.15s, border-color 0.15s, color 0.15s',
@@ -425,6 +447,57 @@ export default function LoginPage() {
             >
               <ChefHat size={16} /> Acessar como cozinheiro (PIN)
             </button>
+
+            {/* Busca por nome do restaurante */}
+            {showChef && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    autoFocus
+                    value={chefQuery}
+                    onChange={(e) => handleChefQuery(e.target.value)}
+                    placeholder="Nome do restaurante..."
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 7, fontSize: 13,
+                      background: C.surface2, border: `1px solid ${C.border}`,
+                      color: C.txt2, outline: 'none', boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)' }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
+                  />
+                  {chefSearching && (
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: C.dim }}>
+                      Buscando...
+                    </span>
+                  )}
+                </div>
+                {chefResults.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {chefResults.map((t) => (
+                      <button
+                        key={t.slug}
+                        type="button"
+                        onClick={() => router.push(`/${t.slug}/cozinha`)}
+                        style={{
+                          width: '100%', padding: '10px 14px', borderRadius: 7,
+                          background: C.surface2, border: `1px solid ${C.border}`,
+                          color: C.txt2, cursor: 'pointer', textAlign: 'left', fontSize: 13,
+                          display: 'flex', alignItems: 'center', gap: 8,
+                        }}
+                      >
+                        <ChefHat size={14} style={{ color: C.greenLight, flexShrink: 0 }} />
+                        {t.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {chefQuery.trim().length >= 2 && !chefSearching && chefResults.length === 0 && (
+                  <p style={{ fontSize: 12, color: C.dim, textAlign: 'center', margin: 0 }}>
+                    Nenhum restaurante encontrado
+                  </p>
+                )}
+              </div>
+            )}
 
             <p style={{ textAlign: 'center', marginTop: 22, fontSize: 12, color: C.dim }}>
               Ainda não tem conta?{' '}

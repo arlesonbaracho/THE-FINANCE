@@ -5,12 +5,19 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2, Mail, Hash, Shield, BarChart2, DollarSign, ChefHat, Package } from 'lucide-react'
+import { Loader2, Mail, Hash, Shield, BarChart2, DollarSign, ChefHat, Package, CheckCircle, Copy, Check } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from '@/components/ui/sheet'
 import { OtpInput } from '@/components/usuarios/otp-input'
 import type { RoleItem } from '@/components/usuarios/user-card'
+
+// ── Cores ─────────────────────────────────────────────────────────────────────
+
+const C = {
+  greenBg: '#0d2b1f', green: '#2a9d6f', greenLight: '#4bc994',
+  txt: '#e8f0ec', txt2: '#c8dcd2', muted: '#3d6050', border: '#1e3d2e',
+}
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +79,8 @@ interface Props {
 export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [expandedPerms, setExpandedPerms] = useState(false)
+  const [inviteResult, setInviteResult] = useState<{ email: string; url: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -82,8 +91,9 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
   const roleId = watch('roleId')
   const selectedRole = roles.find((r) => r.id === roleId)
 
+  const cozRoles = roles.filter((r) => r.name.toLowerCase().includes('cozinheiro'))
   const visibleRoles = tipoAcesso === 'pin'
-    ? roles.filter((r) => r.name.toLowerCase().includes('cozinheiro'))
+    ? (cozRoles.length > 0 ? cozRoles : roles)
     : roles
 
   function handleTypeChange(tipo: 'email' | 'pin') {
@@ -98,7 +108,7 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
   }
 
   function handleClose(v: boolean) {
-    if (!v) { reset(); setExpandedPerms(false) }
+    if (!v) { reset(); setExpandedPerms(false); setInviteResult(null); setCopied(false) }
     onOpenChange(v)
   }
 
@@ -119,13 +129,14 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? 'Erro ao convidar'); return }
 
-      if (data.tipoAcesso === 'email') {
-        toast.success(`Convite enviado para ${data.email}`)
-      } else {
+      if (data.tipoAcesso === 'pin') {
         toast.success(`Cozinheiro ${data.nome} cadastrado com sucesso`)
+        handleClose(false)
+        onSuccess()
+      } else {
+        setInviteResult({ email: data.email!, url: json.inviteUrl as string })
+        onSuccess()
       }
-      handleClose(false)
-      onSuccess()
     } finally {
       setSubmitting(false)
     }
@@ -145,6 +156,62 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
             Convidar funcionário
           </SheetTitle>
         </SheetHeader>
+
+        {inviteResult ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px 16px', gap: 20 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: C.greenBg, border: `2px solid ${C.green}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px',
+              }}>
+                <CheckCircle size={24} style={{ color: C.greenLight }} />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>Convite criado!</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0', lineHeight: 1.5 }}>
+                Tentamos enviar um email para{' '}
+                <strong style={{ color: C.txt2 }}>{inviteResult.email}</strong>.
+                <br />Compartilhe o link abaixo caso o email não chegue.
+              </p>
+            </div>
+
+            <div style={{ background: C.greenBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+              <p style={{ fontSize: 10, fontWeight: 600, color: C.muted, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Link de convite (válido por 48h)
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <p style={{ fontSize: 11, color: C.greenLight, fontFamily: 'monospace', margin: 0, flex: 1, wordBreak: 'break-all', lineHeight: 1.6 }}>
+                  {inviteResult.url}
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(inviteResult.url)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                    background: copied ? C.green : 'transparent',
+                    border: `1px solid ${C.green}`,
+                    color: copied ? '#fff' : C.greenLight,
+                    cursor: 'pointer', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? 'Copiado' : 'Copiar'}
+                </button>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 12, color: C.muted, textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+              Envie este link por WhatsApp, Slack ou qualquer outro canal. O funcionário acessará o link para criar sua senha.
+            </p>
+          </div>
+        ) : (
 
         <form onSubmit={handleSubmit(onSubmit)} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20, padding: '0 16px 8px' }}>
           {/* Nome */}
@@ -299,33 +366,50 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
             </div>
           )}
         </form>
+        )}
 
         <SheetFooter style={{ flexDirection: 'column', gap: 8, padding: '12px 16px' }}>
-          <button
-            type="button"
-            onClick={handleSubmit(onSubmit)}
-            disabled={submitting}
-            style={{
-              width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
-              background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)',
-              fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 15,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              opacity: submitting ? 0.8 : 1,
-            }}
-          >
-            {submitting && <Loader2 size={16} className="animate-spin" />}
-            {tipoAcesso === 'email' ? 'Enviar convite' : 'Cadastrar'}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleClose(false)}
-            style={{
-              width: '100%', padding: '10px', borderRadius: 8, border: 'none',
-              background: 'none', color: 'var(--tf-txt3)', cursor: 'pointer', fontSize: 14,
-            }}
-          >
-            Cancelar
-          </button>
+          {inviteResult ? (
+            <button
+              type="button"
+              onClick={() => handleClose(false)}
+              style={{
+                width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: C.green, color: '#fff',
+                fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 15,
+              }}
+            >
+              Fechar
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleSubmit(onSubmit)}
+                disabled={submitting}
+                style={{
+                  width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: submitting ? 'not-allowed' : 'pointer',
+                  background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)',
+                  fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 15,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: submitting ? 0.8 : 1,
+                }}
+              >
+                {submitting && <Loader2 size={16} className="animate-spin" />}
+                {tipoAcesso === 'email' ? 'Enviar convite' : 'Cadastrar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleClose(false)}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+                  background: 'none', color: 'var(--tf-txt3)', cursor: 'pointer', fontSize: 14,
+                }}
+              >
+                Cancelar
+              </button>
+            </>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

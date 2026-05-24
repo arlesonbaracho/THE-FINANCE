@@ -7,9 +7,8 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from '@/components/ui/sheet'
 import type { UserItem, RoleItem } from '@/components/usuarios/user-card'
-import { PERMISSIONS, DEFAULT_ROLE_PERMISSIONS } from '@/lib/permissions-constants'
+import { DEFAULT_ROLE_PERMISSIONS } from '@/lib/permissions-constants'
 
-type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
 
 interface Props {
   user: UserItem | null

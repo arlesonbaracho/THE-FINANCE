@@ -3,11 +3,12 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  ADMIN_RESTAURANTE: ['estoque.ver','estoque.criar','estoque.editar','estoque.deletar','estoque.movimentar','produtos.ver','produtos.criar','produtos.editar','produtos.deletar','usuarios.ver','usuarios.gerenciar','relatorios.ver','configuracoes.ver','configuracoes.editar','cozinha.ver','cozinha.gerenciar'],
-  GERENTE: ['estoque.ver','estoque.criar','estoque.editar','estoque.movimentar','produtos.ver','produtos.criar','produtos.editar','usuarios.ver','relatorios.ver','configuracoes.ver','cozinha.ver','cozinha.gerenciar'],
-  CAIXA: ['produtos.ver','estoque.ver','cozinha.ver'],
-  COZINHEIRO: ['cozinha.ver','cozinha.gerenciar','estoque.ver'],
+  ADMIN_RESTAURANTE: ['estoque.ver','estoque.criar','estoque.editar','estoque.deletar','estoque.movimentar','produtos.ver','produtos.criar','produtos.editar','produtos.deletar','usuarios.ver','usuarios.gerenciar','relatorios.ver','configuracoes.ver','configuracoes.editar','cozinha.ver','cozinha.gerenciar','pedidos.ver','pedidos.criar','pedidos.gerenciar','mesas.gerenciar','caixa.operar'],
+  GERENTE: ['estoque.ver','estoque.criar','estoque.editar','estoque.movimentar','produtos.ver','produtos.criar','produtos.editar','usuarios.ver','relatorios.ver','configuracoes.ver','cozinha.ver','cozinha.gerenciar','pedidos.ver','pedidos.gerenciar','mesas.gerenciar'],
+  CAIXA: ['produtos.ver','estoque.ver','cozinha.ver','caixa.operar','pedidos.ver','pedidos.gerenciar'],
+  COZINHEIRO: ['cozinha.ver','cozinha.gerenciar','estoque.ver','pedidos.ver'],
   ESTOQUISTA: ['estoque.ver','estoque.criar','estoque.editar','estoque.movimentar','produtos.ver','relatorios.ver'],
+  GARCOM: ['pedidos.ver','pedidos.criar','produtos.ver'],
 }
 const DEFAULT_ROLE_NAMES = Object.keys(DEFAULT_ROLE_PERMISSIONS)
 
@@ -180,6 +181,16 @@ async function main() {
           role: 'STAFF',
           tenantId: tenant.id,
           customRoleId: createdRoles['ESTOQUISTA'],
+          status: 'ACTIVE',
+        },
+        {
+          name: `Garcom ${demo.name}`,
+          email: `garcom@${demo.slug}.com`,
+          password: demoPassword,
+          role: 'STAFF',
+          tenantId: tenant.id,
+          customRoleId: createdRoles['GARCOM'],
+          pin: pinHash,
           status: 'ACTIVE',
         },
       ],

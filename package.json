@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npx ts-node --project tsconfig.server.json server.ts",
+    "dev:next": "next dev",
     "predev": "node --eval \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "build": "next build",
     "start": "next start",
@@ -11,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "seed": "ts-node --skip-project prisma/seed.ts"
+    "seed": "npx ts-node --skip-project prisma/seed.ts",
+    "sync-roles": "npx ts-node --skip-project prisma/sync-roles.ts"
   },
   "prisma": {
     "seed": "npx ts-node --skip-project prisma/seed.ts"

@@ -4,20 +4,26 @@ import { getTenantId, unauthorizedResponse } from '@/lib/session'
 import { productSchema, zodErrorResponse } from '@/lib/validations'
 
 export async function GET(req: Request) {
-  const tenantId = await getTenantId()
-  if (!tenantId) return unauthorizedResponse()
-
   const { searchParams } = new URL(req.url)
+  const slug = searchParams.get('slug')
   const search = searchParams.get('search')?.slice(0, 100)
   const categoryId = searchParams.get('categoryId')
+
+  let tenantId: string | null = null
+  if (slug) {
+    const tenant = await prisma.tenant.findFirst({ where: { OR: [{ slug }, { id: slug }] }, select: { id: true } })
+    tenantId = tenant?.id ?? null
+    if (!tenantId) return NextResponse.json({ error: 'Restaurante não encontrado' }, { status: 404 })
+  } else {
+    tenantId = await getTenantId()
+    if (!tenantId) return unauthorizedResponse()
+  }
 
   try {
     const products = await prisma.product.findMany({
       where: {
         tenantId,
-        ...(search && {
-          name: { contains: search, mode: 'insensitive' },
-        }),
+        ...(search && { name: { contains: search, mode: 'insensitive' } }),
         ...(categoryId && { categoryId }),
       },
       include: {

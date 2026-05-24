@@ -126,6 +126,62 @@ export const redefinirPinSchema = z
 
 export type RedefinirPinInput = z.infer<typeof redefinirPinSchema>
 
+// ── PDV ──────────────────────────────────────────────────────────────────────
+
+export const ambienteSchema = z.object({
+  nome: z.string().min(1, 'Nome é obrigatório').max(100).trim(),
+  ordem: z.number().int().min(0).optional(),
+})
+
+export type AmbienteInput = z.infer<typeof ambienteSchema>
+
+export const mesaSchema = z.object({
+  numero: z.number().int().min(1, 'Número deve ser maior que 0').max(9999),
+  identificacao: z.string().max(50).trim().optional(),
+  cadeiras: z.number().int().min(1).max(50).default(4),
+  ambienteId: z.string().cuid().optional(),
+  grupoId: z.string().optional(),
+})
+
+export type MesaInput = z.infer<typeof mesaSchema>
+
+export const pedidoItemSchema = z.object({
+  productId: z.string().cuid('ID do produto inválido'),
+  quantidade: z.number().int().min(1, 'Quantidade mínima é 1').max(999),
+  observacao: z.string().max(500).trim().optional(),
+})
+
+export type PedidoItemInput = z.infer<typeof pedidoItemSchema>
+
+export const criarPedidoSchema = z.object({
+  mesaId: z.string().cuid('ID da mesa inválido'),
+  garcomId: z.string().cuid('ID do garçom inválido'),
+  itens: z.array(pedidoItemSchema).min(1, 'Pedido deve ter pelo menos 1 item'),
+})
+
+export type CriarPedidoInput = z.infer<typeof criarPedidoSchema>
+
+export const reservaSchema = z.object({
+  clienteNome: z.string().min(1, 'Nome é obrigatório').max(150).trim(),
+  contato: z.string().max(100).trim().optional(),
+  dataHora: z.string().datetime('Data/hora inválida'),
+  numPessoas: z.number().int().min(1).max(500),
+  mesaIds: z.array(z.string().cuid()).min(1, 'Selecione pelo menos uma mesa'),
+  observacao: z.string().max(500).trim().optional(),
+})
+
+export type ReservaInput = z.infer<typeof reservaSchema>
+
+export const configPdvSchema = z.object({
+  taxaServico: z.number().min(0).max(100).optional(),
+  taxaServicoAtiva: z.boolean().optional(),
+  couvert: z.number().min(0).max(9999).optional(),
+  taxaEntrega: z.number().min(0).max(9999).optional(),
+  formasPagamento: z.array(z.enum(['DINHEIRO', 'DEBITO', 'CREDITO', 'PIX'])).optional(),
+})
+
+export type ConfigPdvInput = z.infer<typeof configPdvSchema>
+
 // ── Helper ───────────────────────────────────────────────────────────────────
 
 /** Returns a 400 response body from a ZodError */

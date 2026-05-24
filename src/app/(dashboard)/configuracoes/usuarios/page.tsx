@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import {
   UserPlus, Users, Shield, Trash2, Plus, Search,
   MoreVertical, Pencil, KeyRound, UserCheck, UserX,
-  Mail, ChefHat, RefreshCw,
+  Mail, ChefHat, RefreshCw, Package, ShoppingCart,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -347,40 +347,108 @@ export default function UsuariosPage() {
         <StatCard title="Cargos" value={roles.length} icon={Shield} variant="warning" />
       </div>
 
-      {/* Kitchen link banner */}
+      {/* Link banners (cozinha / estoque / caixa) */}
       {tenantInfo && (
-        <div style={{
-          background: C.greenBg, border: '1px solid #1e3d2e',
-          borderRadius: 10, padding: '14px 20px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ChefHat size={16} style={{ color: C.greenLight, flexShrink: 0 }} />
-            <div>
-              <span style={{ fontSize: 12, color: C.muted, display: 'block' }}>
-                Link de acesso da cozinha (PIN)
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: C.greenLight, fontFamily: 'monospace' }}>
-                {typeof window !== 'undefined' ? window.location.origin : ''}/{tenantInfo.slug}/cozinha
-              </span>
+        <>
+          <div style={{
+            background: C.greenBg, border: '1px solid #1e3d2e',
+            borderRadius: 10, padding: '14px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <ChefHat size={16} style={{ color: C.greenLight, flexShrink: 0 }} />
+              <div>
+                <span style={{ fontSize: 12, color: C.muted, display: 'block' }}>
+                  Link de acesso da cozinha (PIN)
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: C.greenLight, fontFamily: 'monospace' }}>
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/{tenantInfo.slug}/cozinha
+                </span>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/${tenantInfo.slug}/cozinha`
+                navigator.clipboard.writeText(url)
+                toast.success('Link copiado!')
+              }}
+              style={{
+                padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                background: C.greenBg, border: '1px solid #2a9d6f',
+                color: C.greenLight, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              Copiar link
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              const url = `${window.location.origin}/${tenantInfo.slug}/cozinha`
-              navigator.clipboard.writeText(url)
-              toast.success('Link copiado!')
-            }}
-            style={{
-              padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-              background: C.greenBg, border: '1px solid #2a9d6f',
-              color: C.greenLight, cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            Copiar link
-          </button>
-        </div>
+
+          <div style={{
+            background: '#0a1a2b', border: '1px solid #1a3a5e',
+            borderRadius: 10, padding: '14px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Package size={16} style={{ color: '#4b8fd4', flexShrink: 0 }} />
+              <div>
+                <span style={{ fontSize: 12, color: '#3d5068', display: 'block' }}>
+                  Link de acesso do estoque (PIN)
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#4b8fd4', fontFamily: 'monospace' }}>
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/{tenantInfo.slug}/estoque
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/${tenantInfo.slug}/estoque`
+                navigator.clipboard.writeText(url)
+                toast.success('Link copiado!')
+              }}
+              style={{
+                padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                background: '#0a1a2b', border: '1px solid #2a6fb4',
+                color: '#4b8fd4', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              Copiar link
+            </button>
+          </div>
+
+          <div style={{
+            background: '#2b1f0d', border: '1px solid #5e3a1a',
+            borderRadius: 10, padding: '14px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <ShoppingCart size={16} style={{ color: '#d4a84b', flexShrink: 0 }} />
+              <div>
+                <span style={{ fontSize: 12, color: '#604830', display: 'block' }}>
+                  Link de acesso do caixa (PIN)
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#d4a84b', fontFamily: 'monospace' }}>
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/{tenantInfo.slug}/caixa
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}/${tenantInfo.slug}/caixa`
+                navigator.clipboard.writeText(url)
+                toast.success('Link copiado!')
+              }}
+              style={{
+                padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                background: '#2b1f0d', border: '1px solid #b48a2a',
+                color: '#d4a84b', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              Copiar link
+            </button>
+          </div>
+        </>
       )}
 
       {/* Pill tabs */}
@@ -411,7 +479,7 @@ export default function UsuariosPage() {
                 style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}
               />
             </div>
-            <Select value={filterRole} onValueChange={setFilterRole}>
+            <Select value={filterRole} onValueChange={(v) => setFilterRole(v ?? '')}>
               <SelectTrigger className="w-44" style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}>
                 <SelectValue placeholder="Todos os cargos" />
               </SelectTrigger>
@@ -420,7 +488,7 @@ export default function UsuariosPage() {
                 {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v ?? '')}>
               <SelectTrigger className="w-36" style={{ background: C.surface, border: `1px solid ${C.border}`, color: C.txt2 }}>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
@@ -812,7 +880,7 @@ export default function UsuariosPage() {
       <AlertDialog open={!!deleteRoleTarget} onOpenChange={(v) => { if (!v) setDeleteRoleTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover cargo "{deleteRoleTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogTitle>Remover cargo &quot;{deleteRoleTarget?.name}&quot;?</AlertDialogTitle>
             <AlertDialogDescription>
               Este cargo será excluído permanentemente.
             </AlertDialogDescription>

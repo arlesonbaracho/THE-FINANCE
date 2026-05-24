@@ -1,6 +1,6 @@
 # THE FINANCE — Relatório Técnico do Projeto
 
-**Data de geração:** 06/05/2026  
+**Data de geração:** 23/05/2026  
 **Versão do sistema:** 0.1.0  
 **Status:** Em desenvolvimento
 
@@ -8,14 +8,15 @@
 
 ## 1. Visão Geral
 
-THE FINANCE é um sistema SaaS multi-tenant de gestão operacional para restaurantes e lanchonetes. Oferece controle de estoque com custo médio ponderado (CMP), cardápio digital com fichas técnicas, painel de cozinha (KDS) em tempo real, gestão de usuários com controle de acesso granular e um módulo financeiro integrado.
+THE FINANCE é um sistema SaaS multi-tenant de gestão operacional para restaurantes e lanchonetes. Oferece controle de estoque com custo médio ponderado (CMP), cardápio digital com fichas técnicas, painéis operacionais (cozinha, caixa, estoque) com acesso por PIN, gestão de usuários com controle de acesso granular e um módulo financeiro integrado.
 
-O sistema é dividido em três camadas de acesso independentes:
+O sistema é dividido em quatro camadas de acesso independentes:
 
 | Camada | Rota base | Autenticação |
 |--------|-----------|--------------|
 | Landing page pública | `/` | Nenhuma |
 | Painel do restaurante | `/dashboard`, `/estoque`, `/configuracoes` | NextAuth (JWT, 8h) |
+| Painéis operacionais | `/{slug}/cozinha`, `/{slug}/caixa`, `/{slug}/estoque` | PIN de 4 dígitos (state-only) |
 | Super Admin | `/admin` | JWT próprio (8h) + TOTP 2FA |
 
 ---
@@ -42,7 +43,7 @@ O sistema é dividido em três camadas de acesso independentes:
 |------------|--------|-----|
 | NextAuth.js | 4.24.14 | Autenticação de usuários tenant |
 | Jose | 6.2.3 | JWT para admin e impersonação |
-| bcryptjs | 3.0.3 | Hash de senhas (12 rounds) |
+| bcryptjs | 3.0.3 | Hash de senhas e PINs (12 rounds) |
 | otplib | 12.0.1 | TOTP (2FA) para super admin |
 | qrcode | 1.5.4 | QR code para setup 2FA |
 
@@ -91,23 +92,30 @@ src/
 │   │       ├── planos/            ← Gestão de planos
 │   │       └── logs/              ← Auditoria de ações
 │   ├── (dashboard)/      ← Painel do restaurante (layout próprio)
-│   │   ├── dashboard/             ← Visão geral
+│   │   ├── loading.tsx            ← Skeleton genérico (fallback Suspense)
+│   │   ├── dashboard/
+│   │   │   └── loading.tsx        ← Skeleton do home dashboard
 │   │   ├── estoque/
+│   │   │   ├── loading.tsx        ← Skeleton do estoque
 │   │   │   ├── insumos/           ← Gestão de ingredientes
 │   │   │   ├── produtos/          ← Gestão de produtos/cardápio
 │   │   │   └── inventario/        ← Contagem física de estoque
 │   │   ├── configuracoes/
+│   │   │   ├── loading.tsx        ← Skeleton de configurações
 │   │   │   ├── perfil/            ← Perfil do usuário
 │   │   │   ├── usuarios/          ← Usuários e cargos
 │   │   │   └── assinatura/        ← Gerenciar assinatura
 │   │   └── plano-bloqueado/       ← Tela de plano suspenso
-│   ├── [slug]/cozinha/   ← KDS público (acesso por PIN)
+│   ├── [slug]/           ← Painéis operacionais (acesso público por PIN)
+│   │   ├── cozinha/      ← KDS — tema escuro/verde, ícone ChefHat
+│   │   ├── caixa/        ← Painel do Caixa — tema âmbar, ícone ShoppingCart
+│   │   └── estoque/      ← Painel do Estoquista — tema azul, ícone Package
 │   ├── admin/            ← Auth admin (fora do layout admin)
 │   │   ├── login/
 │   │   ├── setup-2fa/
 │   │   └── recuperar-senha/
 │   ├── auth/             ← Auth do restaurante
-│   │   ├── login/
+│   │   ├── login/        ← Inclui seção "Acesso por PIN" unificada (3 cargos)
 │   │   └── register/
 │   ├── api/              ← Todos os endpoints REST
 │   └── page.tsx          ← Landing page
@@ -117,6 +125,7 @@ src/
 │   ├── landing/          ← Landing page completa
 │   ├── layout/           ← Header, Sidebar, banners
 │   ├── products/         ← Formulários de produtos
+│   ├── usuarios/         ← InviteSheet, UserCard, OtpInput
 │   └── ui/               ← Componentes shadcn/ui
 ├── hooks/                ← usePermissions, usePlanFeatures
 ├── lib/                  ← Utilitários, auth, prisma, validações
@@ -149,6 +158,11 @@ Usuário tenant:
   POST /auth/login (NextAuth) → sessão JWT 8h
   Middleware verifica token → redireciona se expirado
 
+Painéis operacionais (PIN):
+  GET /api/{area}/auth?slug=X → lista funcionários ativos com PIN do cargo
+  POST /api/{area}/auth → verifica PIN com bcrypt → retorna dados do usuário
+  Sessão mantida em React state — refresh = logout automático
+
 Super Admin:
   POST /api/admin/auth/login
     → bcrypt verify + lockout check
@@ -156,6 +170,19 @@ Super Admin:
     → JWT 8h em cookie HttpOnly
   Middleware verifica admin_token antes do NextAuth
 ```
+
+### Skeletons de Carregamento (loading.tsx)
+
+Cada nível do dashboard tem um `loading.tsx` que serve como boundary Suspense do Next.js, exibindo esqueletos animados imediatamente durante a navegação (sem atraso de TTFB):
+
+| Arquivo | Contexto |
+|---------|---------|
+| `(dashboard)/loading.tsx` | Fallback genérico para qualquer rota do painel |
+| `(dashboard)/dashboard/loading.tsx` | Home — título + 4 cards de estatísticas |
+| `(dashboard)/estoque/loading.tsx` | Estoque — stats + toolbar + tabela de 8 linhas |
+| `(dashboard)/configuracoes/loading.tsx` | Configurações — título + lista com avatares circulares |
+
+Todos usam `animate-pulse` (Tailwind) e variáveis CSS `--tf-surface` / `--tf-border`.
 
 ---
 
@@ -212,11 +239,11 @@ Funcionalidades:
 Sistema de roles:
 | Role padrão | Acesso |
 |------------|--------|
-| ADMIN | Total |
+| ADMIN_RESTAURANTE | Total |
 | GERENTE | Tudo exceto gestão de usuários avançada |
-| CAIXA | PDV, produtos (leitura), relatórios básicos |
-| COZINHEIRO | Cozinha, produtos (leitura) |
-| ESTOQUISTA | Estoque completo |
+| CAIXA | PDV, produtos (leitura), cozinha (leitura) |
+| COZINHEIRO | Cozinha + gestão de cozinha, estoque (leitura) |
+| ESTOQUISTA | Estoque completo, produtos (leitura), relatórios |
 
 Permissões granulares disponíveis (16 no total):
 - Estoque: visualizar, criar, editar, excluir, movimentar
@@ -227,24 +254,51 @@ Permissões granulares disponíveis (16 no total):
 - Cozinha: visualizar, gerenciar
 
 Sistema de convites:
-- Admin convida por email → token único (48h)
-- Convidado define senha ao aceitar → status: PENDING → ACTIVE
+- **Por email:** Admin convida → token único (48h) → convidado define senha → status: PENDING → ACTIVE
+- **Por PIN:** Admin cria diretamente com nome + PIN de 4 dígitos (hash bcrypt 12 rounds) — sem email. Disponível para os cargos Cozinheiro, Estoquista e Caixa
 
-PIN para cozinha:
-- Cada usuário pode ter PIN de 4 dígitos
-- Acesso ao KDS via `/{slug}/cozinha` sem login completo
+Banners de link na página de usuários:
+- **Verde** — `/{slug}/cozinha` (copiar link para o KDS)
+- **Azul** — `/{slug}/estoque` (copiar link para o painel do estoquista)
+- **Âmbar** — `/{slug}/caixa` (copiar link para o painel do caixa)
 
 ### 4.5 Painel da Cozinha (KDS)
 
 **Rota:** `/{slug}/cozinha`  
-**Autenticação:** PIN numérico
+**Tema:** escuro/verde (`accent: #2a9d6f`)  
+**Autenticação:** PIN numérico — filtra todos os usuários com PIN do tenant
 
 - Acesso público por slug do restaurante
-- Autenticação por PIN de 4 dígitos
+- Autenticação por PIN de 4 dígitos (bcrypt compare)
 - Atualização em tempo real via Socket.IO
 - Interface limpa sem sidebar/header para uso em tablets
+- Refresh da página = logout automático (sessão em state)
 
-### 4.6 Configurações de Perfil
+### 4.6 Painel do Estoquista
+
+**Rota:** `/{slug}/estoque`  
+**Tema:** azul (`accent: #2a6fb4` / `#4b8fd4`)  
+**API:** `/api/estoque/auth`  
+**Autenticação:** PIN numérico — filtra por `customRole.name` contendo `"estoquista"` (case-insensitive)
+
+- Acesso público por slug do restaurante
+- Ícone: `Package` (Lucide)
+- Seção pós-login: "MOVIMENTAÇÕES RECENTES"
+- Mesma arquitetura de estado da cozinha: `'select' | 'pin' | 'dashboard'`
+
+### 4.7 Painel do Caixa
+
+**Rota:** `/{slug}/caixa`  
+**Tema:** âmbar (`accent: #b48a2a` / `#d4a84b`)  
+**API:** `/api/caixa/auth`  
+**Autenticação:** PIN numérico — filtra por `customRole.name` contendo `"caixa"` (case-insensitive)
+
+- Acesso público por slug do restaurante
+- Ícone: `ShoppingCart` (Lucide)
+- Seção pós-login: "PEDIDOS DO DIA"
+- Mesma arquitetura de estado da cozinha: `'select' | 'pin' | 'dashboard'`
+
+### 4.8 Configurações de Perfil
 
 **Rota:** `/configuracoes/perfil`
 
@@ -253,7 +307,7 @@ PIN para cozinha:
 - Visualização de permissões do cargo
 - Log de últimos acessos com IP
 
-### 4.7 Assinatura
+### 4.9 Assinatura
 
 **Rota:** `/configuracoes/assinatura`  
 **API:** `/api/assinatura`
@@ -262,6 +316,17 @@ PIN para cozinha:
 - Upgrade/downgrade de plano
 - Solicitação de cancelamento com motivo
 - Tela `/plano-bloqueado` para tenants suspensos
+
+### 4.10 Login Unificado com Acesso por PIN
+
+**Rota:** `/auth/login`
+
+A página de login do restaurante inclui uma seção "Acesso por PIN" que permite redirecionar funcionários operacionais sem precisar de email/senha:
+
+1. Clicar em **Acesso por PIN** (ícone `KeyRound`)
+2. Selecionar o cargo: **Cozinheiro**, **Estoquista** ou **Caixa**
+3. Buscar o restaurante pelo nome (pesquisa em `/api/cozinha/buscar`)
+4. Ao selecionar, redireciona para `/{slug}/cozinha`, `/{slug}/estoque` ou `/{slug}/caixa`
 
 ---
 
@@ -316,15 +381,17 @@ Tipos de ação rastreados:
 ## 6. Segurança
 
 ### Autenticação
-- Senhas com bcrypt (12 rounds)
+- Senhas e PINs com bcrypt (12 rounds)
 - Bloqueio após 5 tentativas falhas (15 min) — usuários tenant e admin
 - Timing-safe: sempre executa bcrypt mesmo se usuário não existe (previne enumeração)
 - Sessões invalidadas ao trocar senha (`passwordChangedAt` vs `iat` do token)
+- Painéis operacionais (PIN) sem cookie/JWT — sessão 100% em React state, refresh = logout
 
 ### Autorização
 - Middleware Next.js verifica JWT antes de qualquer request a rotas protegidas
 - Admin e tenant têm sistemas de sessão completamente separados
 - Impersonação com token dedicado (2h), sem elevar privilégios do tenant
+- Filtro de cargo nos endpoints de PIN usa `contains + mode: 'insensitive'` (robusto a variações de maiúsculo)
 
 ### Rate Limiting (in-memory, por IP)
 | Endpoint | Limite | Janela |
@@ -356,7 +423,7 @@ AdminUser ──── AdminLog
     │
     └── AdminPasswordResetToken
 
-Tenant ─┬─── User ──── Role
+Tenant ─┬─── User ──── Role (customRole)
         ├─── TenantSubscription ──── Plan
         ├─── Invoice ──────────────── Plan
         ├─── Ingredient ─┬─── Category
@@ -367,6 +434,7 @@ Tenant ─┬─── User ──── Role
         ├─── Inventario ─── InventarioItem ──── Ingredient
         ├─── PlanHistory
         ├─── CancellationRequest
+        ├─── Role (cargos custom do tenant)
         └─── Invite
 ```
 
@@ -383,6 +451,16 @@ Tenant ─┬─── User ──── Role
 | `MovementType` | IN, OUT, ADJUSTMENT, LOSS, EXPIRY, INTERNAL_USE |
 | `CategoryType` | INGREDIENT, PRODUCT |
 | `InviteStatus` | PENDING, ACCEPTED, EXPIRED |
+
+### Cargos padrão criados por tenant (seed)
+
+| Chave | Nome no banco | Permissões principais |
+|-------|--------------|----------------------|
+| `ADMIN_RESTAURANTE` | `ADMIN_RESTAURANTE` | Todas (16) |
+| `GERENTE` | `GERENTE` | Estoque + produtos + usuários + relatórios + cozinha |
+| `CAIXA` | `CAIXA` | produtos.ver, estoque.ver, cozinha.ver |
+| `COZINHEIRO` | `COZINHEIRO` | cozinha.ver, cozinha.gerenciar, estoque.ver |
+| `ESTOQUISTA` | `ESTOQUISTA` | estoque completo, produtos.ver, relatorios.ver |
 
 ### Migrações
 
@@ -416,17 +494,32 @@ Tenant ─┬─── User ──── Role
 | GET/PATCH | `/api/perfil` | Perfil do usuário |
 | PUT | `/api/perfil` | Trocar senha |
 | GET | `/api/perfil/permissions` | Permissões do usuário |
+| GET | `/api/perfil/tenant` | Dados do tenant (para exibição no perfil) |
 | GET/POST | `/api/usuarios` | Listar / convidar usuários |
 | GET/PATCH/DELETE | `/api/usuarios/[id]` | Detalhe / editar / remover usuário |
-| PUT | `/api/usuarios/[id]/pin` | Definir PIN |
+| PUT | `/api/usuarios/[id]/pin` | Definir / atualizar PIN |
 | GET/POST | `/api/roles` | Listar / criar cargos |
 | GET/PATCH/DELETE | `/api/roles/[id]` | Detalhe / editar / remover cargo |
 | GET/POST | `/api/assinatura` | Consultar / criar assinatura |
 | POST | `/api/assinatura/cancelar` | Solicitar cancelamento |
 | POST | `/api/convite/[token]` | Aceitar convite |
+| GET | `/api/convite/validate/[token]` | Validar token de convite |
 | POST | `/api/recuperar-senha` | Solicitar reset de senha |
 | POST | `/api/recuperar-senha/[token]` | Confirmar reset |
+| GET | `/api/recuperar-senha/validate/[token]` | Validar token de reset |
 | GET | `/api/estoque/dashboard` | Estatísticas do estoque |
+
+### Endpoints de Painéis Operacionais (PIN)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/cozinha/auth?slug=X` | Lista usuários ativos com PIN do tenant |
+| POST | `/api/cozinha/auth` | Verifica PIN e autentica cozinheiro |
+| GET | `/api/cozinha/buscar?q=X` | Busca restaurantes por nome (para tela de login) |
+| GET | `/api/estoque/auth?slug=X` | Lista estoquistas ativos com PIN (`customRole` contains "estoquista") |
+| POST | `/api/estoque/auth` | Verifica PIN e autentica estoquista |
+| GET | `/api/caixa/auth?slug=X` | Lista caixas ativos com PIN (`customRole` contains "caixa") |
+| POST | `/api/caixa/auth` | Verifica PIN e autentica caixa |
 
 ### Endpoints do Admin
 
@@ -518,9 +611,7 @@ Comando: `npm test` (Vitest)
 
 ---
 
-## 13. Módulos Planejados / Em Desenvolvimento
-
-Com base na estrutura existente e nos planos cadastrados, os seguintes módulos estão previstos:
+## 13. Status dos Módulos
 
 | Módulo | Status | Indicador |
 |--------|--------|-----------|
@@ -530,7 +621,11 @@ Com base na estrutura existente e nos planos cadastrados, os seguintes módulos 
 | Usuários e cargos | ✅ Implementado | Páginas + API completos |
 | Landing page | ✅ Implementado | Página completa com design system |
 | Painel Super Admin | ✅ Implementado | Dashboard, tenants, planos, logs |
-| KDS (Painel da Cozinha) | 🔄 Parcial | Rota existe, Socket.IO instalado |
+| KDS (Painel da Cozinha) | ✅ Implementado | Acesso por PIN, Socket.IO |
+| Painel do Estoquista | ✅ Implementado | `/{slug}/estoque`, PIN, tema azul |
+| Painel do Caixa | ✅ Implementado | `/{slug}/caixa`, PIN, tema âmbar |
+| Skeletons de carregamento | ✅ Implementado | 4 loading.tsx no dashboard |
+| Acesso por PIN unificado | ✅ Implementado | Login page — 3 cargos com seletor |
 | Agente IA (leitura de NF) | 📋 Planejado | Feature flag `aiAgent` no plano |
 | PDV / Cardápio digital | 📋 Planejado | Feature prevista no schema |
 | Financeiro / DRE | 📋 Planejado | Invoices no schema, sem painel |
@@ -550,6 +645,8 @@ Com base na estrutura existente e nos planos cadastrados, os seguintes módulos 
 3. **Seed do admin** — As credenciais iniciais do super admin (`ADMIN_EMAIL`, `ADMIN_PASSWORD`) ficam no `.env`. Após o primeiro login, o 2FA deve ser configurado obrigatoriamente.
 
 4. **Sem CDN para assets** — Imagens e arquivos são servidos diretamente pelo Next.js. Em produção, considerar Cloudflare ou S3 + CloudFront.
+
+5. **Painéis operacionais sem persistência de sessão** — O acesso via PIN é mantido apenas em React state. Qualquer refresh desconecta o funcionário. Comportamento intencional para tablets compartilhados, mas pode ser limitante.
 
 ### Segurança em Produção
 

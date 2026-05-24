@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, ChefHat, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ChefHat, AlertCircle, Package, ShoppingCart, KeyRound, UtensilsCrossed } from 'lucide-react'
 import { TFMark } from '@/components/ui/tf-mark'
 
 const C = {
@@ -159,7 +159,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showChef, setShowChef] = useState(false)
+  const [showPin, setShowPin] = useState(false)
+  const [pinRole, setPinRole] = useState<'cozinheiro' | 'estoquista' | 'caixa' | 'garcom' | null>(null)
   const [chefQuery, setChefQuery] = useState('')
   const [chefResults, setChefResults] = useState<{ name: string; slug: string }[]>([])
   const [chefSearching, setChefSearching] = useState(false)
@@ -430,68 +431,100 @@ export default function LoginPage() {
               <div style={{ flex: 1, height: 1, background: C.border }} />
             </div>
 
-            {/* Cozinheiro button */}
+            {/* Acesso por PIN */}
             <button
               type="button"
               className="login-chef"
-              onClick={() => setShowChef((v) => !v)}
+              onClick={() => { setShowPin((v) => !v); setPinRole(null); setChefQuery(''); setChefResults([]) }}
               style={{
                 width: '100%', padding: '12px', borderRadius: 7,
-                background: showChef ? C.greenBg : 'transparent',
-                border: `1px solid ${showChef ? C.green : C.border}`,
-                color: showChef ? C.greenLight : C.subtle, cursor: 'pointer',
+                background: showPin ? C.greenBg : 'transparent',
+                border: `1px solid ${showPin ? C.green : C.border}`,
+                color: showPin ? C.greenLight : C.subtle, cursor: 'pointer',
                 fontWeight: 500, fontSize: 13,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 transition: 'background 0.15s, border-color 0.15s, color 0.15s',
               }}
             >
-              <ChefHat size={16} /> Acessar como cozinheiro (PIN)
+              <KeyRound size={16} /> Acesso por PIN
             </button>
 
-            {/* Busca por nome do restaurante */}
-            {showChef && (
+            {showPin && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    autoFocus
-                    value={chefQuery}
-                    onChange={(e) => handleChefQuery(e.target.value)}
-                    placeholder="Nome do restaurante..."
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 7, fontSize: 13,
-                      background: C.surface2, border: `1px solid ${C.border}`,
-                      color: C.txt2, outline: 'none', boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)' }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
-                  />
-                  {chefSearching && (
-                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: C.dim }}>
-                      Buscando...
-                    </span>
-                  )}
+                {/* Seleção de cargo */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {([
+                    { key: 'cozinheiro' as const, label: 'Cozinheiro', icon: ChefHat },
+                    { key: 'estoquista' as const, label: 'Estoquista', icon: Package },
+                    { key: 'caixa'      as const, label: 'Caixa',      icon: ShoppingCart },
+                    { key: 'garcom'     as const, label: 'Garçom',     icon: UtensilsCrossed },
+                  ]).map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setPinRole(key); setChefQuery(''); setChefResults([]) }}
+                      style={{
+                        flex: 1, padding: '8px 6px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                        background: pinRole === key ? C.greenBg : 'transparent',
+                        border: `1px solid ${pinRole === key ? C.green : C.border}`,
+                        color: pinRole === key ? C.greenLight : C.subtle,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      }}
+                    >
+                      <Icon size={13} /> {label}
+                    </button>
+                  ))}
                 </div>
-                {chefResults.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {chefResults.map((t) => (
-                      <button
-                        key={t.slug}
-                        type="button"
-                        onClick={() => router.push(`/${t.slug}/cozinha`)}
-                        style={{
-                          width: '100%', padding: '10px 14px', borderRadius: 7,
-                          background: C.surface2, border: `1px solid ${C.border}`,
-                          color: C.txt2, cursor: 'pointer', textAlign: 'left', fontSize: 13,
-                          display: 'flex', alignItems: 'center', gap: 8,
-                        }}
-                      >
-                        <ChefHat size={14} style={{ color: C.greenLight, flexShrink: 0 }} />
-                        {t.name}
-                      </button>
-                    ))}
+
+                {/* Busca (aparece só quando cargo selecionado) */}
+                {pinRole && (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      autoFocus
+                      value={chefQuery}
+                      onChange={(e) => handleChefQuery(e.target.value)}
+                      placeholder="Nome do restaurante..."
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 7, fontSize: 13,
+                        background: C.surface2, border: `1px solid ${C.border}`,
+                        color: C.txt2, outline: 'none', boxSizing: 'border-box',
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = C.green; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)' }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
+                    />
+                    {chefSearching && (
+                      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: C.dim }}>
+                        Buscando...
+                      </span>
+                    )}
                   </div>
                 )}
-                {chefQuery.trim().length >= 2 && !chefSearching && chefResults.length === 0 && (
+                {chefResults.length > 0 && pinRole && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {chefResults.map((t) => {
+                      const dest = pinRole === 'cozinheiro' ? 'cozinha' : pinRole
+                      const Icon = pinRole === 'cozinheiro' ? ChefHat : pinRole === 'estoquista' ? Package : pinRole === 'garcom' ? UtensilsCrossed : ShoppingCart
+                      return (
+                        <button
+                          key={t.slug}
+                          type="button"
+                          onClick={() => router.push(`/${t.slug}/${dest}`)}
+                          style={{
+                            width: '100%', padding: '10px 14px', borderRadius: 7,
+                            background: C.surface2, border: `1px solid ${C.border}`,
+                            color: C.txt2, cursor: 'pointer', textAlign: 'left', fontSize: 13,
+                            display: 'flex', alignItems: 'center', gap: 8,
+                          }}
+                        >
+                          <Icon size={14} style={{ color: C.greenLight, flexShrink: 0 }} />
+                          {t.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {pinRole && chefQuery.trim().length >= 2 && !chefSearching && chefResults.length === 0 && (
                   <p style={{ fontSize: 12, color: C.dim, textAlign: 'center', margin: 0 }}>
                     Nenhum restaurante encontrado
                   </p>

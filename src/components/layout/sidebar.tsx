@@ -13,6 +13,7 @@ import {
   Settings,
   Users,
   User,
+  UtensilsCrossed,
   LogOut,
   LucideIcon,
 } from 'lucide-react'
@@ -54,9 +55,10 @@ const navItems: NavItem[] = [
     label: 'Configurações',
     icon: Settings,
     children: [
-      { label: 'Usuários',   href: '/configuracoes/usuarios',   icon: Users },
-      { label: 'Meu Perfil', href: '/configuracoes/perfil',     icon: User },
-      { label: 'Assinatura', href: '/configuracoes/assinatura', icon: Settings },
+      { label: 'Usuários',    href: '/configuracoes/usuarios',    icon: Users },
+      { label: 'Restaurante', href: '/configuracoes/restaurante', icon: UtensilsCrossed },
+      { label: 'Meu Perfil',  href: '/configuracoes/perfil',      icon: User },
+      { label: 'Assinatura',  href: '/configuracoes/assinatura',  icon: Settings },
     ],
   },
 ]

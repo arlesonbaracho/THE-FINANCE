@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['bcryptjs'],
+  experimental: {
+    serverComponentsExternalPackages: ['bcryptjs'],
+  },
   async headers() {
     return [
       {

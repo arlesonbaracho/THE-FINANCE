@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2, Mail, Hash, Shield, BarChart2, DollarSign, ChefHat, Package, CheckCircle, Copy, Check } from 'lucide-react'
+import { Loader2, Mail, Hash, Shield, BarChart2, DollarSign, ChefHat, Package, CheckCircle, Copy, Check, UtensilsCrossed } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from '@/components/ui/sheet'
@@ -48,7 +48,8 @@ type FormData = z.infer<typeof schema>
 
 // ── Role meta ─────────────────────────────────────────────────────────────────
 
-type RoleIcon = React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RoleIcon = React.ComponentType<any>
 
 const ROLE_META: Record<string, { icon: RoleIcon; desc: string }> = {
   admin: { icon: Shield, desc: 'Acesso total ao sistema' },
@@ -57,6 +58,7 @@ const ROLE_META: Record<string, { icon: RoleIcon; desc: string }> = {
   caixa: { icon: DollarSign, desc: 'Apenas PDV e vendas' },
   cozinheiro: { icon: ChefHat, desc: 'Apenas painel da cozinha' },
   estoquista: { icon: Package, desc: 'Apenas gestão de estoque' },
+  garcom: { icon: UtensilsCrossed, desc: 'Acesso via PIN ao painel do garçom' },
 }
 
 function getRoleMeta(name: string) {
@@ -91,9 +93,12 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
   const roleId = watch('roleId')
   const selectedRole = roles.find((r) => r.id === roleId)
 
-  const cozRoles = roles.filter((r) => r.name.toLowerCase().includes('cozinheiro'))
+  const pinRoles = roles.filter((r) => {
+    const n = r.name.toLowerCase()
+    return n.includes('cozinheiro') || n.includes('estoquista') || n.includes('caixa') || n.includes('garcom') || n.includes('garçom')
+  })
   const visibleRoles = tipoAcesso === 'pin'
-    ? (cozRoles.length > 0 ? cozRoles : roles)
+    ? (pinRoles.length > 0 ? pinRoles : roles)
     : roles
 
   function handleTypeChange(tipo: 'email' | 'pin') {
@@ -101,10 +106,6 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
     setValue('pin', '')
     setValue('confirmPin', '')
     setValue('roleId', '')
-    if (tipo === 'pin') {
-      const cozinheiro = roles.find((r) => r.name.toLowerCase().includes('cozinheiro'))
-      if (cozinheiro) setValue('roleId', cozinheiro.id)
-    }
   }
 
   function handleClose(v: boolean) {
@@ -130,7 +131,7 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
       if (!res.ok) { toast.error(json.error ?? 'Erro ao convidar'); return }
 
       if (data.tipoAcesso === 'pin') {
-        toast.success(`Cozinheiro ${data.nome} cadastrado com sucesso`)
+        toast.success(`${selectedRole?.name ?? 'Funcionário'} ${data.nome} cadastrado com sucesso`)
         handleClose(false)
         onSuccess()
       } else {
@@ -249,7 +250,7 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
                     {tipo === 'email' ? 'Acesso por email' : 'Acesso por PIN'}
                   </span>
                   {tipo === 'pin' && (
-                    <span style={{ fontSize: 11, color: 'var(--tf-txt3)' }}>somente cozinheiro</span>
+                    <span style={{ fontSize: 11, color: 'var(--tf-txt3)' }}>cozinha, estoque, caixa ou garçom</span>
                   )}
                 </button>
               ))}
@@ -291,7 +292,7 @@ export function InviteSheet({ open, onOpenChange, roles, onSuccess }: Props) {
                 )}
               />
               <p style={{ fontSize: 12, color: 'var(--tf-txt3)', margin: 0, lineHeight: 1.5 }}>
-                O cozinheiro usará este PIN para acessar o painel da cozinha. Nenhum email necessário.
+                O funcionário usará este PIN para acessar o painel correspondente ao seu cargo. Nenhum email necessário.
               </p>
             </div>
           )}

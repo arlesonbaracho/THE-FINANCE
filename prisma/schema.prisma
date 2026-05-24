@@ -70,6 +70,8 @@ model User {
   sessions            Session[]
   accessLogs          UserAccessLog[]
   passwordResetTokens PasswordResetToken[]
+  pedidosGarcom       Pedido[]             @relation("Garcom")
+  sessoesCaixa        SessaoCaixa[]        @relation("SessoesCaixa")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -190,6 +192,12 @@ model Tenant {
   inventarios         Inventario[]
   planHistory         PlanHistory[]
   cancellationRequest CancellationRequest?
+  configPdv           ConfigPdv?
+  ambientes           Ambiente[]
+  mesas               Mesa[]
+  pedidos             Pedido[]
+  reservas            Reserva[]
+  sessoesCaixa        SessaoCaixa[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -433,6 +441,7 @@ model Product {
   tenantId    String
   tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ingredients ProductIngredient[]
+  pedidoItems PedidoItem[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -523,4 +532,158 @@ enum CancellationStatus {
   PENDING
   PROCESSED
   REVERTED
+}
+
+// ── PDV / Pedidos ─────────────────────────────────────────────────────────────
+
+enum MesaStatus {
+  LIVRE
+  OCUPADA
+  RESERVADA
+}
+
+enum PedidoStatus {
+  ABERTO
+  EM_PREPARO
+  PRONTO
+  ENTREGUE
+  FINALIZADO
+  CANCELADO
+}
+
+enum PedidoItemStatus {
+  PENDENTE
+  EM_PREPARO
+  PRONTO
+  ENTREGUE
+  CANCELADO
+}
+
+enum FormaPagamento {
+  DINHEIRO
+  DEBITO
+  CREDITO
+  PIX
+}
+
+model ConfigPdv {
+  id               String  @id @default(cuid())
+  tenantId         String  @unique
+  tenant           Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxaServico      Float   @default(10)
+  taxaServicoAtiva Boolean @default(false)
+  couvert          Float   @default(0)
+  taxaEntrega      Float   @default(0)
+  formasPagamento  Json    @default("[\"DINHEIRO\",\"DEBITO\",\"CREDITO\",\"PIX\"]")
+}
+
+model Ambiente {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nome     String
+  ordem    Int     @default(0)
+  mesas    Mesa[]
+
+  @@unique([nome, tenantId])
+  @@index([tenantId])
+}
+
+model Mesa {
+  id            String     @id @default(cuid())
+  tenantId      String
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ambienteId    String?
+  ambiente      Ambiente?  @relation(fields: [ambienteId], references: [id])
+  numero        Int
+  identificacao String?
+  cadeiras      Int        @default(4)
+  status        MesaStatus @default(LIVRE)
+  grupoId       String?
+  pedidos       Pedido[]
+
+  @@unique([numero, tenantId])
+  @@index([tenantId])
+  @@index([ambienteId])
+}
+
+model Pedido {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mesaId      String
+  mesa        Mesa         @relation(fields: [mesaId], references: [id])
+  garcomId    String
+  garcom      User         @relation("Garcom", fields: [garcomId], references: [id])
+  status      PedidoStatus @default(ABERTO)
+  subtotal    Float        @default(0)
+  taxaServico Float        @default(0)
+  total       Float        @default(0)
+  criadoEm   DateTime     @default(now())
+  fechadoEm  DateTime?
+  itens       PedidoItem[]
+  pagamentos  Pagamento[]
+
+  @@index([tenantId])
+  @@index([mesaId])
+  @@index([garcomId])
+  @@index([tenantId, status])
+}
+
+model PedidoItem {
+  id            String           @id @default(cuid())
+  pedidoId      String
+  pedido        Pedido           @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id])
+  quantidade    Int
+  precoUnitario Float
+  observacao    String?
+  status        PedidoItemStatus @default(PENDENTE)
+
+  @@index([pedidoId])
+  @@index([productId])
+}
+
+model Reserva {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clienteNome String
+  contato     String?
+  dataHora    DateTime
+  numPessoas  Int
+  mesaIds     Json
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, dataHora])
+}
+
+model Pagamento {
+  id             String         @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  formaPagamento FormaPagamento
+  valor          Float
+  createdAt      DateTime       @default(now())
+
+  @@index([pedidoId])
+}
+
+model SessaoCaixa {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuarioId    String
+  usuario      User      @relation("SessoesCaixa", fields: [usuarioId], references: [id])
+  abertoEm     DateTime  @default(now())
+  fechadoEm   DateTime?
+  valorInicial Float     @default(0)
+  valorFinal   Float?
+  sangrias     Json      @default("[]")
+
+  @@index([tenantId])
+  @@index([usuarioId])
 }

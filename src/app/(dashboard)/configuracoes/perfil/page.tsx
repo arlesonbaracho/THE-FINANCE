@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,10 +51,10 @@ export default function PerfilPage() {
   const pwStrength = getPwStrength(newPw)
 
   useEffect(() => {
-    fetch('/api/perfil').then((r) => r.json()).then((d) => {
+    fetchCached<Profile>('/api/perfil').then((d) => {
       setProfile(d)
       setName(d.name ?? '')
-    })
+    }).catch(() => {})
   }, [])
 
   async function saveName(e: React.FormEvent) {
@@ -67,6 +68,7 @@ export default function PerfilPage() {
     })
     setSaving(false)
     if (res.ok) {
+      invalidateCache('/api/perfil')
       setSaveMsg('Nome atualizado!')
       await update({ name })
       setTimeout(() => setSaveMsg(''), 3000)
@@ -88,6 +90,7 @@ export default function PerfilPage() {
     const data = await res.json()
     setPwLoading(false)
     if (!res.ok) { setPwError(data.error); return }
+    invalidateCache('/api/perfil')
     setPwMsg('Senha alterada! Você receberá uma confirmação por email.')
     setCurrentPw('')
     setNewPw('')

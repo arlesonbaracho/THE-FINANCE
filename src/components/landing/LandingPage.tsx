@@ -81,7 +81,7 @@ function Navbar() {
 
         {/* Right buttons — desktop */}
         <div className="hidden md:flex" style={{ gap: 10 }}>
-          <Link href="/login" style={{
+          <Link href="/auth/login" style={{
             fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 14,
             color: '#fff', textDecoration: 'none', padding: '9px 20px',
             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
@@ -92,7 +92,7 @@ function Navbar() {
           >
             Entrar
           </Link>
-          <Link href="/cadastro" style={{
+          <Link href="/auth/cadastro" style={{
             fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 14,
             color: '#fff', textDecoration: 'none', padding: '9px 20px',
             background: 'var(--lp-primary)', borderRadius: 8,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -88,8 +89,7 @@ export default function AssinaturaPage() {
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
 
   async function loadData() {
-    const res = await fetch('/api/assinatura')
-    if (res.ok) setData(await res.json())
+    fetchCached<typeof data>('/api/assinatura').then(setData).catch(() => {})
   }
 
   useEffect(() => { loadData() }, [])
@@ -116,6 +116,7 @@ export default function AssinaturaPage() {
 
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
+    invalidateCache('/api/assinatura')
     loadData()
     setTimeout(() => setMsg(''), 6000)
   }
@@ -133,6 +134,7 @@ export default function AssinaturaPage() {
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
     setShowCancelModal(false)
+    invalidateCache('/api/assinatura')
     loadData()
   }
 
@@ -142,6 +144,7 @@ export default function AssinaturaPage() {
     const d = await res.json()
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
+    invalidateCache('/api/assinatura')
     loadData()
   }
 

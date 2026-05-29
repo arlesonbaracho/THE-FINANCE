@@ -279,9 +279,9 @@ export default function LoginPage() {
             }}
           >
             {/* Mini logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
-              <TFMark size={22} main={C.greenLight} accent={C.green} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 22 }}>
+              <TFMark size={54} main={C.greenLight} accent={C.green} />
+              <span style={{ fontSize: 22, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 THE FINANCE
               </span>
             </div>

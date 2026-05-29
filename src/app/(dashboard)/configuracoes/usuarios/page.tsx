@@ -29,6 +29,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { StatCard } from '@/components/ui/stat-card'
 import { usePermissions } from '@/hooks/usePermissions'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { PERMISSIONS } from '@/lib/permissions-constants'
 import type { UserItem, RoleItem } from '@/components/usuarios/user-card'
 import { InviteSheet } from '@/components/usuarios/invite-sheet'
@@ -148,19 +149,25 @@ export default function UsuariosPage() {
   const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleItem | null>(null)
 
   useEffect(() => {
-    fetch('/api/perfil/tenant')
-      .then((r) => r.json())
+    fetchCached<{ name: string; slug: string }>('/api/perfil/tenant')
       .then((d) => { if (d.slug) setTenantInfo(d) })
       .catch(() => {})
   }, [])
 
   const load = useCallback(async () => {
-    const [ur, rr] = await Promise.all([fetch('/api/usuarios'), fetch('/api/roles')])
-    const [ud, rd] = await Promise.all([ur.json(), rr.json()])
+    const [ud, rd] = await Promise.all([
+      fetchCached<UserItem[]>('/api/usuarios'),
+      fetchCached<RoleItem[]>('/api/roles'),
+    ])
     if (Array.isArray(ud)) setUsers(ud)
     if (Array.isArray(rd)) setRoles(rd)
     setLoading(false)
   }, [])
+
+  const reload = useCallback(() => {
+    invalidateCache('/api/usuarios', '/api/roles')
+    load()
+  }, [load])
 
   useEffect(() => { load() }, [load])
 
@@ -208,7 +215,7 @@ export default function UsuariosPage() {
     })
     if (res.ok) {
       toast.success(status === 'ACTIVE' ? 'Funcionário reativado' : 'Funcionário desativado')
-      load()
+      reload()
     } else {
       const d = await res.json()
       toast.error(d.error ?? 'Erro ao atualizar status')
@@ -224,7 +231,7 @@ export default function UsuariosPage() {
     })
     if (res.ok) {
       toast.success(`Convite reenviado para ${user.email}`)
-      load()
+      reload()
     } else {
       const d = await res.json()
       toast.error(d.error ?? 'Erro ao reenviar convite')
@@ -237,7 +244,7 @@ export default function UsuariosPage() {
     if (res.ok) {
       toast.success('Funcionário removido')
       setRemoveUser(null)
-      load()
+      reload()
     } else {
       const d = await res.json()
       toast.error(d.error ?? 'Erro ao remover')
@@ -272,7 +279,7 @@ export default function UsuariosPage() {
     setNewRoleOpen(false)
     setNewRoleName('')
     setNewRolePerms([])
-    load()
+    reload()
   }
 
   async function deleteRole() {
@@ -281,7 +288,7 @@ export default function UsuariosPage() {
     toast.success(`Cargo "${deleteRoleTarget.name}" removido`)
     setDeleteRoleTarget(null)
     if (selectedRoleId === deleteRoleTarget.id) setSelectedRoleId(null)
-    load()
+    reload()
   }
 
   function handlePermissionsUpdate(roleId: string, permissions: string[]) {
@@ -835,9 +842,9 @@ export default function UsuariosPage() {
       )}
 
       {/* Sheets */}
-      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} roles={roles} onSuccess={load} />
-      <EditUserSheet user={editUser} roles={roles} onOpenChange={(v) => { if (!v) setEditUser(null) }} onSuccess={load} />
-      <ResetPinSheet user={resetPINUser} onOpenChange={(v) => { if (!v) setResetPINUser(null) }} onSuccess={load} />
+      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} roles={roles} onSuccess={reload} />
+      <EditUserSheet user={editUser} roles={roles} onOpenChange={(v) => { if (!v) setEditUser(null) }} onSuccess={reload} />
+      <ResetPinSheet user={resetPINUser} onOpenChange={(v) => { if (!v) setResetPINUser(null) }} onSuccess={reload} />
 
       {/* AlertDialog: Reset password */}
       <AlertDialog open={!!resetPasswordUser} onOpenChange={(v) => { if (!v) setResetPasswordUser(null) }}>

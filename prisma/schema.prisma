@@ -329,6 +329,7 @@ model Category {
 
   @@unique([name, type, tenantId])
   @@index([tenantId])
+  @@index([tenantId, type])
 }
 
 enum CategoryType {

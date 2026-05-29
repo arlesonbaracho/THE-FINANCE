@@ -38,6 +38,7 @@ import {
 import { StatCard } from '@/components/ui/stat-card'
 import { ProductForm } from '@/components/products/product-form'
 import { formatCurrency } from '@/lib/utils'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import {
   Plus,
   Search,
@@ -101,8 +102,8 @@ export default function ProdutosPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/products')
-      if (res.ok) setProducts(await res.json())
+      const data = await fetchCached<ProductWithRelations[]>('/api/products')
+      setProducts(data)
     } catch {
       toast.error('Erro ao carregar produtos')
     } finally {
@@ -113,8 +114,8 @@ export default function ProdutosPage() {
   useEffect(() => { fetchProducts() }, [fetchProducts])
 
   useEffect(() => {
-    fetch('/api/categories?type=PRODUCT')
-      .then(r => r.json()).then(setCategories).catch(() => {})
+    fetchCached<{ id: string; name: string }[]>('/api/categories?type=PRODUCT')
+      .then(setCategories).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => products.filter(p => {
@@ -138,7 +139,7 @@ export default function ProdutosPage() {
     setDeleting(true)
     try {
       const res = await fetch(`/api/products/${deleteId}`, { method: 'DELETE' })
-      if (res.ok) { toast.success('Produto excluído'); fetchProducts() }
+      if (res.ok) { toast.success('Produto excluído'); invalidateCache('/api/products'); fetchProducts() }
       else toast.error('Erro ao excluir produto')
     } catch { toast.error('Erro de conexão') }
     finally { setDeleting(false); setDeleteId(null) }
@@ -151,7 +152,7 @@ export default function ProdutosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !product.active }),
       })
-      if (res.ok) { toast.success(`Produto ${product.active ? 'desativado' : 'ativado'}`); fetchProducts() }
+      if (res.ok) { toast.success(`Produto ${product.active ? 'desativado' : 'ativado'}`); invalidateCache('/api/products'); fetchProducts() }
     } catch { toast.error('Erro ao alterar status') }
   }
 
@@ -346,7 +347,7 @@ export default function ProdutosPage() {
         )}
       </div>
 
-      <ProductForm open={formOpen} onOpenChange={setFormOpen} product={selectedProduct} onSuccess={fetchProducts} />
+      <ProductForm open={formOpen} onOpenChange={setFormOpen} product={selectedProduct} onSuccess={() => { invalidateCache('/api/products'); fetchProducts() }} />
 
       <AlertDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null) }}>
         <AlertDialogContent>

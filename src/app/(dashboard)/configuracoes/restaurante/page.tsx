@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { toast } from 'sonner'
 import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -476,16 +477,23 @@ export default function RestaurantePage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [rA, rM, rC] = await Promise.all([
-      fetch('/api/ambientes'),
-      fetch('/api/mesas'),
-      fetch('/api/config-pdv'),
-    ])
-    if (rA.ok) setAmbientes(await rA.json())
-    if (rM.ok) setMesas(await rM.json())
-    if (rC.ok) setConfig(await rC.json())
+    try {
+      const [rA, rM, rC] = await Promise.all([
+        fetchCached<Ambiente[]>('/api/ambientes'),
+        fetchCached<Mesa[]>('/api/mesas'),
+        fetchCached<ConfigPdv>('/api/config-pdv'),
+      ])
+      setAmbientes(rA)
+      setMesas(rM)
+      setConfig(rC)
+    } catch { /* silent */ }
     setLoading(false)
   }, [])
+
+  const reload = useCallback(() => {
+    invalidateCache('/api/ambientes', '/api/mesas', '/api/config-pdv')
+    load()
+  }, [load])
 
   useEffect(() => { load() }, [load])
 
@@ -536,9 +544,9 @@ export default function RestaurantePage() {
         <p style={{ color: 'var(--tf-txt2)', fontSize: 13 }}>Carregando…</p>
       ) : (
         <>
-          {tab === 'ambientes' && <AmbientesTab ambientes={ambientes} reload={load} />}
-          {tab === 'mesas' && <MesasTab mesas={mesas} ambientes={ambientes} reload={load} />}
-          {tab === 'config' && <ConfigTab config={config} reload={load} />}
+          {tab === 'ambientes' && <AmbientesTab ambientes={ambientes} reload={reload} />}
+          {tab === 'mesas' && <MesasTab mesas={mesas} ambientes={ambientes} reload={reload} />}
+          {tab === 'config' && <ConfigTab config={config} reload={reload} />}
         </>
       )}
     </div>

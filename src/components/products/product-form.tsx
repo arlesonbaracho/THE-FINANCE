@@ -270,11 +270,11 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
-        style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', padding: 0 }}
+        className="max-w-2xl"
+        style={{ background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', padding: 0, display: 'flex', flexDirection: 'column', maxHeight: '92vh', overflow: 'hidden' }}
       >
         {/* Header */}
-        <DialogHeader style={{ padding: '20px 24px 0' }}>
+        <DialogHeader style={{ padding: '20px 24px 0', flexShrink: 0 }}>
           <DialogTitle style={{ color: 'var(--tf-txt)', fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'var(--tf-primary-bg)' }}>
               <ChefHat style={{ width: 16, height: 16, color: 'var(--tf-primary)' }} />
@@ -284,13 +284,13 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
         </DialogHeader>
 
         {/* Progress bar */}
-        <div style={{ padding: '0 24px' }}>
+        <div style={{ padding: '0 24px', flexShrink: 0 }}>
           <StepBar steps={steps} activeIdx={tabIdx} />
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div style={{ padding: '0 24px' }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <div style={{ padding: '0 24px', flexShrink: 0 }}>
               <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="details" style={{ fontSize: 12.5 }}>Detalhes</TabsTrigger>
                 <TabsTrigger value="ingredients" style={{ fontSize: 12.5 }}>
@@ -307,6 +307,9 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                 <TabsTrigger value="financial" style={{ fontSize: 12.5 }}>Financeiro</TabsTrigger>
               </TabsList>
             </div>
+
+            {/* Scrollable tab body */}
+            <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
 
             {/* ── Tab 1: Detalhes ── */}
             <TabsContent value="details" className="mt-0 space-y-4" style={{ padding: '20px 24px' }}>
@@ -577,10 +580,12 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                 )}
               </div>
             </TabsContent>
+
+            </div>{/* end scrollable body */}
           </Tabs>
 
           {/* ── Footer ── */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid var(--tf-border)', background: 'var(--tf-surface2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid var(--tf-border)', background: 'var(--tf-surface2)', flexShrink: 0 }}>
             <span style={{ fontSize: 12, fontWeight: 500, color: canSubmit ? 'var(--tf-green-ok)' : 'var(--tf-red)' }}>
               {canSubmit ? '✓ Pronto para criar' : 'Adicione insumos para liberar'}
             </span>

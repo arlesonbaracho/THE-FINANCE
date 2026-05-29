@@ -47,6 +47,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { StatCard } from '@/components/ui/stat-card'
 import type { StockStatus } from '@/types'
 
@@ -188,11 +189,9 @@ function StockPosition({ onFetched }: { onFetched: () => void }) {
 
   const fetchIngredients = useCallback(async () => {
     try {
-      const res = await fetch('/api/ingredients')
-      if (res.ok) {
-        setIngredients(await res.json())
-        onFetched()
-      }
+      const data = await fetchCached<Ingredient[]>('/api/ingredients')
+      setIngredients(data)
+      onFetched()
     } catch {
       toast.error('Erro ao carregar estoque')
     } finally {
@@ -202,7 +201,7 @@ function StockPosition({ onFetched }: { onFetched: () => void }) {
 
   useEffect(() => {
     fetchIngredients()
-    fetch('/api/categories?type=INGREDIENT').then(r => r.json()).then(setCategories).catch(() => {})
+    fetchCached<Category[]>('/api/categories?type=INGREDIENT').then(setCategories).catch(() => {})
   }, [fetchIngredients])
 
   const filtered = useMemo(() => ingredients.filter(ing => {
@@ -575,8 +574,10 @@ function PhysicalCounts() {
   const [searchCount, setSearchCount] = useState('')
 
   async function loadList() {
-    const res = await fetch('/api/inventarios')
-    if (res.ok) setList(await res.json())
+    try {
+      const data = await fetchCached<Inventario[]>('/api/inventarios')
+      setList(data)
+    } catch { /* silent */ }
     setLoading(false)
   }
 
@@ -593,6 +594,7 @@ function PhysicalCounts() {
     setCreating(false)
     if (!res.ok) { toast.error('Erro ao criar inventário'); return }
     const data: InventarioDetail = await res.json()
+    invalidateCache('/api/inventarios')
     setNewName(''); setShowNewForm(false); setSelected(data); loadList()
     toast.success('Inventário criado — preencha as quantidades contadas')
   }
@@ -636,13 +638,14 @@ function PhysicalCounts() {
     setFinalizing(false)
     if (!res.ok) { toast.error('Erro ao finalizar'); return }
     toast.success('Inventário finalizado! Estoque atualizado.')
+    invalidateCache('/api/inventarios', '/api/ingredients')
     setSelected(null); loadList()
   }
 
   async function handleCancel() {
     if (!selected) return
     const res = await fetch(`/api/inventarios/${selected.id}`, { method: 'DELETE' })
-    if (res.ok) { setSelected(null); loadList(); toast.success('Inventário cancelado') }
+    if (res.ok) { invalidateCache('/api/inventarios'); setSelected(null); loadList(); toast.success('Inventário cancelado') }
   }
 
   // ── Count detail view ──

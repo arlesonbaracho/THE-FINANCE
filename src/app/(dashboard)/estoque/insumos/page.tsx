@@ -40,6 +40,7 @@ import { StockBar } from '@/components/ui/stock-bar'
 import { IngredientForm } from '@/components/ingredients/ingredient-form'
 import { MovementForm } from '@/components/ingredients/movement-form'
 import { formatCurrency } from '@/lib/utils'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import {
   Plus,
   Search,
@@ -90,8 +91,8 @@ export default function InsumoPage() {
 
   const fetchIngredients = useCallback(async () => {
     try {
-      const res = await fetch('/api/ingredients')
-      if (res.ok) setIngredients(await res.json())
+      const data = await fetchCached<IngredientWithRelations[]>('/api/ingredients')
+      setIngredients(data)
     } catch {
       toast.error('Erro ao carregar insumos')
     } finally {
@@ -102,8 +103,8 @@ export default function InsumoPage() {
   useEffect(() => { fetchIngredients() }, [fetchIngredients])
 
   useEffect(() => {
-    fetch('/api/categories?type=INGREDIENT')
-      .then(r => r.json()).then(setCategories).catch(() => {})
+    fetchCached<{ id: string; name: string }[]>('/api/categories?type=INGREDIENT')
+      .then(setCategories).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => ingredients.filter(ing => {
@@ -132,7 +133,7 @@ export default function InsumoPage() {
     setDeleting(true)
     try {
       const res = await fetch(`/api/ingredients/${deleteId}`, { method: 'DELETE' })
-      if (res.ok) { toast.success('Insumo excluído'); fetchIngredients() }
+      if (res.ok) { toast.success('Insumo excluído'); invalidateCache('/api/ingredients'); fetchIngredients() }
       else toast.error('Erro ao excluir insumo')
     } catch { toast.error('Erro de conexão') }
     finally { setDeleting(false); setDeleteId(null) }
@@ -328,7 +329,7 @@ export default function InsumoPage() {
         )}
       </div>
 
-      <IngredientForm open={formOpen} onOpenChange={setFormOpen} ingredient={selectedIngredient} onSuccess={fetchIngredients} />
+      <IngredientForm open={formOpen} onOpenChange={setFormOpen} ingredient={selectedIngredient} onSuccess={() => { invalidateCache('/api/ingredients'); fetchIngredients() }} />
 
       {selectedIngredient && (
         <MovementForm

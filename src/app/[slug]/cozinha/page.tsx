@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { ChefHat, Delete, Clock, RefreshCw } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
+import { fetchCached, invalidateCache } from '@/lib/client-cache'
 
 // ── Tema verde-escuro (igual ao resto do projeto) ──────────────────────────────
 
@@ -101,12 +102,12 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
     if (r.ok) await loadPedidos()
   }
 
-  const loadKitchen = useCallback(() => {
+  const loadKitchen = useCallback((fresh = false) => {
     setLoading(true)
-    fetch(`/api/cozinha/auth?slug=${slug}`)
-      .then(async (r) => {
-        const d = await r.json()
-        if (!r.ok || !d.tenant) { setNotFound(true); setLoading(false); return }
+    if (fresh) invalidateCache(`/api/cozinha/auth?slug=${slug}`)
+    fetchCached<{ tenant: TenantInfo | null; users: KitchenUser[] }>(`/api/cozinha/auth?slug=${slug}`)
+      .then((d) => {
+        if (!d.tenant) { setNotFound(true); setLoading(false); return }
         setTenant(d.tenant)
         if (Array.isArray(d.users)) setUsers(d.users)
         setLoading(false)
@@ -352,7 +353,7 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
             <p style={{ fontSize: 13, color: C.subtle, margin: 0 }}>Selecione seu nome</p>
             <button
-              onClick={loadKitchen}
+              onClick={() => loadKitchen(true)}
               title="Atualizar lista"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}
               onMouseEnter={(e) => { e.currentTarget.style.color = C.subtle }}

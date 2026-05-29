@@ -258,12 +258,12 @@ export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: In
                 <Controller
                   name="categoryId" control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
+                    <Select value={field.value ?? '__none__'} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
                       <SelectTrigger className="w-full" style={selTrigger}>
                         <SelectValue placeholder="Sem categoria" />
                       </SelectTrigger>
                       <SelectContent>
-                        {field.value && <SelectItem value="__none__">Sem categoria</SelectItem>}
+                        <SelectItem value="__none__">Sem categoria</SelectItem>
                         {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -275,12 +275,12 @@ export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: In
                 <Controller
                   name="supplierId" control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
+                    <Select value={field.value ?? '__none__'} onValueChange={v => field.onChange(v === '__none__' ? undefined : v)}>
                       <SelectTrigger className="w-full" style={selTrigger}>
                         <SelectValue placeholder="Sem fornecedor" />
                       </SelectTrigger>
                       <SelectContent>
-                        {field.value && <SelectItem value="__none__">Sem fornecedor</SelectItem>}
+                        <SelectItem value="__none__">Sem fornecedor</SelectItem>
                         {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                       </SelectContent>
                     </Select>

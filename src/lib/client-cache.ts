@@ -1,9 +1,8 @@
 const store = new Map<string, { data: unknown; ts: number }>()
-const TTL = 60_000 // 1 minute
 
-export async function fetchCached<T>(url: string): Promise<T> {
+export async function fetchCached<T>(url: string, ttl = 60_000): Promise<T> {
   const hit = store.get(url)
-  if (hit && Date.now() - hit.ts < TTL) return hit.data as T
+  if (hit && Date.now() - hit.ts < ttl) return hit.data as T
   const res = await fetch(url)
   if (!res.ok) throw new Error(res.statusText)
   const data: T = await res.json()

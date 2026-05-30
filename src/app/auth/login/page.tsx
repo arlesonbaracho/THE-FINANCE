@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, ChefHat, AlertCircle, Package, ShoppingCart, KeyRound, UtensilsCrossed } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ChefHat, AlertCircle, Package, ShoppingCart, KeyRound, UtensilsCrossed, ArrowLeft } from 'lucide-react'
 import { TFMark } from '@/components/ui/tf-mark'
 
 const C = {
@@ -85,6 +85,35 @@ function AuthLeft() {
 
       {/* Top section */}
       <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Back to landing */}
+        <div style={{ marginBottom: 32 }}>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 500, color: C.muted,
+              textDecoration: 'none', padding: '6px 10px',
+              borderRadius: 6, border: `1px solid ${C.border}`,
+              background: 'transparent',
+              transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLAnchorElement
+              el.style.color = C.greenLight
+              el.style.borderColor = C.green
+              el.style.background = C.greenBg
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLAnchorElement
+              el.style.color = C.muted
+              el.style.borderColor = C.border
+              el.style.background = 'transparent'
+            }}
+          >
+            <ArrowLeft size={13} /> Voltar ao site
+          </Link>
+        </div>
+
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
           <TFMark size={55} main={C.greenLight} accent={C.green} />
@@ -260,8 +289,29 @@ export default function LoginPage() {
             padding: 32,
           }}
         >
-          {/* Mobile logo */}
-          <div className="auth-logo" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+          {/* Mobile back button */}
+          <div className="auth-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginBottom: 20 }}>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12, fontWeight: 500, color: C.muted,
+                textDecoration: 'none', padding: '6px 10px',
+                borderRadius: 6, border: `1px solid ${C.border}`,
+              }}
+            >
+              <ArrowLeft size={13} /> Voltar
+            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TFMark size={22} main={C.greenLight} accent={C.green} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                THE FINANCE
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile logo (hidden — replaced above) */}
+          <div className="auth-logo" style={{ display: 'none', alignItems: 'center', gap: 10, marginBottom: 28 }}>
             <TFMark size={22} main={C.greenLight} accent={C.green} />
             <span style={{ fontSize: 12, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               THE FINANCE

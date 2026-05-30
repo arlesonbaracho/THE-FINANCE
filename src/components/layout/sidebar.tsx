@@ -15,6 +15,8 @@ import {
   User,
   UtensilsCrossed,
   LogOut,
+  BarChart3,
+  HelpCircle,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -43,6 +45,11 @@ const navItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    label: 'Relatórios',
+    href: '/relatorios',
+    icon: BarChart3,
+  },
+  {
     label: 'Estoque',
     icon: Package,
     children: [
@@ -50,6 +57,11 @@ const navItems: NavItem[] = [
       { label: 'Produtos',   href: '/estoque/produtos',   icon: ChefHat },
       { label: 'Inventário', href: '/estoque/inventario', icon: Package },
     ],
+  },
+  {
+    label: 'Ajuda',
+    href: '/ajuda',
+    icon: HelpCircle,
   },
   {
     label: 'Configurações',

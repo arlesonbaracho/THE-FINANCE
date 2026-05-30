@@ -20,6 +20,21 @@ const unitLabels: Record<string, string> = {
   KG: 'kg', G: 'g', L: 'L', ML: 'ml', UN: 'un',
 }
 
+type UnitOption = { value: string; label: string; factor: number }
+
+function getCompatibleUnits(baseUnit: string): UnitOption[] {
+  if (baseUnit === 'KG') return [
+    { value: 'g',  label: 'g',  factor: 0.001 },
+    { value: 'kg', label: 'kg', factor: 1 },
+  ]
+  if (baseUnit === 'L') return [
+    { value: 'ml', label: 'ml', factor: 0.001 },
+    { value: 'L',  label: 'L',  factor: 1 },
+  ]
+  const label = unitLabels[baseUnit] ?? baseUnit.toLowerCase()
+  return [{ value: label, label, factor: 1 }]
+}
+
 interface ProductIngredientsProps {
   productId: string
   onCostChange?: (cost: number) => void
@@ -36,6 +51,7 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
   const [showPicker, setShowPicker] = useState(false)
   const [selectedIng, setSelectedIng] = useState<Ingredient | null>(null)
   const [selectedQty, setSelectedQty] = useState('')
+  const [selectedUnit, setSelectedUnit] = useState('')
 
   const fetchLinked = useCallback(async () => {
     try {
@@ -74,11 +90,14 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
   )
 
   async function handleAdd() {
-    const qty = parseFloat(selectedQty)
-    if (!selectedIng || !qty || qty <= 0) {
+    const rawQty = parseFloat(selectedQty)
+    if (!selectedIng || !rawQty || rawQty <= 0) {
       toast.error('Selecione um insumo e informe quantidade válida')
       return
     }
+    const units = getCompatibleUnits(selectedIng.unit)
+    const unitOpt = units.find(u => u.value === selectedUnit) ?? units[0]
+    const qty = rawQty * unitOpt.factor
     setAdding(true)
     try {
       const res = await fetch(`/api/products/${productId}/ingredients`, {
@@ -94,6 +113,7 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
       toast.success('Insumo adicionado!')
       setSelectedIng(null)
       setSelectedQty('')
+      setSelectedUnit('')
       setIngSearch('')
       fetchLinked()
     } catch {
@@ -164,6 +184,7 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
                       setSelectedIng(ing)
                       setIngSearch(ing.name)
                       setShowPicker(false)
+                      setSelectedUnit(getCompatibleUnits(ing.unit)[0].value)
                     }}
                     className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary text-sm text-left"
                   >
@@ -183,17 +204,38 @@ export function ProductIngredients({ productId, onCostChange }: ProductIngredien
           </div>
         </div>
 
-        <div className="w-28 space-y-1.5">
+        <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Quantidade</Label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0"
-            placeholder="0.000"
-            value={selectedQty}
-            onChange={(e) => setSelectedQty(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <Input
+              type="number"
+              step="any"
+              min="0"
+              placeholder="0"
+              value={selectedQty}
+              onChange={(e) => setSelectedQty(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              style={{ width: 80, textAlign: 'right' }}
+            />
+            {selectedIng ? (() => {
+              const units = getCompatibleUnits(selectedIng.unit)
+              return units.length > 1 ? (
+                <select
+                  value={selectedUnit}
+                  onChange={e => setSelectedUnit(e.target.value)}
+                  style={{ border: '1px solid var(--tf-border)', borderRadius: 6, background: 'var(--tf-input-bg)', color: 'var(--tf-txt)', padding: '0 6px', fontSize: 12, cursor: 'pointer', outline: 'none', width: 52 }}
+                >
+                  {units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: 'var(--tf-txt2)', paddingLeft: 4, whiteSpace: 'nowrap' }}>
+                  {units[0].label}
+                </span>
+              )
+            })() : (
+              <span style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: 'var(--tf-txt3)', paddingLeft: 4 }}>un</span>
+            )}
+          </div>
         </div>
 
         <Button

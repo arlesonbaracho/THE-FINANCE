@@ -9,18 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { ProductIngredients } from './product-ingredients'
-import { Loader2, Trash2, Search, ChefHat, Package } from 'lucide-react'
+import { Loader2, Trash2, Search, ChefHat, Package, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import type { ProductWithRelations } from '@/types'
@@ -48,6 +41,21 @@ export interface ProductFormProps {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const unitLabels: Record<string, string> = { KG: 'kg', G: 'g', L: 'L', ML: 'ml', UN: 'un' }
+
+type UnitOption = { value: string; label: string; factor: number }
+
+function getCompatibleUnits(baseUnit: string): UnitOption[] {
+  if (baseUnit === 'KG') return [
+    { value: 'g',  label: 'g',  factor: 0.001 },
+    { value: 'kg', label: 'kg', factor: 1 },
+  ]
+  if (baseUnit === 'L') return [
+    { value: 'ml', label: 'ml', factor: 0.001 },
+    { value: 'L',  label: 'L',  factor: 1 },
+  ]
+  const label = unitLabels[baseUnit] ?? baseUnit.toLowerCase()
+  return [{ value: label, label, factor: 1 }]
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -124,6 +132,11 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
   const [showPicker, setShowPicker] = useState(false)
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([])
 
+  // Quantity selector (shown after picking an ingredient)
+  const [selectedForAdd, setSelectedForAdd] = useState<Ingredient | null>(null)
+  const [addQtyStr, setAddQtyStr] = useState('')
+  const [addUnit, setAddUnit] = useState('')
+
   // Financial simulator
   const [margemDesejada, setMargemDesejada] = useState(35)
 
@@ -179,10 +192,32 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
     [allIngredients, pendingIds, ingSearch]
   )
 
-  function addItem(ing: Ingredient) {
-    setPendingItems(prev => [...prev, { ingredientId: ing.id, quantity: 1, ingredient: ing }])
-    setIngSearch('')
+  function selectIngredient(ing: Ingredient) {
+    const units = getCompatibleUnits(ing.unit)
+    setSelectedForAdd(ing)
+    setAddUnit(units[0].value)
+    setAddQtyStr('')
     setShowPicker(false)
+    setIngSearch(ing.name)
+  }
+
+  function confirmAdd() {
+    if (!selectedForAdd) return
+    const qty = parseFloat(addQtyStr)
+    if (!qty || qty <= 0) return
+    const units = getCompatibleUnits(selectedForAdd.unit)
+    const unitOpt = units.find(u => u.value === addUnit) ?? units[0]
+    const convertedQty = qty * unitOpt.factor
+    setPendingItems(prev => [...prev, { ingredientId: selectedForAdd.id, quantity: convertedQty, ingredient: selectedForAdd }])
+    setSelectedForAdd(null)
+    setAddQtyStr('')
+    setIngSearch('')
+  }
+
+  function cancelAdd() {
+    setSelectedForAdd(null)
+    setAddQtyStr('')
+    setIngSearch('')
   }
 
   function updateQty(id: string, qty: number) {
@@ -205,6 +240,9 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
       setShowPicker(false)
       setTentouSalvar(false)
       setMargemDesejada(35)
+      setSelectedForAdd(null)
+      setAddQtyStr('')
+      setAddUnit('')
     }
   }, [open])
 
@@ -330,13 +368,22 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                 <div className="space-y-1.5">
                   <Label style={{ color: 'var(--tf-txt2)', fontSize: 12 }}>Categoria</Label>
                   <Controller name="categoryId" control={control} render={({ field }) => (
-                    <Select value={field.value ?? 'none'} onValueChange={v => field.onChange(v === 'none' ? undefined : v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sem categoria</SelectItem>
-                        {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value || undefined)}
+                      style={{
+                        width: '100%', height: 32, padding: '0 10px',
+                        borderRadius: 6, border: '1px solid var(--tf-border)',
+                        background: 'var(--tf-input-bg)', color: field.value ? 'var(--tf-txt)' : 'var(--tf-txt3)',
+                        fontSize: 13, cursor: 'pointer', outline: 'none',
+                        appearance: 'auto',
+                      }}
+                    >
+                      <option value="">Sem categoria</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
                   )} />
                 </div>
               </div>
@@ -418,13 +465,14 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                     <Input
                       className="pl-9"
                       placeholder="Buscar insumo para adicionar..."
-                      value={ingSearch}
-                      onChange={e => { setIngSearch(e.target.value); setShowPicker(true) }}
-                      onFocus={() => setShowPicker(true)}
+                      value={selectedForAdd ? selectedForAdd.name : ingSearch}
+                      readOnly={!!selectedForAdd}
+                      onChange={e => { setIngSearch(e.target.value); setShowPicker(true); setSelectedForAdd(null) }}
+                      onFocus={() => { if (!selectedForAdd) setShowPicker(true) }}
                       onBlur={() => setTimeout(() => setShowPicker(false), 150)}
-                      style={{ borderColor: ingredsError && pendingItems.length === 0 ? 'var(--tf-red)' : undefined }}
+                      style={{ borderColor: selectedForAdd ? 'var(--tf-primary)' : ingredsError && pendingItems.length === 0 ? 'var(--tf-red)' : undefined }}
                     />
-                    {showPicker && (
+                    {showPicker && !selectedForAdd && (
                       <div style={{ position: 'absolute', zIndex: 50, width: '100%', marginTop: 4, background: 'var(--tf-surface)', border: '1px solid var(--tf-border)', borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', maxHeight: 200, overflowY: 'auto' }}>
                         {filteredIngredients.length === 0 ? (
                           <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--tf-txt3)' }}>
@@ -434,7 +482,7 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                           <button
                             key={ing.id}
                             type="button"
-                            onMouseDown={() => addItem(ing)}
+                            onMouseDown={() => selectIngredient(ing)}
                             className="hover:bg-muted/40"
                             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--tf-border-light)', cursor: 'pointer', textAlign: 'left' }}
                           >
@@ -447,6 +495,70 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                       </div>
                     )}
                   </div>
+
+                  {/* Quantity selector — shown after picking an ingredient */}
+                  {selectedForAdd && (() => {
+                    const units = getCompatibleUnits(selectedForAdd.unit)
+                    const unitOpt = units.find(u => u.value === addUnit) ?? units[0]
+                    const preview = parseFloat(addQtyStr) > 0
+                      ? parseFloat(addQtyStr) * unitOpt.factor
+                      : null
+                    return (
+                      <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--tf-primary-bg)', border: '1px solid var(--tf-primary-bd)', borderRadius: 8, alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 11, color: 'var(--tf-primary)', fontWeight: 600, margin: '0 0 1px' }}>Quantidade usada por porção</p>
+                          <p style={{ fontSize: 11, color: 'var(--tf-txt3)', margin: 0 }}>
+                            {selectedForAdd.name}
+                            {preview !== null && (
+                              <span style={{ marginLeft: 6, color: 'var(--tf-primary)' }}>
+                                → {preview < 0.01 ? preview.toFixed(4) : preview % 1 === 0 ? preview.toString() : preview.toFixed(3)} {unitLabels[selectedForAdd.unit] ?? selectedForAdd.unit}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <Input
+                          type="number"
+                          autoFocus
+                          step="any"
+                          min="0.001"
+                          placeholder="0"
+                          value={addQtyStr}
+                          onChange={e => setAddQtyStr(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmAdd() } if (e.key === 'Escape') cancelAdd() }}
+                          style={{ width: 80, textAlign: 'right', fontSize: 13 }}
+                        />
+                        {units.length > 1 ? (
+                          <select
+                            value={addUnit}
+                            onChange={e => setAddUnit(e.target.value)}
+                            style={{ border: '1px solid var(--tf-border)', borderRadius: 6, background: 'var(--tf-input-bg)', color: 'var(--tf-txt)', padding: '0 8px', fontSize: 13, height: 36, cursor: 'pointer', outline: 'none' }}
+                          >
+                            {units.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: 13, color: 'var(--tf-txt2)', minWidth: 28, textAlign: 'center', fontWeight: 500 }}>
+                            {units[0].label}
+                          </span>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={confirmAdd}
+                          disabled={!addQtyStr || parseFloat(addQtyStr) <= 0}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+                          style={{ height: 36, padding: '0 12px', fontSize: 12 }}
+                        >
+                          <Plus style={{ width: 14, height: 14, marginRight: 4 }} />
+                          Adicionar
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={cancelAdd}
+                          style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--tf-border)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tf-txt3)', fontSize: 16, lineHeight: 1, flexShrink: 0 }}
+                          title="Cancelar"
+                        >×</button>
+                      </div>
+                    )
+                  })()}
 
                   {/* List */}
                   {pendingItems.length === 0 ? (

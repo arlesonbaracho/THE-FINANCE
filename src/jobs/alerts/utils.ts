@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { TipoAlerta, Severidade } from '@prisma/client'
+import { Prisma, TipoAlerta, Severidade } from '@prisma/client'
 import type { Server as SocketIOServer } from 'socket.io'
 
 export type CreateAlertPayload = {
@@ -10,7 +10,7 @@ export type CreateAlertPayload = {
   descricao: string
   insumoId?: string
   produtoId?: string
-  metadata: Record<string, unknown>
+  metadata: Prisma.InputJsonValue
 }
 
 export function buildAlertTitulo(template: string, nome: string): string {
@@ -58,6 +58,7 @@ export async function antiSpamFinanceiro(
     where: {
       tenantId,
       tipo: 'FINANCEIRO',
+      status: { in: ['NAO_LIDO', 'LIDO'] },
       criadoEm: { gte: startOfDay },
       metadata: { path: ['subtipo'], equals: subtipo },
     },
@@ -88,18 +89,28 @@ export async function createAlert(
   payload: CreateAlertPayload,
   io: SocketIOServer,
 ): Promise<void> {
-  const alert = await prisma.alert.create({
-    data: {
-      tenantId: payload.tenantId,
-      tipo: payload.tipo,
-      severidade: payload.severidade,
-      titulo: payload.titulo,
-      descricao: payload.descricao,
-      insumoId: payload.insumoId,
-      produtoId: payload.produtoId,
-      metadata: payload.metadata,
-      status: 'NAO_LIDO',
-    },
-  })
-  io.to(payload.tenantId).emit('alerta:novo', alert)
+  let alert
+  try {
+    alert = await prisma.alert.create({
+      data: {
+        tenantId: payload.tenantId,
+        tipo: payload.tipo,
+        severidade: payload.severidade,
+        titulo: payload.titulo,
+        descricao: payload.descricao,
+        insumoId: payload.insumoId,
+        produtoId: payload.produtoId,
+        metadata: payload.metadata,
+        status: 'NAO_LIDO',
+      },
+    })
+  } catch (err) {
+    console.error('[createAlert] Failed to persist alert:', err)
+    return
+  }
+  try {
+    io.to(payload.tenantId).emit('alerta:novo', alert)
+  } catch (err) {
+    console.error('[createAlert] Failed to emit socket event:', err)
+  }
 }

@@ -2,8 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "outDir": ".next/server-custom",
     "noEmit": false
   },
-  "include": ["server.ts"]
+  "include": ["server.ts", "src/**/*.ts"]
 }

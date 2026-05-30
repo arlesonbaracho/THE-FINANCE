@@ -23,4 +23,13 @@ export const redisConnectionOptions: ConnectionOptions = {
 export const redisConnection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  lazyConnect: true,
+  retryStrategy: (times) => Math.min(times * 500, 10000),
+})
+
+// Prevent unhandled error events from crashing the process
+redisConnection.on('error', (err) => {
+  if ((err as NodeJS.ErrnoException).code !== 'ECONNREFUSED') {
+    console.error('[redis]', err.message)
+  }
 })

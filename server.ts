@@ -28,8 +28,13 @@ app.prepare().then(async () => {
     })
   })
 
-  await startAlertWorkers(io)
-  await startDashboardWorkers()
+  try {
+    await startAlertWorkers(io)
+    await startDashboardWorkers()
+  } catch (err) {
+    console.warn('> BullMQ workers not started (Redis unavailable?):', (err as Error).message)
+    console.warn('> Start Redis to enable background alert jobs.')
+  }
 
   const port = parseInt(process.env.PORT ?? '3000', 10)
   httpServer.listen(port, () => {

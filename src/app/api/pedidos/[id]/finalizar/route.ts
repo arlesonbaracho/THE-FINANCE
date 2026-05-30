@@ -91,6 +91,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const io = (global as { io?: { to: (room: string) => { emit: (event: string, data: unknown) => void } } }).io
   io?.to(pedido.tenantId).emit('mesa:status', { mesaId: pedido.mesaId, status: 'LIVRE' })
   io?.to(pedido.tenantId).emit('pedido:status', { pedidoId: params.id, status: 'FINALIZADO' })
+  io?.to(pedido.tenantId).emit('dashboard:atualizar', {
+    tipo: 'pedido_finalizado',
+    pedidoId: params.id,
+    total: pedido.total,
+  })
 
   return NextResponse.json({ ok: true })
 }

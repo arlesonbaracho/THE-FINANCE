@@ -82,6 +82,9 @@ export async function PUT(
       include: { category: true, supplier: true, fornecedorSecundario: true },
     })
 
+    const io = (global as { io?: { to: (r: string) => { emit: (e: string, d: unknown) => void } } }).io
+    io?.to(tenantId).emit('dashboard:atualizar', { tipo: 'estoque_atualizado' })
+
     return NextResponse.json(updated)
   } catch (error) {
     console.error('[INGREDIENT PUT]', error instanceof Error ? error.message : 'unknown')

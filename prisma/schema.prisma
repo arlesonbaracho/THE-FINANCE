@@ -199,6 +199,10 @@ model Tenant {
   reservas             Reserva[]
   sessoesCaixa         SessaoCaixa[]
   relatorioSchedules   RelatorioSchedule[]
+  alerts               Alert[]
+  alertConfigs         AlertConfig[]
+  dashboardSnapshots   DashboardSnapshot[]
+  kdsDevices           KdsDevice[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -688,6 +692,99 @@ model SessaoCaixa {
 
   @@index([tenantId])
   @@index([usuarioId])
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+
+enum TipoAlerta {
+  ESTOQUE
+  FINANCEIRO
+  OPERACIONAL
+  SISTEMA
+}
+
+enum Severidade {
+  CRITICA
+  ALTA
+  MEDIA
+  BAIXA
+  INFO
+}
+
+enum StatusAlerta {
+  NAO_LIDO
+  LIDO
+  RESOLVIDO
+  IGNORADO
+}
+
+model Alert {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tipo        TipoAlerta
+  severidade  Severidade
+  titulo      String
+  descricao   String
+  status      StatusAlerta @default(NAO_LIDO)
+  insumoId    String?
+  produtoId   String?
+  metadata    Json
+  criadoEm   DateTime     @default(now())
+  lidoEm     DateTime?
+  resolvidoEm DateTime?
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, tipo, insumoId])
+}
+
+model AlertConfig {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tipoAlerta            String
+  ativo                 Boolean  @default(true)
+  threshold             Json
+  canais                Json
+  horarioSilencioInicio String?
+  horarioSilencioFim    String?
+
+  @@unique([tenantId, tipoAlerta])
+  @@index([tenantId])
+}
+
+// ── Dashboard Snapshots ───────────────────────────────────────────────────────
+
+model DashboardSnapshot {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  data                 DateTime
+  totalVendas          Decimal
+  totalPedidos         Int
+  ticketMedio          Decimal
+  cmvTotal             Decimal
+  cmvPercentual        Decimal
+  produtoMaisVendidoId String?
+  createdAt            DateTime @default(now())
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, data])
+  @@index([tenantId, data])
+}
+
+// ── KDS Devices ───────────────────────────────────────────────────────────────
+
+model KdsDevice {
+  id              String   @id @default(cuid())
+  tenantId        String
+  pushToken       String   @unique
+  plataforma      String
+  nomeDispositivo String
+  ultimaConexao   DateTime @updatedAt
+  ativo           Boolean  @default(true)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 // ── Report Schedules ──────────────────────────────────────────────────────────

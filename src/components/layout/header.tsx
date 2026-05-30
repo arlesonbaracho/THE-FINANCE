@@ -12,13 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogOut, Store, UserCircle, Sun, Moon } from 'lucide-react'
+import { LogOut, Store, UserCircle, Sun, Moon, Bell } from 'lucide-react'
 import Link from 'next/link'
+import { useAlerts } from '@/components/alerts/AlertsProvider'
+import { AlertsDrawer } from '@/components/alerts/AlertsDrawer'
 
 export function Header() {
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const { unreadCount } = useAlerts()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -49,6 +53,44 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Alert bell button */}
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="relative p-2 rounded-lg transition-colors"
+          style={{
+            color: 'var(--tf-txt3)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--tf-surface2)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--tf-txt)'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--tf-txt3)'
+          }}
+          aria-label="Abrir alertas"
+        >
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-white"
+              style={{
+                minWidth: 16,
+                height: 16,
+                fontSize: 10,
+                fontWeight: 700,
+                background: 'var(--tf-red)',
+                padding: '0 3px',
+              }}
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+
         {mounted && (
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -99,6 +141,7 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <AlertsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </header>
   )
 }

@@ -2,12 +2,14 @@ import { createServer } from 'http'
 import { parse } from 'url'
 import next from 'next'
 import { Server as SocketIO } from 'socket.io'
+import { startAlertWorkers } from './src/jobs/alerts'
+import { startDashboardWorkers } from './src/jobs/dashboard'
 
 const dev = process.env.NODE_ENV !== 'production'
 const app = next({ dev })
 const handle = app.getRequestHandler()
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
   const httpServer = createServer((req, res) => {
     const parsedUrl = parse(req.url!, true)
     handle(req, res, parsedUrl)
@@ -18,7 +20,6 @@ app.prepare().then(() => {
     cors: { origin: '*' },
   })
 
-  // Store on global so API routes can emit events
   ;(global as { io?: SocketIO }).io = io
 
   io.on('connection', (socket) => {
@@ -26,6 +27,9 @@ app.prepare().then(() => {
       socket.join(tenantId)
     })
   })
+
+  await startAlertWorkers(io)
+  await startDashboardWorkers()
 
   const port = parseInt(process.env.PORT ?? '3000', 10)
   httpServer.listen(port, () => {

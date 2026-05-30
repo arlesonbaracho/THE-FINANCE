@@ -6,12 +6,10 @@ import { getSocket } from '@/lib/socket-client'
 
 type AlertsContextValue = {
   unreadCount: number
-  decrement: () => void
 }
 
 const AlertsContext = createContext<AlertsContextValue>({
   unreadCount: 0,
-  decrement: () => {},
 })
 
 export function useAlerts() {
@@ -42,7 +40,7 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AlertsContext.Provider
-      value={{ unreadCount, decrement: () => setUnreadCount((c) => Math.max(0, c - 1)) }}
+      value={{ unreadCount }}
     >
       {children}
     </AlertsContext.Provider>

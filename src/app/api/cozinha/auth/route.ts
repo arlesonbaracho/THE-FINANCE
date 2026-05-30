@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import { signKdsToken } from '@/lib/kds-auth'
 
 const schema = z.object({
   tenantSlug: z.string().min(1),
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
 
   await prisma.user.update({ where: { id: user.id }, data: { ultimoAcesso: new Date() } })
 
+  const kdsToken = await signKdsToken({ tenantId: tenant.id, userId: user.id })
+
   return NextResponse.json({
     id: user.id,
     name: user.name,
@@ -74,5 +77,6 @@ export async function POST(req: NextRequest) {
     role: user.role,
     tenantId: tenant.id,
     tenantSlug: tenant.slug,
+    kdsToken,
   })
 }

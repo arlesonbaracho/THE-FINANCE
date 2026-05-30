@@ -732,7 +732,7 @@ model Alert {
   criadoEm   DateTime     @default(now())
   lidoEm     DateTime?
   resolvidoEm DateTime?
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, status])
   @@index([tenantId, tipo, insumoId])
@@ -741,7 +741,7 @@ model Alert {
 model AlertConfig {
   id                    String   @id @default(cuid())
   tenantId              String
-  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tipoAlerta            String
   ativo                 Boolean  @default(true)
   threshold             Json
@@ -766,7 +766,7 @@ model DashboardSnapshot {
   cmvPercentual        Decimal
   produtoMaisVendidoId String?
   createdAt            DateTime @default(now())
-  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, data])
   @@index([tenantId, data])
@@ -782,7 +782,7 @@ model KdsDevice {
   nomeDispositivo String
   ultimaConexao   DateTime @updatedAt
   ativo           Boolean  @default(true)
-  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }

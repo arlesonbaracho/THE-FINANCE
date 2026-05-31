@@ -268,20 +268,21 @@ const STATS = [
 function StatsStrip() {
   return (
     <div style={{
-      position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 6,
+      position: 'absolute', bottom: -8, left: 0, right: 0, zIndex: 6,
       display: 'flex', justifyContent: 'center', padding: '0 clamp(16px,4vw,40px)',
       pointerEvents: 'none',
     }}>
       <div style={{
         pointerEvents: 'auto',
         width: '100%', maxWidth: 1100,
-        background: 'rgba(10,15,12,0.88)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(34,197,94,0.18)',
-        borderRadius: 24,
-        padding: '18px clamp(20px,3vw,48px)',
+        background: 'rgba(10,15,12,0.55)',
+        backdropFilter: 'blur(40px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(140%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 28,
+        padding: '20px clamp(20px,3vw,48px)',
         display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 14,
-        boxShadow: '0 18px 60px rgba(0,0,0,0.6), 0 0 32px rgba(34,197,94,0.08)',
+        boxShadow: '0 20px 70px rgba(0,0,0,0.55), 0 0 36px rgba(34,197,94,0.06), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}>
         {STATS.map((s) => (
           <div key={s.label} style={{
@@ -431,7 +432,7 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         animationDelay: '0.8s',
         flex: 1, position: 'relative',
         display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
-        minHeight: 560, paddingTop: 40, paddingBottom: 50, zIndex: 2,
+        minHeight: 560, paddingTop: 40, paddingBottom: 20, zIndex: 2,
       }}>
         <CardPedidos      scrollY={heroScroll} />
         <CardFaturamento  scrollY={heroScroll} />

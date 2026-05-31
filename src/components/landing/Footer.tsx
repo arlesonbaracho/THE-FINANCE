@@ -20,11 +20,15 @@ export function Footer() {
         {/* brand */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--lp-btn-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <polygon points="8,2 14,13 2,13" fill="white" />
-              </svg>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/mascot1.png"
+              alt="THE FINANCE"
+              style={{
+                width: 38, height: 38, objectFit: 'contain', flexShrink: 0,
+                filter: 'drop-shadow(0 0 8px rgba(74,222,128,0.4))',
+              }}
+            />
             <span style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 18, color: '#fff' }}>
               THE FINANCE
             </span>

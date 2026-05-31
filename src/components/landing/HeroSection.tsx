@@ -166,14 +166,14 @@ function Mascot() {
       {/* glow radial atrás do mascote */}
       <div style={{
         position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: 420, height: 420, borderRadius: '50%',
-        background: 'radial-gradient(ellipse 70% 55% at 50% 65%, rgba(74,222,128,0.22), transparent 70%)',
+        width: 580, height: 580, borderRadius: '50%',
+        background: 'radial-gradient(ellipse 70% 55% at 50% 65%, rgba(74,222,128,0.25), transparent 70%)',
         pointerEvents: 'none',
       }} />
       {/* anel externo */}
       <div style={{
         position: 'absolute', bottom: '8%', left: '50%', transform: 'translateX(-50%)',
-        width: 340, height: 340, borderRadius: '50%',
+        width: 480, height: 480, borderRadius: '50%',
         border: '1px solid rgba(74,222,128,0.2)',
         animation: 'lp-ring-pulse 3.5s ease-in-out infinite',
         pointerEvents: 'none',
@@ -181,7 +181,7 @@ function Mascot() {
       {/* anel interno */}
       <div style={{
         position: 'absolute', bottom: '12%', left: '50%', transform: 'translateX(-50%)',
-        width: 240, height: 240, borderRadius: '50%',
+        width: 340, height: 340, borderRadius: '50%',
         border: '1px solid rgba(74,222,128,0.3)',
         animation: 'lp-ring-pulse 3.5s ease-in-out infinite 1.75s',
         pointerEvents: 'none',
@@ -189,13 +189,13 @@ function Mascot() {
       {/* imagem */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/mascot.png"
+        src="/mascot1.png"
         alt="The Finance mascot"
         style={{
-          width: 'clamp(220px, 28vw, 400px)',
+          width: 'clamp(320px, 40vw, 560px)',
           position: 'relative', zIndex: 2,
           animation: 'lp-float 5s ease-in-out infinite',
-          filter: 'drop-shadow(0 0 55px rgba(74,222,128,0.5)) drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
+          filter: 'drop-shadow(0 0 60px rgba(74,222,128,0.55)) drop-shadow(0 24px 48px rgba(0,0,0,0.7))',
           userSelect: 'none', pointerEvents: 'none',
         }}
       />
@@ -291,7 +291,7 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         <p className="lp-fade-up" style={{
           animationDelay: '0.4s',
           fontFamily: 'var(--font-inter)', fontWeight: 300, fontSize: 18,
-          lineHeight: 1.7, color: 'rgba(255,255,255,0.58)', maxWidth: 580, margin: 0,
+          lineHeight: 1.7, color: 'rgba(255,255,255,0.58)', maxWidth: 760, margin: 0,
         }}>
           Controle estoque, vendas, financeiro e cozinha em tempo real com IA.
         </p>
@@ -351,7 +351,7 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         animationDelay: '0.8s',
         flex: 1, position: 'relative',
         display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
-        minHeight: 340, paddingBottom: 80, zIndex: 2,
+        minHeight: 540, paddingTop: 60, paddingBottom: 100, zIndex: 2,
       }}>
         <CardLeft />
         <CardRight />

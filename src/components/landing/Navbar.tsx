@@ -8,7 +8,7 @@ function Logo() {
   return (
     <>
       <div style={{
-        width: 34, height: 34, borderRadius: 8, background: 'var(--lp-primary)',
+        width: 34, height: 34, borderRadius: 8, background: 'var(--lp-btn-green)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

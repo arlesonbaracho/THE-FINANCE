@@ -245,8 +245,8 @@
 }
 
 @keyframes lp-shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .lp-fade-up {
@@ -272,17 +272,18 @@
 /* Shimmer no card Pro */
 .lp-plan-shimmer {
   position: relative;
-  overflow: hidden;
 }
 .lp-plan-shimmer::before {
   content: '';
   position: absolute;
-  top: -2px; bottom: -2px;
-  left: -60%;
-  width: 60%;
-  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.14), transparent);
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(74,222,128,0.14) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-position: -100% 0;
   animation: lp-shimmer 2.8s linear infinite;
   pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 /* Responsive helpers */

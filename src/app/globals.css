@@ -207,6 +207,13 @@
   --lp-white-70:       rgba(255, 255, 255, 0.70);
   --lp-white-10:       rgba(255, 255, 255, 0.08);
   --lp-white-06:       rgba(255, 255, 255, 0.06);
+  /* NEW */
+  --lp-neon:           #4ADE80;
+  --lp-neon-glow:      rgba(74, 222, 128, 0.35);
+  --lp-btn-green:      #22c55e;
+  --lp-btn-green-dark: #16a34a;
+  --lp-bg:             #050505;
+  --lp-body-muted:     #94a3b8;
 }
 
 @keyframes lp-fadeUp {
@@ -228,6 +235,22 @@
   to { transform: rotate(360deg); }
 }
 
+/* NEW keyframes */
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes lp-ring-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.35; }
+  50%       { transform: scale(1.12); opacity: 0.12; }
+}
+
+@keyframes lp-shimmer {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .lp-fade-up {
   opacity: 0;
   animation: lp-fadeUp 0.7s ease forwards;
@@ -235,6 +258,43 @@
 
 .lp-mobile-menu {
   animation: lp-fadeIn 0.2s ease;
+}
+
+/* Scroll-reveal */
+.lp-scroll-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.lp-scroll-reveal.lp-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Shimmer no card Pro */
+.lp-plan-shimmer {
+  position: relative;
+}
+.lp-plan-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(74,222,128,0.14) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  animation: lp-shimmer 2.8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* Responsive helpers */
+@media (max-width: 767px) {
+  .lp-float-card    { display: none !important; }
+  .lp-modules-bento { grid-template-columns: 1fr !important; }
+  .lp-modules-bento > * { grid-column: span 1 !important; }
+  .lp-testimonials-track { flex-wrap: nowrap !important; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .lp-testimonials-track > * { scroll-snap-align: start; flex-shrink: 0; }
 }
 
 /* Granular noise overlay */

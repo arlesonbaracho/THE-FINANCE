@@ -8,7 +8,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, BarChart3 } from 'lucide-react'
-import { invalidateCache } from '@/lib/client-cache'
 import { exportCSV } from '@/lib/report-export'
 
 type KPIs = { totalVendas: number; numPedidos: number; ticketMedio: number; cmvTotal: number; cmvPct: number }

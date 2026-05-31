@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   BookOpen, Rocket, UtensilsCrossed, ChefHat, CreditCard,
-  Package, BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList,
+  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList,
 } from 'lucide-react'
 
 type SectionId =
@@ -143,7 +143,7 @@ function PrimeirosPassos() {
         Vá em <strong>Configurações → Restaurante</strong>. Na aba <strong>Ambientes</strong>, crie as seções do salão (ex.: Salão Principal, Varanda). Na aba <strong>Mesas</strong>, cadastre cada mesa informando número, identificador e capacidade.
       </Step>
       <Step n={3} title="Cadastre as Categorias">
-        Antes de criar insumos e produtos, crie as categorias correspondentes. No módulo <strong>Estoque → Insumos</strong>, use o formulário "Novo Insumo" e clique em <strong>+ Nova categoria</strong> para criar categorias de ingredientes. Repita para produtos em <strong>Estoque → Produtos</strong>.
+        Antes de criar insumos e produtos, crie as categorias correspondentes. No módulo <strong>Estoque → Insumos</strong>, use o formulário &ldquo;Novo Insumo&rdquo; e clique em <strong>+ Nova categoria</strong> para criar categorias de ingredientes. Repita para produtos em <strong>Estoque → Produtos</strong>.
       </Step>
       <Step n={4} title="Cadastre os Insumos (ingredientes)">
         Em <strong>Estoque → Insumos</strong>, clique em <strong>Novo Insumo</strong>. Preencha: nome, categoria, unidade de medida, quantidade atual, quantidade mínima e custo unitário. Cada insumo cadastrado passa a ter controle automático de estoque.
@@ -349,7 +349,7 @@ function Inventario() {
       </p>
 
       <Step n={1} title="Acesse Estoque → Inventário e clique em Nova Contagem">
-        Dê um nome à contagem (ex.: "Inventário Semanal 29/05") e confirme. O sistema cria uma sessão com todos os insumos cadastrados.
+        Dê um nome à contagem (ex.: &ldquo;Inventário Semanal 29/05&rdquo;) e confirme. O sistema cria uma sessão com todos os insumos cadastrados.
       </Step>
       <Step n={2} title="Registre as quantidades contadas">
         Para cada insumo, insira a quantidade física encontrada. Você pode fazer isso em múltiplas sessões — o progresso é salvo automaticamente. Use a busca para localizar insumos rapidamente.
@@ -413,7 +413,7 @@ function Relatorios() {
         </div>
         <div style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--tf-border)', background: 'var(--tf-surface)' }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--tf-txt)', marginBottom: 3 }}>Excel (.xlsx)</p>
-          <p style={{ fontSize: 11.5, color: 'var(--tf-txt3)' }}>Arquivo com aba "Resumo Executivo" e abas individuais por relatório.</p>
+          <p style={{ fontSize: 11.5, color: 'var(--tf-txt3)' }}>Arquivo com aba &ldquo;Resumo Executivo&rdquo; e abas individuais por relatório.</p>
         </div>
         <div style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--tf-border)', background: 'var(--tf-surface)' }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--tf-txt)', marginBottom: 3 }}>PDF</p>
@@ -448,7 +448,7 @@ function Usuarios() {
 
       <Sub>Criar um cargo personalizado</Sub>
       <Step n={5} title="Na aba Cargos e Permissões, clique em Novo Cargo">
-        Dê um nome ao cargo (ex.: "Auxiliar de Estoque") e selecione as permissões desejadas organizadas por módulo: Estoque, Produtos, Usuários, Relatórios, Configurações e Cozinha.
+        Dê um nome ao cargo (ex.: &ldquo;Auxiliar de Estoque&rdquo;) e selecione as permissões desejadas organizadas por módulo: Estoque, Produtos, Usuários, Relatórios, Configurações e Cozinha.
       </Step>
       <Step n={6} title="Atribua o cargo a usuários">
         Na aba Funcionários, edite o usuário desejado e altere o cargo para o novo cargo criado.

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx ts-node --project tsconfig.server.json -r tsconfig-paths/register server.ts",
+    "dev": "npx ts-node --project tsconfig.server.json -r dotenv/config -r tsconfig-paths/register server.ts",
     "dev:next": "next dev",
     "predev": "node --eval \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "build": "next build",
@@ -19,6 +19,7 @@
     "seed": "npx ts-node --skip-project prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
@@ -36,8 +37,10 @@
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.77.6",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "fast-levenshtein": "^3.0.0",
     "immer": "^11.1.8",
     "ioredis": "^5.11.0",
     "jose": "^6.2.3",
@@ -66,6 +69,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@types/fast-levenshtein": "^0.0.4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",

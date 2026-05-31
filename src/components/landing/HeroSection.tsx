@@ -1,10 +1,24 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ShoppingBag, Package, BarChart2, Users, Play, ArrowRight } from 'lucide-react'
 
+/* ── Scroll hook ───────────────────────────────────────────────────────────── */
+function useScrollY() {
+  const [y, setY] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    const update = () => { setY(window.scrollY); raf = 0 }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+  return y
+}
+
 /* ── Background image ──────────────────────────────────────────────────────── */
-function BackgroundImage() {
+function BackgroundImage({ scrollY }: { scrollY: number }) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
@@ -17,22 +31,24 @@ function BackgroundImage() {
         aria-hidden
         style={{
           position: 'absolute', inset: 0,
-          width: '100%', height: '100%', objectFit: 'cover',
+          width: '100%', height: '110%', objectFit: 'cover',
           objectPosition: 'center bottom',
           opacity: 0.95,
+          transform: `translateY(${scrollY * 0.35}px) scale(${1 + scrollY * 0.0002})`,
+          willChange: 'transform',
         }}
       />
       {/* dark gradient on top for text readability */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(10,10,10,0.7) 0%, rgba(10,10,10,0.35) 35%, rgba(10,10,10,0.0) 60%, rgba(10,10,10,0.4) 100%)',
+        background: `linear-gradient(180deg, rgba(5,5,5,${0.7 + scrollY * 0.0005}) 0%, rgba(5,5,5,0.35) 35%, rgba(5,5,5,0.0) 60%, rgba(5,5,5,0.4) 100%)`,
       }} />
     </div>
   )
 }
 
 /* ── Moon ──────────────────────────────────────────────────────────────────── */
-function Moon() {
+function Moon({ scrollY }: { scrollY: number }) {
   return (
     <div aria-hidden style={{
       position: 'absolute', top: 130, left: '7vw',
@@ -40,16 +56,20 @@ function Moon() {
       background: 'radial-gradient(circle at 35% 35%, #d4d4d4 0%, #5a5a5a 40%, #1a1a1a 80%)',
       boxShadow: 'inset -8px -10px 20px rgba(0,0,0,0.6), 0 0 40px rgba(180,180,180,0.15)',
       opacity: 0.55, zIndex: 1, pointerEvents: 'none',
+      transform: `translateY(${scrollY * -0.4}px)`,
+      willChange: 'transform',
     }} />
   )
 }
 
 /* ── Floating metric cards ─────────────────────────────────────────────────── */
-function CardPedidos() {
+function CardPedidos({ scrollY }: { scrollY: number }) {
   return (
     <div className="lp-float-card" style={{
       position: 'absolute', left: 'clamp(8px, 4vw, 80px)', top: '24%',
       animation: 'lp-float 6s ease-in-out infinite 0.8s',
+      transform: `translateY(${scrollY * -0.15}px)`,
+      willChange: 'transform',
       zIndex: 4,
     }}>
       <div style={{
@@ -77,11 +97,13 @@ function CardPedidos() {
   )
 }
 
-function CardFaturamento() {
+function CardFaturamento({ scrollY }: { scrollY: number }) {
   return (
     <div className="lp-float-card" style={{
       position: 'absolute', left: 'clamp(8px, 4vw, 80px)', top: '52%',
       animation: 'lp-float 7s ease-in-out infinite 1.6s',
+      transform: `translateY(${scrollY * -0.25}px)`,
+      willChange: 'transform',
       zIndex: 4,
     }}>
       <div style={{
@@ -109,11 +131,13 @@ function CardFaturamento() {
   )
 }
 
-function CardEstoque() {
+function CardEstoque({ scrollY }: { scrollY: number }) {
   return (
     <div className="lp-float-card" style={{
       position: 'absolute', right: 'clamp(8px, 4vw, 80px)', top: '30%',
       animation: 'lp-float 6.5s ease-in-out infinite 1.2s',
+      transform: `translateY(${scrollY * -0.18}px)`,
+      willChange: 'transform',
       zIndex: 4,
     }}>
       <div style={{
@@ -144,11 +168,13 @@ function CardEstoque() {
   )
 }
 
-function CardMiniGraph() {
+function CardMiniGraph({ scrollY }: { scrollY: number }) {
   return (
     <div className="lp-float-card" style={{
       position: 'absolute', right: 'clamp(8px, 10vw, 140px)', top: '52%',
       animation: 'lp-float 5.5s ease-in-out infinite 2.2s',
+      transform: `translateY(${scrollY * -0.22}px)`,
+      willChange: 'transform',
       zIndex: 4,
     }}>
       <div style={{
@@ -184,9 +210,13 @@ function CardMiniGraph() {
 }
 
 /* ── Mascot ────────────────────────────────────────────────────────────────── */
-function Mascot() {
+function Mascot({ scrollY }: { scrollY: number }) {
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+    <div style={{
+      position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+      transform: `translateY(${scrollY * -0.08}px)`,
+      willChange: 'transform',
+    }}>
       {/* glow radial atrás do mascote */}
       <div style={{
         position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
@@ -227,60 +257,84 @@ function Mascot() {
   )
 }
 
-/* ── Stats strip ──────────────────────────────────────────────────────────── */
+/* ── Stats strip (overlapping pill) ────────────────────────────────────────── */
 const STATS = [
-  { icon: <ShoppingBag size={22} strokeWidth={1.5} />, value: '+12k',  label: 'pedidos processados' },
-  { icon: <Package     size={22} strokeWidth={1.5} />, value: '98%',   label: 'precisão no estoque' },
-  { icon: <BarChart2   size={22} strokeWidth={1.5} />, value: '3x',    label: 'mais eficiência' },
-  { icon: <Users       size={22} strokeWidth={1.5} />, value: '500+',  label: 'restaurantes ativos' },
+  { icon: <ShoppingBag size={22} strokeWidth={1.6} />, value: '+12k',  label: 'pedidos processados' },
+  { icon: <Package     size={22} strokeWidth={1.6} />, value: '98%',   label: 'precisão no estoque' },
+  { icon: <BarChart2   size={22} strokeWidth={1.6} />, value: '3x',    label: 'mais eficiência' },
+  { icon: <Users       size={22} strokeWidth={1.6} />, value: '500+',  label: 'restaurantes ativos' },
 ]
 
 function StatsStrip() {
   return (
     <div style={{
-      position: 'relative', zIndex: 5,
-      borderTop: '1px solid rgba(255,255,255,0.07)',
-      padding: '24px clamp(24px,6vw,120px)',
-      display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 20,
+      position: 'absolute', bottom: 32, left: 0, right: 0, zIndex: 6,
+      display: 'flex', justifyContent: 'center', padding: '0 clamp(16px,4vw,40px)',
+      pointerEvents: 'none',
     }}>
-      {STATS.map((s) => (
-        <div key={s.label} style={{
-          display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 200px',
-          justifyContent: 'center',
-        }}>
-          <span style={{
-            color: 'rgba(255,255,255,0.85)', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{s.icon}</span>
-          <div>
-            <p style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 22, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.3px' }}>
-              {s.value}
-            </p>
-            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: '#94a3b8', margin: '3px 0 0' }}>
-              {s.label}
-            </p>
+      <div style={{
+        pointerEvents: 'auto',
+        width: '100%', maxWidth: 1100,
+        background: 'rgba(10,15,12,0.82)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(34,197,94,0.18)',
+        borderRadius: 999,
+        padding: '14px clamp(20px,3vw,40px)',
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 14,
+        boxShadow: '0 18px 60px rgba(0,0,0,0.5), 0 0 28px rgba(34,197,94,0.06)',
+      }}>
+        {STATS.map((s) => (
+          <div key={s.label} style={{
+            display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 200px',
+            justifyContent: 'center',
+          }}>
+            <span style={{
+              color: 'rgba(255,255,255,0.88)', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{s.icon}</span>
+            <div>
+              <p style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 22, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.3px' }}>
+                {s.value}
+              </p>
+              <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: '#94a3b8', margin: '3px 0 0' }}>
+                {s.label}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
 
 /* ── HeroSection ───────────────────────────────────────────────────────────── */
 export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
+  const scrollY = useScrollY()
+  const sectionRef = useRef<HTMLElement>(null)
+
+  // limit scrollY to viewport range for the hero to avoid runaway transforms
+  const heroScroll = Math.min(scrollY, typeof window !== 'undefined' ? window.innerHeight : 900)
+
+  // text fades out as user scrolls past hero
+  const textOpacity = Math.max(0, 1 - heroScroll / 480)
+  const textTranslate = heroScroll * 0.4
+
   return (
-    <section id="hero" style={{
+    <section id="hero" ref={sectionRef} style={{
       minHeight: '100vh', position: 'relative', overflow: 'hidden',
-      display: 'flex', flexDirection: 'column', paddingBottom: 40,
+      display: 'flex', flexDirection: 'column',
     }}>
-      <BackgroundImage />
-      <Moon />
+      <BackgroundImage scrollY={heroScroll} />
+      <Moon scrollY={heroScroll} />
 
       {/* text block */}
       <div style={{
         flex: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
         textAlign: 'center', padding: 'clamp(120px,14vh,160px) clamp(24px,6vw,120px) 0',
         position: 'relative', zIndex: 3, gap: 24,
+        opacity: textOpacity,
+        transform: `translateY(${-textTranslate}px)`,
+        willChange: 'transform, opacity',
       }}>
         {/* tagline pill */}
         <div className="lp-fade-up" style={{
@@ -335,7 +389,7 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
             fontFamily: 'var(--font-cabin)', fontWeight: 600, fontSize: 15,
             color: '#fff', textDecoration: 'none',
             background: 'var(--lp-btn-green)', borderRadius: 12, padding: '14px 28px',
-            boxShadow: '0 4px 24px rgba(22,163,74,0.5)',
+            boxShadow: '0 4px 24px rgba(34,197,94,0.5)',
             transition: 'background 0.2s, transform 0.15s',
             display: 'inline-flex', alignItems: 'center', gap: 10,
           }}
@@ -377,16 +431,16 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         animationDelay: '0.8s',
         flex: 1, position: 'relative',
         display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
-        minHeight: 560, paddingTop: 40, paddingBottom: 60, zIndex: 2,
+        minHeight: 560, paddingTop: 40, paddingBottom: 140, zIndex: 2,
       }}>
-        <CardPedidos />
-        <CardFaturamento />
-        <CardEstoque />
-        <CardMiniGraph />
-        <Mascot />
+        <CardPedidos      scrollY={heroScroll} />
+        <CardFaturamento  scrollY={heroScroll} />
+        <CardEstoque      scrollY={heroScroll} />
+        <CardMiniGraph    scrollY={heroScroll} />
+        <Mascot           scrollY={heroScroll} />
       </div>
 
-      {/* stats strip pill */}
+      {/* stats strip pill — overlaps the mascot's legs */}
       <StatsStrip />
     </section>
   )

@@ -246,7 +246,7 @@ function Mascot({ scrollY }: { scrollY: number }) {
         src="/Mascot.png"
         alt="The Finance mascot"
         style={{
-          width: 'clamp(340px, 42vw, 580px)',
+          width: 'clamp(640px, 42vw, 580px)',
           position: 'relative', zIndex: 2,
           animation: 'lp-float 5s ease-in-out infinite',
           filter: 'drop-shadow(0 0 60px rgba(74,222,128,0.55)) drop-shadow(0 24px 48px rgba(0,0,0,0.7))',
@@ -268,20 +268,20 @@ const STATS = [
 function StatsStrip() {
   return (
     <div style={{
-      position: 'absolute', bottom: 32, left: 0, right: 0, zIndex: 6,
+      position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 6,
       display: 'flex', justifyContent: 'center', padding: '0 clamp(16px,4vw,40px)',
       pointerEvents: 'none',
     }}>
       <div style={{
         pointerEvents: 'auto',
         width: '100%', maxWidth: 1100,
-        background: 'rgba(10,15,12,0.82)',
+        background: 'rgba(10,15,12,0.88)',
         backdropFilter: 'blur(24px)',
         border: '1px solid rgba(34,197,94,0.18)',
-        borderRadius: 999,
-        padding: '14px clamp(20px,3vw,40px)',
+        borderRadius: 24,
+        padding: '18px clamp(20px,3vw,48px)',
         display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 14,
-        boxShadow: '0 18px 60px rgba(0,0,0,0.5), 0 0 28px rgba(34,197,94,0.06)',
+        boxShadow: '0 18px 60px rgba(0,0,0,0.6), 0 0 32px rgba(34,197,94,0.08)',
       }}>
         {STATS.map((s) => (
           <div key={s.label} style={{
@@ -431,7 +431,7 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         animationDelay: '0.8s',
         flex: 1, position: 'relative',
         display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
-        minHeight: 560, paddingTop: 40, paddingBottom: 140, zIndex: 2,
+        minHeight: 560, paddingTop: 40, paddingBottom: 50, zIndex: 2,
       }}>
         <CardPedidos      scrollY={heroScroll} />
         <CardFaturamento  scrollY={heroScroll} />

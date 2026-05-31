@@ -72,6 +72,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   pedidosGarcom       Pedido[]             @relation("Garcom")
   sessoesCaixa        SessaoCaixa[]        @relation("SessoesCaixa")
+  chatMessages        ChatMessage[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -203,6 +204,10 @@ model Tenant {
   alertConfigs         AlertConfig[]
   dashboardSnapshots   DashboardSnapshot[]
   kdsDevices           KdsDevice[]
+  nfsProcessadas       NfProcessada[]
+  chatMessages         ChatMessage[]
+  aiUsage              AiUsage?
+  aiUsageHistory       AiUsageHistory[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -798,6 +803,86 @@ model RelatorioSchedule {
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// ── AI / NF Processing ────────────────────────────────────────────────────────
+
+enum NfOrigem {
+  UPLOAD_IMAGEM
+  UPLOAD_PDF
+  TEXTO
+}
+
+enum NfStatus {
+  PROCESSANDO
+  CONCLUIDA
+  ERRO
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model NfProcessada {
+  id             String    @id @default(cuid())
+  tenantId       String
+  origem         NfOrigem
+  cloudinaryUrl  String?
+  numeroNf       String?
+  fornecedorNome String?
+  dataEmissao    DateTime?
+  valorTotal     Decimal?
+  status         NfStatus
+  rawResponseIa  Json
+  itensCriados   Int       @default(0)
+  processadoPor  String
+  createdAt      DateTime  @default(now())
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model ChatMessage {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  role         ChatRole
+  content      String
+  tokensUsados Int
+  createdAt    DateTime @default(now())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, userId])
+}
+
+model AiUsage {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  mes           Int
+  ano           Int
+  tokensInput   Int      @default(0)
+  tokensOutput  Int      @default(0)
+  custoEstimado Decimal  @default(0)
+  limiteTokens  Int
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model AiUsageHistory {
+  id            String   @id @default(cuid())
+  tenantId      String
+  mes           Int
+  ano           Int
+  tokensInput   Int
+  tokensOutput  Int
+  custoEstimado Decimal
+  registradoEm  DateTime @default(now())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
 }

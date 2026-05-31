@@ -8,9 +8,14 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/cloudinary', () => ({ uploadBuffer: vi.fn() }))
-vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(function () {
-    return { messages: { create: vi.fn() } }
+vi.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: vi.fn().mockImplementation(function () {
+    return {
+      getGenerativeModel: vi.fn().mockReturnValue({
+        generateContent: vi.fn(),
+        startChat: vi.fn(),
+      }),
+    }
   }),
 }))
 

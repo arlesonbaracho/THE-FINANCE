@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '@/lib/prisma'
 import { incrementarUso } from './ai-usage.service'
 import type { ChatMessage } from '@prisma/client'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export async function montarContextoEstoque(tenantId: string): Promise<string> {
   const [ingredients, movements, alerts] = await Promise.all([
@@ -50,32 +50,32 @@ Use os dados em tempo real abaixo para responder com precisão:
 
 ${contexto}`
 
-  const messages: Anthropic.Messages.MessageParam[] = [
-    ...historico.map((msg) => ({
-      role: msg.role === 'USER' ? ('user' as const) : ('assistant' as const),
-      content: msg.content,
-    })),
-    { role: 'user', content: novaMensagem },
-  ]
-
-  let fullResponse = ''
-  const stream = anthropic.messages.stream({
-    model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
-    max_tokens: parseInt(process.env.AI_MAX_TOKENS_PER_REQUEST ?? '2000'),
-    system: systemPrompt,
-    messages,
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+    systemInstruction: systemPrompt,
   })
 
-  for await (const chunk of stream) {
-    if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-      fullResponse += chunk.delta.text
-      onChunk(chunk.delta.text)
+  const chat = model.startChat({
+    history: historico.map((msg) => ({
+      role: msg.role === 'USER' ? ('user' as const) : ('model' as const),
+      parts: [{ text: msg.content }],
+    })),
+  })
+
+  let fullResponse = ''
+  const stream = await chat.sendMessageStream(novaMensagem)
+
+  for await (const chunk of stream.stream) {
+    const text = chunk.text()
+    if (text) {
+      fullResponse += text
+      onChunk(text)
     }
   }
 
-  const finalMessage = await stream.finalMessage()
-  const tokensInput = finalMessage.usage.input_tokens
-  const tokensOutput = finalMessage.usage.output_tokens
+  const response = await stream.response
+  const tokensInput = response.usageMetadata?.promptTokenCount ?? 0
+  const tokensOutput = response.usageMetadata?.candidatesTokenCount ?? 0
 
   await prisma.$transaction([
     prisma.chatMessage.create({

@@ -1,24 +1,35 @@
-import { v2 as cloudinary } from 'cloudinary'
+// Storage helper — backed by Supabase Storage (free tier)
+// Mantém a mesma assinatura de uploadBuffer para não quebrar outros imports.
+import { createClient } from '@supabase/supabase-js'
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
-})
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+const BUCKET = 'nfs'
 
 export async function uploadBuffer(
   buffer: Buffer,
-  options: { folder?: string; resource_type?: 'image' | 'raw' | 'auto' }
+  options: {
+    folder?: string
+    resource_type?: 'image' | 'raw' | 'auto'
+    contentType?: string
+  }
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        { folder: options.folder ?? 'nfs', resource_type: options.resource_type ?? 'auto' },
-        (err, result) => {
-          if (err || !result) reject(err ?? new Error('Cloudinary upload failed'))
-          else resolve(result.secure_url)
-        }
-      )
-      .end(buffer)
-  })
+  const folder = options.folder ?? 'nfs'
+  const ext = options.resource_type === 'raw' ? 'pdf' : 'bin'
+  const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const contentType =
+    options.contentType ??
+    (options.resource_type === 'raw' ? 'application/pdf' : 'application/octet-stream')
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filename, buffer, { contentType, upsert: false })
+
+  if (error) throw new Error(`Storage upload failed: ${error.message}`)
+
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path)
+  return urlData.publicUrl
 }

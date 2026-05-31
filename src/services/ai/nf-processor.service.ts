@@ -1,16 +1,16 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI, type Part } from '@google/generative-ai'
 import levenshtein from 'fast-levenshtein'
 import { prisma } from '@/lib/prisma'
 import { uploadBuffer } from '@/lib/cloudinary'
 import type { ItemExtraido, ItemEnriquecido, NfExtraidaData } from './types'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 const SYSTEM_PROMPT_NF = `You are a fiscal invoice (Nota Fiscal) data extraction assistant for a Brazilian restaurant management system.
 
 Extract structured data from the provided invoice image, PDF, or text description.
 
-Return ONLY a valid JSON object — no explanatory text, no markdown, just the JSON:
+Return ONLY a valid JSON object — no explanatory text, no markdown code blocks, just the raw JSON:
 
 {
   "fornecedor": "supplier company name or null",
@@ -36,7 +36,7 @@ Rules:
 
 export async function uploadNfToCloudinary(buffer: Buffer, mediaType: string): Promise<string> {
   const resourceType = mediaType === 'application/pdf' ? 'raw' : 'image'
-  return uploadBuffer(buffer, { folder: 'nfs', resource_type: resourceType })
+  return uploadBuffer(buffer, { folder: 'nfs', resource_type: resourceType, contentType: mediaType })
 }
 
 export async function extrairItensComClaude(params: {
@@ -45,53 +45,50 @@ export async function extrairItensComClaude(params: {
   texto?: string | null
 }): Promise<{ data: NfExtraidaData; tokensInput: number; tokensOutput: number }> {
   const { cloudinaryUrl, mediaType, texto } = params
-  let content: Anthropic.Messages.MessageParam['content']
+
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+    systemInstruction: SYSTEM_PROMPT_NF,
+  })
+
+  const parts: Part[] = []
 
   if (cloudinaryUrl && mediaType) {
     const fileRes = await fetch(cloudinaryUrl)
     const buffer = Buffer.from(await fileRes.arrayBuffer())
     const base64 = buffer.toString('base64')
 
-    if (mediaType === 'application/pdf') {
-      content = [
-        {
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-        } as Anthropic.Messages.DocumentBlockParam,
-      ]
-    } else {
-      const imgType = (
-        mediaType === 'image/jpeg' || mediaType === 'image/png' ||
-        mediaType === 'image/gif' || mediaType === 'image/webp'
-          ? mediaType
-          : 'image/jpeg'
-      ) as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
-
-      content = [
-        { type: 'image', source: { type: 'base64', media_type: imgType, data: base64 } },
-        { type: 'text', text: 'Extract all line items from this invoice.' },
-      ]
-    }
+    parts.push({
+      inlineData: {
+        data: base64,
+        mimeType: mediaType,
+      },
+    })
+    parts.push({ text: 'Extract all items from this invoice. Return only the JSON.' })
   } else {
-    content = [{ type: 'text', text: texto ?? '' }]
+    parts.push({ text: texto ?? '' })
   }
 
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
-    max_tokens: parseInt(process.env.AI_MAX_TOKENS_PER_REQUEST ?? '2000'),
-    system: SYSTEM_PROMPT_NF,
-    messages: [{ role: 'user', content }],
-  })
+  const result = await model.generateContent(parts)
+  const rawText = result.response.text()
 
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : '{}'
+  // Strip markdown code fences if Gemini wraps the JSON
+  const cleaned = rawText
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim()
+
   let data: NfExtraidaData
   try {
-    data = JSON.parse(rawText) as NfExtraidaData
+    data = JSON.parse(cleaned) as NfExtraidaData
   } catch {
     data = { fornecedor: null, numeroNf: null, dataEmissao: null, valorTotal: null, itens: [] }
   }
 
-  return { data, tokensInput: response.usage.input_tokens, tokensOutput: response.usage.output_tokens }
+  const tokensInput = result.response.usageMetadata?.promptTokenCount ?? 0
+  const tokensOutput = result.response.usageMetadata?.candidatesTokenCount ?? 0
+
+  return { data, tokensInput, tokensOutput }
 }
 
 export async function enriquecerItens(

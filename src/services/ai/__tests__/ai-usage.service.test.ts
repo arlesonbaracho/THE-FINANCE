@@ -22,7 +22,7 @@ vi.mock('@/lib/prisma', () => ({
 import { prisma } from '@/lib/prisma'
 import { verificarLimite, incrementarUso, resetarUsoMensal } from '../ai-usage.service'
 
-const p = prisma as {
+const p = prisma as unknown as {
   aiUsage: Record<string, ReturnType<typeof vi.fn>>
   aiUsageHistory: Record<string, ReturnType<typeof vi.fn>>
   tenantSubscription: Record<string, ReturnType<typeof vi.fn>>

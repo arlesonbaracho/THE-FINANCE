@@ -17,7 +17,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 import { prisma } from '@/lib/prisma'
 import { enriquecerItens } from '../nf-processor.service'
 
-const p = prisma as { ingredient: Record<string, ReturnType<typeof vi.fn>> }
+const p = prisma as unknown as { ingredient: Record<string, ReturnType<typeof vi.fn>> }
 
 beforeEach(() => { vi.clearAllMocks() })
 

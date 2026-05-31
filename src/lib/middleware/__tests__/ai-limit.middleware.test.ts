@@ -14,7 +14,7 @@ import { prisma } from '@/lib/prisma'
 import { verificarLimite } from '@/services/ai/ai-usage.service'
 import { checkAiLimit } from '../ai-limit.middleware'
 
-const p = prisma as { alert: Record<string, ReturnType<typeof vi.fn>> }
+const p = prisma as unknown as { alert: Record<string, ReturnType<typeof vi.fn>> }
 const mockVerificar = verificarLimite as ReturnType<typeof vi.fn>
 
 beforeEach(() => { vi.clearAllMocks() })

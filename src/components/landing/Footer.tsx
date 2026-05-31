@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 const COLS = [
   { title: 'Produto',  links: ['Funcionalidades', 'Planos', 'Novidades', 'Roadmap'] },
   { title: 'Empresa',  links: ['Sobre', 'Blog', 'Contato', 'Trabalhe conosco'] },

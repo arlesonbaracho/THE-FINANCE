@@ -8,23 +8,17 @@ import { TFMark } from '@/components/ui/tf-mark'
 function Logo() {
   return (
     <>
-      <TFMark size={38} main="#4ADE80" accent="#16a34a" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, lineHeight: 1 }}>
-        <span style={{
-          fontFamily: 'var(--font-manrope)', fontWeight: 700, fontSize: 16,
-          color: '#fff', letterSpacing: '0.02em',
-        }}>The Finance</span>
-        <span style={{
-          fontFamily: 'var(--font-manrope)', fontWeight: 400, fontSize: 9,
-          color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase',
-        }}>Restaurantes</span>
-      </div>
+      <TFMark size={32} main="#4ADE80" accent="#16a34a" />
+      <span style={{
+        fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 17,
+        color: '#fff', letterSpacing: '0.04em',
+      }}>THE FINANCE</span>
     </>
   )
 }
 
 export function Navbar() {
-  const [scrolled, setScrolled]     = useState(false)
+  const [, setScrolled]             = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -44,64 +38,76 @@ export function Navbar() {
 
   return (
     <>
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
-        height: 68, display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 clamp(24px,6vw,120px)',
-        transition: 'background 0.3s, border-color 0.3s',
-        background: scrolled ? 'rgba(10,10,10,0.88)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+      {/* Floating pill navbar */}
+      <div style={{
+        position: 'fixed', top: 20, left: 0, right: 0, zIndex: 30,
+        display: 'flex', justifyContent: 'center', padding: '0 16px',
+        pointerEvents: 'none',
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <Logo />
-        </Link>
+        <nav style={{
+          pointerEvents: 'auto',
+          width: '100%', maxWidth: 1240,
+          height: 64,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 8px 0 28px',
+          background: 'rgba(10,15,12,0.72)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 999,
+          boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
+        }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+            <Logo />
+          </Link>
 
-        <div className="hidden md:flex" style={{ gap: 32 }}>
-          {navLinks.map((item) => (
-            <button key={item} onClick={() => scrollTo(item)} style={{
-              fontFamily: 'var(--font-manrope)', fontWeight: 500, fontSize: 14,
-              color: 'rgba(255,255,255,0.8)', background: 'none', border: 'none',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-              transition: 'color 0.2s', padding: 0,
+          <div className="hidden md:flex" style={{ gap: 28 }}>
+            {navLinks.map((item) => (
+              <button key={item} onClick={() => scrollTo(item)} style={{
+                fontFamily: 'var(--font-manrope)', fontWeight: 500, fontSize: 14,
+                color: 'rgba(255,255,255,0.75)', background: 'none', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                transition: 'color 0.2s', padding: 0,
+              }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
+              >
+                {item}
+                {item === 'Módulos' && <ChevronDown size={14} />}
+              </button>
+            ))}
+          </div>
+
+          <div className="hidden md:flex" style={{ gap: 8, alignItems: 'center' }}>
+            <Link href="/auth/login" style={{
+              fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 13,
+              color: '#fff', textDecoration: 'none', padding: '10px 22px',
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.18)',
+              borderRadius: 999, transition: 'background 0.2s, border-color 0.2s',
             }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
-            >
-              {item}
-              {item === 'Módulos' && <ChevronDown size={14} />}
-            </button>
-          ))}
-        </div>
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+            >Entrar</Link>
 
-        <div className="hidden md:flex" style={{ gap: 10 }}>
-          <Link href="/auth/login" style={{
-            fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 14,
-            color: '#fff', textDecoration: 'none', padding: '9px 20px',
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 8, transition: 'background 0.2s',
-          }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)')}
-          >Entrar</Link>
+            <Link href="/auth/cadastro" style={{
+              fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 13,
+              color: '#fff', textDecoration: 'none', padding: '10px 22px',
+              background: 'var(--lp-btn-green)', borderRadius: 999,
+              boxShadow: '0 2px 14px rgba(22,163,74,0.4)', transition: 'background 0.2s',
+            }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--lp-btn-green-dark)')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--lp-btn-green)')}
+            >Começar grátis</Link>
+          </div>
 
-          <Link href="/auth/cadastro" style={{
-            fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 14,
-            color: '#fff', textDecoration: 'none', padding: '9px 20px',
-            background: 'var(--lp-btn-green)', borderRadius: 8,
-            boxShadow: '0 2px 14px rgba(22,163,74,0.4)', transition: 'background 0.2s',
-          }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--lp-btn-green-dark)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--lp-btn-green)')}
-          >Começar grátis</Link>
-        </div>
-
-        <button className="flex md:hidden" onClick={() => setMobileOpen(true)}
-          style={{ color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-          aria-label="Abrir menu"
-        ><Menu size={24} /></button>
-      </nav>
+          <button className="flex md:hidden" onClick={() => setMobileOpen(true)}
+            style={{
+              color: '#fff', background: 'none', border: 'none', cursor: 'pointer',
+              padding: 8, marginRight: 8,
+            }}
+            aria-label="Abrir menu"
+          ><Menu size={22} /></button>
+        </nav>
+      </div>
 
       {mobileOpen && (
         <div className="lp-mobile-menu" style={{

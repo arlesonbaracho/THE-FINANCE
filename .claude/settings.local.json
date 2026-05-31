@@ -6,7 +6,9 @@
       "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/api/convite/validate/[token]\")",
       "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/auth/recuperar-senha/[token]\")",
       "Bash(mkdir -p \"c:/Users/gemes/Desktop/THE-FINANCE/src/app/auth/convite/[token]\")",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\gemes\\Desktop\\THE-FINANCE\\src\\app\\api\\usuarios\\[id]",

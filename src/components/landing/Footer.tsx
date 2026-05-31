@@ -22,17 +22,11 @@ export function Footer() {
         {/* brand */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <TFMark size={38} main="#4ADE80" accent="#16a34a" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, lineHeight: 1 }}>
-              <span style={{
-                fontFamily: 'var(--font-manrope)', fontWeight: 700, fontSize: 16,
-                color: '#fff', letterSpacing: '0.02em',
-              }}>The Finance</span>
-              <span style={{
-                fontFamily: 'var(--font-manrope)', fontWeight: 400, fontSize: 9,
-                color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase',
-              }}>Restaurantes</span>
-            </div>
+            <TFMark size={32} main="#4ADE80" accent="#16a34a" />
+            <span style={{
+              fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 17,
+              color: '#fff', letterSpacing: '0.04em',
+            }}>THE FINANCE</span>
           </div>
           <p style={{ fontFamily: 'var(--font-inter)', fontSize: 14, lineHeight: 1.7, color: 'rgba(255,255,255,0.4)', margin: '0 0 16px', maxWidth: 240 }}>
             Sistema de gestão completo para restaurantes e lanchonetes.

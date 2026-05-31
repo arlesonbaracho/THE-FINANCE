@@ -53,10 +53,10 @@ function CardPedidos() {
       zIndex: 4,
     }}>
       <div style={{
-        background: 'rgba(10,15,12,0.78)',
+        background: 'rgba(15,20,15,0.85)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(74,222,128,0.18)',
-        borderRadius: 18, padding: '18px 22px', minWidth: 188,
+        border: '1px solid rgba(34,197,94,0.2)',
+        borderRadius: 12, padding: '18px 22px', minWidth: 188,
         boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset',
       }}>
         <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '0 0 6px' }}>
@@ -85,10 +85,10 @@ function CardFaturamento() {
       zIndex: 4,
     }}>
       <div style={{
-        background: 'rgba(10,15,12,0.78)',
+        background: 'rgba(15,20,15,0.85)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(74,222,128,0.18)',
-        borderRadius: 18, padding: '18px 22px', minWidth: 200,
+        border: '1px solid rgba(34,197,94,0.2)',
+        borderRadius: 12, padding: '18px 22px', minWidth: 200,
         boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset',
       }}>
         <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '0 0 6px' }}>
@@ -117,10 +117,10 @@ function CardEstoque() {
       zIndex: 4,
     }}>
       <div style={{
-        background: 'rgba(10,15,12,0.78)',
+        background: 'rgba(15,20,15,0.85)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(74,222,128,0.18)',
-        borderRadius: 18, padding: '18px 22px', minWidth: 188,
+        border: '1px solid rgba(34,197,94,0.2)',
+        borderRadius: 12, padding: '18px 22px', minWidth: 188,
         boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset',
       }}>
         <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '0 0 6px' }}>
@@ -152,11 +152,11 @@ function CardMiniGraph() {
       zIndex: 4,
     }}>
       <div style={{
-        background: 'rgba(10,15,12,0.78)',
+        background: 'rgba(15,20,15,0.85)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(74,222,128,0.35)',
-        borderRadius: 16, padding: '20px',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 24px rgba(74,222,128,0.15)',
+        border: '1px solid rgba(34,197,94,0.35)',
+        borderRadius: 12, padding: '20px',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 24px rgba(34,197,94,0.18)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <svg width="44" height="44" viewBox="0 0 44 44" style={{ display: 'block' }}>
@@ -229,50 +229,39 @@ function Mascot() {
 
 /* ── Stats strip ──────────────────────────────────────────────────────────── */
 const STATS = [
-  { icon: <ShoppingBag size={18} />, value: '+12k',  label: 'pedidos processados' },
-  { icon: <Package     size={18} />, value: '98%',   label: 'precisão no estoque' },
-  { icon: <BarChart2   size={18} />, value: '3x',    label: 'mais eficiência' },
-  { icon: <Users       size={18} />, value: '500+',  label: 'restaurantes ativos' },
+  { icon: <ShoppingBag size={22} strokeWidth={1.5} />, value: '+12k',  label: 'pedidos processados' },
+  { icon: <Package     size={22} strokeWidth={1.5} />, value: '98%',   label: 'precisão no estoque' },
+  { icon: <BarChart2   size={22} strokeWidth={1.5} />, value: '3x',    label: 'mais eficiência' },
+  { icon: <Users       size={22} strokeWidth={1.5} />, value: '500+',  label: 'restaurantes ativos' },
 ]
 
 function StatsStrip() {
   return (
     <div style={{
       position: 'relative', zIndex: 5,
-      maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,40px)',
-      width: '100%',
+      borderTop: '1px solid rgba(255,255,255,0.07)',
+      padding: '24px clamp(24px,6vw,120px)',
+      display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 20,
     }}>
-      <div style={{
-        background: 'rgba(10,15,12,0.82)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 22,
-        padding: '18px clamp(20px,3vw,40px)',
-        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: 16,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
-      }}>
-        {STATS.map((s) => (
-          <div key={s.label} style={{
-            display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 200px',
-            justifyContent: 'center',
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(74,222,128,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--lp-neon)', flexShrink: 0,
-            }}>{s.icon}</div>
-            <div>
-              <p style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 22, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.3px' }}>
-                {s.value}
-              </p>
-              <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: '3px 0 0' }}>
-                {s.label}
-              </p>
-            </div>
+      {STATS.map((s) => (
+        <div key={s.label} style={{
+          display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 200px',
+          justifyContent: 'center',
+        }}>
+          <span style={{
+            color: 'rgba(255,255,255,0.85)', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{s.icon}</span>
+          <div>
+            <p style={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 22, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.3px' }}>
+              {s.value}
+            </p>
+            <p style={{ fontFamily: 'var(--font-inter)', fontSize: 12, color: '#94a3b8', margin: '3px 0 0' }}>
+              {s.label}
+            </p>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -329,11 +318,12 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         <p className="lp-fade-up" style={{
           animationDelay: '0.4s',
           fontFamily: 'var(--font-inter)', fontWeight: 400, fontSize: 17,
-          lineHeight: 1.6, color: 'rgba(255,255,255,0.62)', maxWidth: 720, margin: 0,
+          lineHeight: 1.65, color: '#94a3b8', maxWidth: 560, margin: 0,
           textWrap: 'balance' as React.CSSProperties['textWrap'],
         }}>
-          Estoque inteligente com leitura de notas fiscais por IA, cardápio digital,
-          painel da cozinha em tempo real e financeiro integrado — tudo em um só lugar.
+          Seu restaurante mais lucrativo, com menos esforço.
+          <br />
+          A IA cuida dos números — você cuida dos clientes.
         </p>
 
         {/* CTAs */}

@@ -210,8 +210,10 @@
   /* NEW */
   --lp-neon:           #4ADE80;
   --lp-neon-glow:      rgba(74, 222, 128, 0.35);
-  --lp-btn-green:      #16a34a;
-  --lp-btn-green-dark: #15803d;
+  --lp-btn-green:      #22c55e;
+  --lp-btn-green-dark: #16a34a;
+  --lp-bg:             #050505;
+  --lp-body-muted:     #94a3b8;
 }
 
 @keyframes lp-fadeUp {

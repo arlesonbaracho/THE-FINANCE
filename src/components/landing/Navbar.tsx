@@ -8,7 +8,7 @@ import { TFMark } from '@/components/ui/tf-mark'
 function Logo() {
   return (
     <>
-      <TFMark size={32} main="#4ADE80" accent="#16a34a" />
+      <TFMark size={58} main="#4ADE80" accent="#16a34a" />
       <span style={{
         fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 17,
         color: '#fff', letterSpacing: '0.04em',

@@ -15,7 +15,7 @@ export function LandingPage() {
   const [demoOpen, setDemoOpen] = useState(false)
 
   return (
-    <div className="lp-noise" style={{ background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
+    <div className="lp-noise" style={{ background: '#050505', minHeight: '100vh', color: '#fff' }}>
       <CanvasBackground />
       <Navbar />
       <HeroSection       onDemoClick={() => setDemoOpen(true)} />

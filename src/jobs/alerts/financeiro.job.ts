@@ -28,8 +28,6 @@ export async function processFinanceiroAlerts(io: SocketIOServer): Promise<void>
     if (pedidosHoje.length === 0) continue
 
     const totalVendas = pedidosHoje.reduce((s, p) => s + p.total, 0)
-    const totalPedidos = pedidosHoje.length
-    const ticketMedio = totalVendas / totalPedidos
 
     const movimentacoesHoje = await prisma.ingredientMovement.findMany({
       where: { tenantId, type: 'OUT', createdAt: { gte: today } },

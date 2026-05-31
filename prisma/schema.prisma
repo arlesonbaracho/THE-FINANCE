@@ -840,7 +840,7 @@ model NfProcessada {
   itensCriados   Int       @default(0)
   processadoPor  String
   createdAt      DateTime  @default(now())
-  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -854,8 +854,8 @@ model ChatMessage {
   content      String
   tokensUsados Int
   createdAt    DateTime @default(now())
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  user         User     @relation(fields: [userId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, userId])
 }
@@ -870,7 +870,7 @@ model AiUsage {
   custoEstimado Decimal  @default(0)
   limiteTokens  Int
   updatedAt     DateTime @updatedAt
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model AiUsageHistory {
@@ -882,7 +882,7 @@ model AiUsageHistory {
   tokensOutput  Int
   custoEstimado Decimal
   registradoEm  DateTime @default(now())
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }

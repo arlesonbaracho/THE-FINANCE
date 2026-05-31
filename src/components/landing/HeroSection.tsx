@@ -186,16 +186,29 @@ function Mascot() {
         animation: 'lp-ring-pulse 3.5s ease-in-out infinite 1.75s',
         pointerEvents: 'none',
       }} />
+      {/* SVG filter to remove white background */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <defs>
+          <filter id="lp-remove-white">
+            <feColorMatrix type="matrix" values="
+              1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              -2 -2 -2 0 4.6
+            " />
+          </filter>
+        </defs>
+      </svg>
       {/* imagem */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/mascot1.png"
+        src="/mascot.svg"
         alt="The Finance mascot"
         style={{
           width: 'clamp(320px, 40vw, 560px)',
           position: 'relative', zIndex: 2,
           animation: 'lp-float 5s ease-in-out infinite',
-          filter: 'drop-shadow(0 0 60px rgba(74,222,128,0.55)) drop-shadow(0 24px 48px rgba(0,0,0,0.7))',
+          filter: 'url(#lp-remove-white) drop-shadow(0 0 60px rgba(74,222,128,0.55)) drop-shadow(0 24px 48px rgba(0,0,0,0.7))',
           userSelect: 'none', pointerEvents: 'none',
         }}
       />
@@ -279,8 +292,9 @@ export function HeroSection({ onDemoClick }: { onDemoClick: () => void }) {
         <h1 className="lp-fade-up" style={{
           animationDelay: '0.25s',
           fontFamily: 'var(--font-instrument-serif)',
-          fontSize: 'clamp(38px,6.5vw,82px)', lineHeight: 1.06,
-          color: '#fff', letterSpacing: '-1px', maxWidth: 860, margin: 0,
+          fontSize: 'clamp(34px,6.2vw,78px)', lineHeight: 1.08,
+          color: '#fff', letterSpacing: '-1px', maxWidth: 920, margin: 0,
+          textWrap: 'balance' as React.CSSProperties['textWrap'],
         }}>
           Gerencie seu restaurante com{' '}
           <em style={{ fontStyle: 'italic', color: 'var(--lp-neon)' }}>inteligência</em>

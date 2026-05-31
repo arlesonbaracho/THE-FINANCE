@@ -3,23 +3,22 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X, ChevronDown } from 'lucide-react'
+import { TFMark } from '@/components/ui/tf-mark'
 
 function Logo() {
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/mascot1.png"
-        alt="THE FINANCE"
-        style={{
-          width: 38, height: 38, objectFit: 'contain', flexShrink: 0,
-          filter: 'drop-shadow(0 0 8px rgba(74,222,128,0.5))',
-        }}
-      />
-      <span style={{
-        fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: 18,
-        color: '#fff', letterSpacing: '-0.3px',
-      }}>THE FINANCE</span>
+      <TFMark size={38} main="#4ADE80" accent="#16a34a" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, lineHeight: 1 }}>
+        <span style={{
+          fontFamily: 'var(--font-manrope)', fontWeight: 700, fontSize: 16,
+          color: '#fff', letterSpacing: '0.02em',
+        }}>The Finance</span>
+        <span style={{
+          fontFamily: 'var(--font-manrope)', fontWeight: 400, fontSize: 9,
+          color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase',
+        }}>Restaurantes</span>
+      </div>
     </>
   )
 }

@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import {
   BookOpen, Rocket, UtensilsCrossed, ChefHat, CreditCard,
-  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles,
+  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles, Truck,
 } from 'lucide-react'
 
 type SectionId =
   | 'intro' | 'primeiros-passos' | 'garcom' | 'cozinha' | 'caixa'
   | 'insumos' | 'produtos' | 'inventario' | 'relatorios' | 'usuarios'
-  | 'entrada-inteligente' | 'faq'
+  | 'entrada-inteligente' | 'ifood' | 'faq'
 
 const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: 'intro',                label: 'Introdução',                icon: BookOpen },
@@ -23,6 +23,7 @@ const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: 'entrada-inteligente',  label: 'Entrada Inteligente (IA)',  icon: Sparkles },
   { id: 'relatorios',           label: 'Relatórios',                icon: BarChart3 },
   { id: 'usuarios',             label: 'Usuários e Acessos',        icon: Users },
+  { id: 'ifood',                label: 'Integração iFood',          icon: Truck },
   { id: 'faq',                  label: 'Perguntas Frequentes',      icon: HelpCircle },
 ]
 
@@ -564,6 +565,68 @@ function EntradaInteligente() {
   )
 }
 
+function IFoodHelp() {
+  return (
+    <>
+      <SectionTitle sub="Como conectar e gerenciar pedidos recebidos pelo iFood">Integração iFood</SectionTitle>
+      <Tip type="info">
+        Acesse a configuração em <strong>Configurações → Integrações → iFood</strong>. Você precisa de credenciais de API geradas no Portal iFood Parceiros.
+      </Tip>
+
+      <Sub>Conectar ao iFood</Sub>
+      <Step n={1} title="Acesse o Portal iFood Parceiros">
+        Navegue até <strong>portal.ifood.com.br/apps</strong>, faça login com sua conta de restaurante e crie um novo aplicativo. Copie o <strong>Client ID</strong> e o <strong>Client Secret</strong> gerados.
+      </Step>
+      <Step n={2} title="Informe as credenciais no The Finance">
+        Em <strong>Configurações → Integrações → iFood</strong>, siga o assistente de 5 passos: cole o Client ID e Client Secret, clique em <strong>Conectar</strong> e selecione a loja correta.
+      </Step>
+      <Step n={3} title="Confirme a integração">
+        Após conectar, um card de status exibe <Tag color="green">Conectado</Tag> com o Merchant ID e a última sincronização. A partir daí, pedidos do iFood chegam automaticamente na cozinha.
+      </Step>
+
+      <Sub>Recebimento de Pedidos</Sub>
+      <Step n={4} title="Pedidos aparecem no KDS com badge laranja 'iFood'">
+        Assim que um cliente faz um pedido no iFood, ele aparece em tempo real na tela da cozinha. O card exibe o endereço de entrega no rodapé e a referência do pedido.
+      </Step>
+      <Step n={5} title="Confirmação automática">
+        O sistema confirma automaticamente o pedido no iFood após 30 segundos, salvo se você rejeitar manualmente antes disso.
+      </Step>
+      <Step n={6} title="Rejeitar um pedido">
+        No card do pedido iFood no KDS, clique em <strong>Rejeitar</strong>, selecione o motivo (Item indisponível, Problema operacional ou Restaurante fechado) e confirme.
+      </Step>
+
+      <Tip type="warning">
+        O cronômetro do pedido fica vermelho após 8 minutos — sinal de que o tempo de preparo está além do recomendado pelo iFood.
+      </Tip>
+
+      <Sub>Mapeamento de Cardápio</Sub>
+      <Step n={7} title="Acesse Configurações → Integrações → iFood → Cardápio">
+        A tela lista todos os itens do seu cardápio no iFood. Para cada item, selecione o produto correspondente no The Finance. Itens sem vínculo aparecem com badge vermelho <Tag color="red">Não mapeado</Tag> — eles chegam no KDS mas não descontam estoque automaticamente.
+      </Step>
+      <Step n={8} title="Salve os mapeamentos">
+        Clique em <strong>Salvar mapeamentos</strong>. A partir daí, ao receber um pedido iFood, o estoque dos insumos é descontado automaticamente pela ficha técnica de cada produto vinculado.
+      </Step>
+
+      <Sub>Sincronização de Disponibilidade</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        A cada 30 minutos, o sistema verifica se os insumos dos produtos mapeados têm estoque suficiente. Se um insumo zerar, o item correspondente é <strong>pausado automaticamente no iFood</strong> — evitando pedidos de itens que você não consegue preparar. Quando o estoque é reposto, o item é reativado.
+      </p>
+      <Tip>Você pode pausar ou reativar itens manualmente na tela de mapeamento de cardápio, sem precisar aguardar a sincronização automática.</Tip>
+
+      <Sub>Relatório de Delivery</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        Em <strong>Relatórios → Delivery</strong> você encontra: total de pedidos, receita bruta, comissão iFood, receita líquida, ticket médio, taxa de rejeição, distribuição de vendas por canal (iFood vs. presencial) e os 5 produtos mais pedidos pelo delivery.
+      </p>
+
+      <Sub>Desconectar</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        Para desconectar, clique em <strong>Desconectar iFood</strong> no card de status e confirme. Os pedidos já recebidos continuam no histórico. Você pode reconectar a qualquer momento informando as credenciais novamente.
+      </p>
+      <Tip type="warning">Ao desconectar, a sincronização automática de disponibilidade é interrompida. Itens pausados no iFood não serão reativados automaticamente — faça isso manualmente no Portal iFood Parceiros.</Tip>
+    </>
+  )
+}
+
 function Faq() {
   const items = [
     {
@@ -647,6 +710,7 @@ const CONTENT: Record<SectionId, React.ReactNode> = {
   'entrada-inteligente':  <EntradaInteligente />,
   relatorios:             <Relatorios />,
   usuarios:               <Usuarios />,
+  ifood:                  <IFoodHelp />,
   faq:                    <Faq />,
 }
 

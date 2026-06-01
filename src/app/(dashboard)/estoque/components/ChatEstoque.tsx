@@ -25,9 +25,25 @@ export function ChatEstoque() {
 
   useEffect(() => {
     if (!aberto) return
-    fetch('/api/ai/usage')
-      .then((r) => r.json() as Promise<AiUsageInfo>)
-      .then(setUsage)
+
+    // Carrega uso de tokens e histórico de conversas ao abrir
+    Promise.all([
+      fetch('/api/ai/usage').then((r) => r.json() as Promise<AiUsageInfo>),
+      fetch('/api/ai/chat-historico').then((r) =>
+        r.json() as Promise<Array<{ role: string; content: string }>>
+      ),
+    ])
+      .then(([usageData, historyData]) => {
+        setUsage(usageData)
+        if (Array.isArray(historyData) && historyData.length > 0) {
+          setMensagens(
+            historyData.map((msg) => ({
+              role: msg.role === 'USER' ? ('user' as const) : ('assistant' as const),
+              content: msg.content,
+            }))
+          )
+        }
+      })
       .catch(() => {/* non-critical */})
   }, [aberto])
 
@@ -124,9 +140,25 @@ export function ChatEstoque() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {mensagens.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center mt-8">
-            Pergunte sobre seu estoque, movimentações ou alertas.
-          </p>
+          <div className="mt-6 space-y-2">
+            <p className="text-xs text-muted-foreground text-center font-medium">
+              Pergunte ou peça ações ao assistente:
+            </p>
+            {[
+              '📦 "Cria um insumo Farinha de Trigo, KG, R$4,50"',
+              '🍕 "Cria um produto Pizza Margherita por R$35"',
+              '📥 "Registra entrada de 10kg de açúcar"',
+              '❓ "Quais insumos estão abaixo do mínimo?"',
+            ].map((hint) => (
+              <button
+                key={hint}
+                onClick={() => setInput(hint.replace(/^[^\s]+ /, '').replace(/"/g, ''))}
+                className="w-full text-left text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+              >
+                {hint}
+              </button>
+            ))}
+          </div>
         )}
         {mensagens.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -159,7 +191,7 @@ export function ChatEstoque() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void enviar()}
-              placeholder="Pergunte sobre o estoque..."
+              placeholder="Pergunte ou peça para criar insumos/produtos..."
               disabled={streaming}
               className="flex-1 border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             />

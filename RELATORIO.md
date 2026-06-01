@@ -72,6 +72,13 @@ O sistema é dividido em quatro camadas de acesso independentes:
 | date-fns | 4.1.0 | Manipulação de datas |
 | React Hook Form | 7.75.0 | Gerenciamento de formulários |
 
+### Inteligência Artificial e Armazenamento
+| Tecnologia | Versão | Uso |
+|------------|--------|-----|
+| @google/generative-ai | — | SDK Google Gemini — extração de NF (visão + PDF) e chat de estoque |
+| @supabase/supabase-js | — | Supabase Storage — armazenamento de imagens e PDFs de NF |
+| fast-levenshtein | 3.0.0 | Fuzzy-match entre descrição da NF e insumos cadastrados |
+
 ### Testes
 | Tecnologia | Versão | Uso |
 |------------|--------|-----|
@@ -431,6 +438,49 @@ Funcionalidades:
 - Histórico de planos (`PlanHistory`)
 - Tela `/plano-bloqueado` para tenants com assinatura suspensa
 
+### 4.15 Entrada Inteligente de Estoque (IA)
+
+**Rota:** `/estoque/entrada-inteligente` e `/estoque/notas-fiscais`
+**API:** `/api/ai/processar-nf`, `/api/ai/nf-status/[nfId]`, `/api/ai/chat-estoque`, `/api/ai/nfs`, `/api/ai/usage`, `/api/estoque/entrada-lote`
+**Provedor de IA:** Google Gemini 1.5 Flash (grátis — 1.500 req/dia)
+**Armazenamento:** Supabase Storage (bucket `nfs`, público)
+**Jobs:** BullMQ (`nf-processing`) + reset mensal (`ai-usage-reset`, cron `0 0 1 * *`)
+
+Funcionalidades:
+
+**Processamento de NF:**
+- Upload de imagem (JPG, PNG, HEIC) ou PDF (máx 10MB) via drag-and-drop ou câmera mobile
+- Alternativa: descrever os itens em texto livre
+- Pipeline assíncrono: upload → Supabase Storage → BullMQ job → Gemini Vision/Document → resposta JSON
+- Resultado via WebSocket (`nf:processada` / `nf:erro`); fallback de polling a cada 3s
+- Enrichment automático: para cada item extraído, busca insumo equivalente por **Levenshtein** (fuzzy-match) com score de confiança 0–100%
+
+**Tabela de revisão (`TabelaRevisaoNF`):**
+- Badge de confiança: 🟢 ≥ 80% | 🟡 ≥ 50% | ⚫ < 50%
+- Combobox de insumo com seleção manual quando match automático for insatisfatório
+- Quantidade e custo unitário editáveis; custo total calculado em tempo real
+- Toggle incluir/ignorar por item
+- Cálculo automático de **CMP** ao confirmar lançamento:
+  `Novo CMP = (Qtd atual × CMP atual + Qtd entrada × Custo entrada) / (Qtd atual + Qtd entrada)`
+
+**Histórico de NFs (`/estoque/notas-fiscais`):**
+- Listagem com filtros por fornecedor, origem (imagem/PDF/texto) e período
+- Badge "IA" verde em todas as entradas processadas por IA
+- Botão "Reprocessar" disponível quando há arquivo armazenado no Supabase
+
+**Chat Assistente de Estoque:**
+- Drawer flutuante (fixed bottom-right) acessível em todas as páginas de estoque
+- Contexto em tempo real: todos os insumos, últimas 20 movimentações e alertas ativos
+- Streaming via SSE (Server-Sent Events) — resposta caractere a caractere
+- Histórico da sessão em memória (não persiste entre recarregamentos)
+
+**Controle de uso por tenant:**
+- Modelos: `AiUsage` (mês corrente) e `AiUsageHistory` (snapshots mensais)
+- Limites configuráveis por plano: Pro = 500.000 tokens/mês, Enterprise = ilimitado
+- Alerta automático (tipo `SISTEMA`) ao atingir 80% do limite — anti-spam de 24h
+- Reset automático no dia 1 de cada mês (BullMQ cron job)
+- Barra de progresso discreta no drawer do chat; bloqueio visual ao atingir 100%
+
 ### 4.14 Login Unificado com Acesso por PIN
 
 **Rota:** `/auth/login`
@@ -750,6 +800,13 @@ Cobertura: `npm run test:coverage`
 | `EMAIL_SMTP_USER` | Usuário SMTP |
 | `EMAIL_SMTP_PASS` | Senha SMTP |
 | `PASSWORD_RESET_SECRET` | Secret adicional para tokens de reset de senha |
+| `GEMINI_API_KEY` | Chave da API Google Gemini (grátis em aistudio.google.com/apikey) |
+| `GEMINI_MODEL` | Modelo Gemini a usar (padrão: `gemini-1.5-flash`) |
+| `AI_MAX_TOKENS_PER_REQUEST` | Limite de tokens por requisição à IA (padrão: 2000) |
+| `AI_DEFAULT_MONTHLY_LIMIT_PRO` | Limite mensal de tokens para planos Pro (padrão: 500000) |
+| `AI_DEFAULT_MONTHLY_LIMIT_ENTERPRISE` | Limite mensal Enterprise — `0` = ilimitado |
+| `SUPABASE_URL` | URL do projeto Supabase (ex: `https://xxx.supabase.co`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Chave service_role do Supabase (JWT longo, **não** a anon key) |
 
 ---
 
@@ -788,7 +845,7 @@ Cobertura: `npm run test:coverage`
 | Acesso por PIN unificado | ✅ Implementado | Login page — 4 cargos com seletor |
 | Configurações do restaurante | ✅ Implementado | Nome, logo, telefone |
 | Email multi-provedor | ✅ Implementado | Resend → SMTP → Console |
-| Agente IA (leitura de NF) | 📋 Planejado | Feature flag `aiAgent` no plano |
+| Entrada Inteligente de Estoque (IA) | ✅ Implementado | Gemini Vision + chat assistente + controle de uso |
 | Financeiro / DRE | 📋 Planejado | Invoices no schema, sem painel |
 | Multi-unidade | 📋 Planejado | Feature flag `multiUnit` no plano |
 | Exportação PDF/Excel | 📋 Planejado | Feature flag `exportReports` no plano |

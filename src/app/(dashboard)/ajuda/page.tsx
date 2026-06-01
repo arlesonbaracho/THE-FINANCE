@@ -3,25 +3,27 @@
 import { useState } from 'react'
 import {
   BookOpen, Rocket, UtensilsCrossed, ChefHat, CreditCard,
-  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList,
+  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles,
 } from 'lucide-react'
 
 type SectionId =
   | 'intro' | 'primeiros-passos' | 'garcom' | 'cozinha' | 'caixa'
-  | 'insumos' | 'produtos' | 'inventario' | 'relatorios' | 'usuarios' | 'faq'
+  | 'insumos' | 'produtos' | 'inventario' | 'relatorios' | 'usuarios'
+  | 'entrada-inteligente' | 'faq'
 
 const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
-  { id: 'intro',           label: 'Introdução',              icon: BookOpen },
-  { id: 'primeiros-passos',label: 'Primeiros Passos',        icon: Rocket },
-  { id: 'garcom',          label: 'Atendimento (Garçom)',    icon: UtensilsCrossed },
-  { id: 'cozinha',         label: 'Cozinha (KDS)',           icon: ChefHat },
-  { id: 'caixa',           label: 'Caixa e Pagamentos',      icon: CreditCard },
-  { id: 'insumos',         label: 'Insumos e Estoque',       icon: ShoppingBasket },
-  { id: 'produtos',        label: 'Produtos e Cardápio',     icon: ChefHat },
-  { id: 'inventario',      label: 'Inventário Físico',       icon: ClipboardList },
-  { id: 'relatorios',      label: 'Relatórios',              icon: BarChart3 },
-  { id: 'usuarios',        label: 'Usuários e Acessos',      icon: Users },
-  { id: 'faq',             label: 'Perguntas Frequentes',    icon: HelpCircle },
+  { id: 'intro',                label: 'Introdução',                icon: BookOpen },
+  { id: 'primeiros-passos',     label: 'Primeiros Passos',          icon: Rocket },
+  { id: 'garcom',               label: 'Atendimento (Garçom)',      icon: UtensilsCrossed },
+  { id: 'cozinha',              label: 'Cozinha (KDS)',             icon: ChefHat },
+  { id: 'caixa',                label: 'Caixa e Pagamentos',        icon: CreditCard },
+  { id: 'insumos',              label: 'Insumos e Estoque',         icon: ShoppingBasket },
+  { id: 'produtos',             label: 'Produtos e Cardápio',       icon: ChefHat },
+  { id: 'inventario',           label: 'Inventário Físico',         icon: ClipboardList },
+  { id: 'entrada-inteligente',  label: 'Entrada Inteligente (IA)',  icon: Sparkles },
+  { id: 'relatorios',           label: 'Relatórios',                icon: BarChart3 },
+  { id: 'usuarios',             label: 'Usuários e Acessos',        icon: Users },
+  { id: 'faq',                  label: 'Perguntas Frequentes',      icon: HelpCircle },
 ]
 
 function Tag({ children, color = 'green' }: { children: React.ReactNode; color?: 'green' | 'blue' | 'amber' | 'red' }) {
@@ -475,6 +477,93 @@ function Usuarios() {
   )
 }
 
+function EntradaInteligente() {
+  return (
+    <>
+      <SectionTitle sub="Como usar a IA para lançar entradas de estoque a partir de Notas Fiscais">
+        Entrada Inteligente de Estoque (IA)
+      </SectionTitle>
+
+      <Tip type="info">
+        Acesse em <strong>Estoque → Entrada Inteligente</strong>. A IA lê a Nota Fiscal (foto, PDF ou texto) e
+        sugere o lançamento no estoque automaticamente — você só revisa e confirma.
+      </Tip>
+
+      <Sub>Como funciona</Sub>
+      <Step n={1} title="Envie a Nota Fiscal">
+        Você tem três opções:
+        <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+          <li><strong>Foto / Imagem</strong> — Arraste ou clique na área de upload (JPG, PNG, HEIC — máx 10MB). Em dispositivos móveis, use o botão &ldquo;Tirar foto&rdquo; para fotografar a NF diretamente.</li>
+          <li><strong>PDF</strong> — Faça upload do arquivo PDF da nota fiscal (máx 10MB).</li>
+          <li><strong>Texto</strong> — Clique em &ldquo;Descrever em texto&rdquo; e descreva os itens manualmente (ex.: <em>5kg Farinha de Trigo R$22,50</em>).</li>
+        </ul>
+      </Step>
+      <Step n={2} title="Aguarde o processamento">
+        Após clicar em <strong>Processar com IA</strong>, o sistema envia o arquivo para a fila de processamento.
+        A IA (Google Gemini) lê a nota e extrai: fornecedor, número da NF, data de emissão, valor total e todos os itens com quantidade e custo.
+        O resultado aparece na zona direita da tela automaticamente — normalmente em 5 a 20 segundos.
+      </Step>
+      <Step n={3} title="Revise os itens extraídos">
+        A tabela de revisão exibe cada item da NF com:
+        <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+          <li><strong>Descrição original</strong> — texto exato da NF (não editável)</li>
+          <li><strong>Insumo no sistema</strong> — sugestão automática com badge de confiança:<br />
+            <Tag color="green">Verde</Tag> ≥ 80% — match confiável &nbsp;|&nbsp;
+            <Tag color="amber">Âmbar</Tag> ≥ 50% — verifique &nbsp;|&nbsp;
+            <Tag color="red">Cinza</Tag> &lt; 50% — selecione manualmente
+          </li>
+          <li><strong>Quantidade e Custo</strong> — editáveis caso a IA tenha lido errado</li>
+          <li><strong>Toggle incluir/ignorar</strong> — exclua itens não relevantes</li>
+        </ul>
+        Ajuste o fornecedor, número da NF e data de recebimento nos campos superiores.
+      </Step>
+      <Step n={4} title="Confirme o lançamento">
+        Clique em <strong>Confirmar lançamento</strong>. O sistema:
+        <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+          <li>Cria movimentos de <em>Entrada</em> no estoque para cada item incluído</li>
+          <li>Recalcula o Custo Médio Ponderado (CMP) de cada insumo</li>
+          <li>Registra a NF em <strong>Estoque → Notas Fiscais</strong> para consulta futura</li>
+        </ul>
+      </Step>
+
+      <Sub>Chat Assistente de Estoque</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        O ícone de chat flutuante no canto inferior direito de qualquer página de estoque abre o assistente de IA.
+        Ele tem acesso em tempo real ao seu estoque, movimentações recentes e alertas ativos.
+      </p>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Exemplos de perguntas:
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+        {[
+          'Quais insumos estão abaixo do estoque mínimo?',
+          'Qual foi o último preço de compra da farinha de trigo?',
+          'Quantas entradas de estoque foram feitas esta semana?',
+          'Quais alertas estão ativos agora?',
+        ].map((q) => (
+          <div key={q} style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid var(--tf-border)', background: 'var(--tf-surface)', fontSize: 12.5, color: 'var(--tf-txt2)', fontStyle: 'italic' }}>
+            &ldquo;{q}&rdquo;
+          </div>
+        ))}
+      </div>
+
+      <Sub>Histórico de Notas Fiscais</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Acesse <strong>Estoque → Notas Fiscais</strong> para ver todas as NFs processadas. Filtre por fornecedor,
+        período ou tipo de entrada. Use o botão <strong>Reprocessar</strong> para re-enviar uma NF ao agente sem
+        precisar fazer upload novamente (disponível apenas para entradas via arquivo).
+      </p>
+
+      <Tip type="warning">
+        O sistema tem um limite mensal de tokens de IA por plano. A barra de progresso discreta no rodapé do chat mostra o uso atual. Ao atingir 100%, o processamento de NFs e o chat ficam indisponíveis até o dia 1 do próximo mês.
+      </Tip>
+      <Tip>
+        Para melhor resultado na extração, fotografe a NF com boa iluminação e certifique-se de que o texto esteja legível. Imagens borradas ou com muito reflexo podem reduzir a precisão da extração.
+      </Tip>
+    </>
+  )
+}
+
 function Faq() {
   const items = [
     {
@@ -517,6 +606,18 @@ function Faq() {
       q: 'Como exportar relatórios para o Excel com formatação correta?',
       a: 'Use a opção Exportar → Excel (.xlsx) na barra de filtros dos relatórios. O arquivo é gerado com separador adequado e codificação correta para PT-BR. Para CSV, o arquivo inclui BOM UTF-8 — abra-o diretamente no Excel sem conversão.',
     },
+    {
+      q: 'A IA não reconheceu corretamente os itens da NF. O que fazer?',
+      a: 'A tabela de revisão é totalmente editável. Selecione manualmente o insumo correto no combobox de cada linha, ajuste quantidade e custo se necessário, e desmarque itens que não devem ser lançados. Para fotos, verifique se a imagem está nítida e bem iluminada — isso melhora muito a precisão da extração.',
+    },
+    {
+      q: 'O badge de confiança ficou cinza (< 50%). O que significa?',
+      a: 'Significa que o sistema não encontrou um insumo com nome similar ao item da NF. Isso acontece quando o produto ainda não foi cadastrado no estoque ou quando a descrição na NF é muito diferente do nome no sistema. Selecione o insumo correto manualmente no combobox antes de confirmar o lançamento.',
+    },
+    {
+      q: 'Atingi o limite de IA do mês. Quando volta a funcionar?',
+      a: 'O limite é resetado automaticamente no dia 1 de cada mês. Enquanto isso, você ainda pode lançar entradas manualmente em Estoque → Insumos → Registrar Movimentação. O histórico de NFs anteriores continua acessível.',
+    },
   ]
 
   return (
@@ -535,17 +636,18 @@ function Faq() {
 }
 
 const CONTENT: Record<SectionId, React.ReactNode> = {
-  intro:            <Intro />,
-  'primeiros-passos': <PrimeirosPassos />,
-  garcom:           <Garcom />,
-  cozinha:          <Cozinha />,
-  caixa:            <Caixa />,
-  insumos:          <Insumos />,
-  produtos:         <Produtos />,
-  inventario:       <Inventario />,
-  relatorios:       <Relatorios />,
-  usuarios:         <Usuarios />,
-  faq:              <Faq />,
+  intro:                  <Intro />,
+  'primeiros-passos':     <PrimeirosPassos />,
+  garcom:                 <Garcom />,
+  cozinha:                <Cozinha />,
+  caixa:                  <Caixa />,
+  insumos:                <Insumos />,
+  produtos:               <Produtos />,
+  inventario:             <Inventario />,
+  'entrada-inteligente':  <EntradaInteligente />,
+  relatorios:             <Relatorios />,
+  usuarios:               <Usuarios />,
+  faq:                    <Faq />,
 }
 
 export default function AjudaPage() {

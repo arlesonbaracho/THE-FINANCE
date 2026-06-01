@@ -45,10 +45,10 @@ export async function GET(req: NextRequest) {
         console.error('[chat-estoque] Gemini error:', msg)
 
         let erroVisivel = 'Erro ao gerar resposta. Tente novamente.'
-        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
-          erroVisivel = '❌ Chave GEMINI_API_KEY inválida. Verifique o .env e reinicie o servidor.'
+        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid') || msg.includes('UNAUTHENTICATED')) {
+          erroVisivel = '❌ GEMINI_API_KEY inválida ou expirada. Copie a chave completa em aistudio.google.com/apikey e reinicie o servidor.'
         } else if (msg.includes('PERMISSION_DENIED') || msg.includes('403')) {
-          erroVisivel = '❌ GEMINI_API_KEY sem permissão. Gere uma nova chave em aistudio.google.com/apikey'
+          erroVisivel = '❌ GEMINI_API_KEY sem permissão. Verifique se a chave está ativa no Google AI Studio.'
         } else if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
           erroVisivel = '⚠️ Cota diária do Gemini atingida. Aguarde até amanhã ou use outra chave.'
         } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('ECONNREFUSED')) {

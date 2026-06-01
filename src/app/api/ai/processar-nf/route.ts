@@ -68,14 +68,19 @@ export async function POST(req: Request) {
     },
   })
 
-  await nfQueue.add('process', {
-    nfId: nf.id,
-    tenantId,
-    userId,
-    cloudinaryUrl,
-    mediaType,
-    texto,
-  })
+  try {
+    await nfQueue.add('process', {
+      nfId: nf.id,
+      tenantId,
+      userId,
+      cloudinaryUrl,
+      mediaType,
+      texto,
+    })
+  } catch (redisErr) {
+    console.warn('[processar-nf] Redis indisponível — NF criada mas job não enfileirado:', (redisErr as Error).message)
+    // NF permanece com status PROCESSANDO; o usuário pode reprocessar quando Redis voltar
+  }
 
   return NextResponse.json({ nfId: nf.id, status: 'PROCESSANDO' })
 }

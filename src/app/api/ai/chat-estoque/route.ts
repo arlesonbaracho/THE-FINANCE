@@ -40,9 +40,23 @@ export async function GET(req: NextRequest) {
           )
         })
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-      } catch {
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+        console.error('[chat-estoque] Gemini error:', msg)
+
+        let erroVisivel = 'Erro ao gerar resposta. Tente novamente.'
+        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+          erroVisivel = '❌ Chave GEMINI_API_KEY inválida. Verifique o .env e reinicie o servidor.'
+        } else if (msg.includes('PERMISSION_DENIED') || msg.includes('403')) {
+          erroVisivel = '❌ GEMINI_API_KEY sem permissão. Gere uma nova chave em aistudio.google.com/apikey'
+        } else if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+          erroVisivel = '⚠️ Cota diária do Gemini atingida. Aguarde até amanhã ou use outra chave.'
+        } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('ECONNREFUSED')) {
+          erroVisivel = '❌ Sem conexão com a API Gemini. Verifique sua internet.'
+        }
+
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ erro: 'Erro ao gerar resposta' })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ erro: erroVisivel })}\n\n`)
         )
       } finally {
         controller.close()

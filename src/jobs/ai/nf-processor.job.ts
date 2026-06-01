@@ -38,8 +38,16 @@ export async function processNfJob(
 
     io.to(tenantId).emit('nf:processada', { nfId, dados: rawResponseIa })
   } catch (error) {
-    const mensagem =
-      error instanceof Error ? error.message : 'Erro desconhecido no processamento'
+    const raw = error instanceof Error ? error.message : 'Erro desconhecido no processamento'
+    console.error('[nf-processor.job] Erro:', raw)
+
+    let mensagem = raw
+    if (raw.includes('API_KEY_INVALID') || raw.includes('API key not valid')) {
+      mensagem = 'Chave GEMINI_API_KEY inválida. Verifique o .env.'
+    } else if (raw.includes('RESOURCE_EXHAUSTED') || raw.includes('quota')) {
+      mensagem = 'Cota diária do Gemini atingida. Tente novamente amanhã.'
+    }
+
     await marcarNfErro(nfId, mensagem)
     io.to(tenantId).emit('nf:erro', { nfId, mensagem })
     throw error

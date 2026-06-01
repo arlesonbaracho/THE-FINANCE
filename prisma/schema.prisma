@@ -208,6 +208,8 @@ model Tenant {
   chatMessages         ChatMessage[]
   aiUsage              AiUsage?
   aiUsageHistory       AiUsageHistory[]
+  ifoodIntegracao      IFoodIntegration?
+  ifoodItemMaps        IFoodItemMap[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -455,6 +457,7 @@ model Product {
   pedidoItems PedidoItem[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+  ifoodItemMaps IFoodItemMap[]
 
   @@index([tenantId])
   @@index([categoryId])
@@ -622,10 +625,10 @@ model Pedido {
   id          String       @id @default(cuid())
   tenantId    String
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  mesaId      String
-  mesa        Mesa         @relation(fields: [mesaId], references: [id])
-  garcomId    String
-  garcom      User         @relation("Garcom", fields: [garcomId], references: [id])
+  mesaId      String?
+  mesa        Mesa?        @relation(fields: [mesaId], references: [id])
+  garcomId    String?
+  garcom      User?        @relation("Garcom", fields: [garcomId], references: [id])
   status      PedidoStatus @default(ABERTO)
   subtotal    Float        @default(0)
   taxaServico Float        @default(0)
@@ -634,6 +637,8 @@ model Pedido {
   fechadoEm  DateTime?
   itens       PedidoItem[]
   pagamentos  Pagamento[]
+  origem      OrigemPedido @default(MESA)
+  ifoodPedido IFoodPedido?
 
   @@index([tenantId])
   @@index([mesaId])
@@ -697,6 +702,12 @@ model SessaoCaixa {
 
   @@index([tenantId])
   @@index([usuarioId])
+}
+
+enum OrigemPedido {
+  BALCAO
+  MESA
+  IFOOD
 }
 
 // ── Alerts ────────────────────────────────────────────────────────────────────
@@ -884,5 +895,78 @@ model AiUsageHistory {
   registradoEm  DateTime @default(now())
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+}
+
+// ── iFood Integration ─────────────────────────────────────────────────────────
+
+enum IFoodStatus {
+  CONECTADO
+  DESCONECTADO
+  ERRO
+}
+
+enum WebhookStatus {
+  PROCESSADO
+  FALHOU
+}
+
+model IFoodIntegration {
+  id                    String            @id @default(cuid())
+  tenantId              String            @unique
+  merchantId            String
+  clientId              String
+  clientSecretEncrypted String
+  accessToken           String?
+  refreshToken          String?
+  tokenExpiresAt        DateTime?
+  status                IFoodStatus
+  ultimaSincronizacao   DateTime?
+  tenant                Tenant            @relation(fields: [tenantId], references: [id])
+  pedidos               IFoodPedido[]
+  webhookLogs           IFoodWebhookLog[]
+
+  @@index([tenantId])
+}
+
+model IFoodPedido {
+  id              String           @id @default(cuid())
+  tenantId        String
+  pedidoId        String           @unique
+  ifoodOrderId    String           @unique
+  ifoodReference  String?
+  statusIfood     String
+  comissaoPercent Decimal
+  enderecoEntrega Json
+  createdAt       DateTime         @default(now())
+  pedido          Pedido           @relation(fields: [pedidoId], references: [id])
+  integracao      IFoodIntegration @relation(fields: [tenantId], references: [tenantId])
+
+  @@index([tenantId])
+}
+
+model IFoodWebhookLog {
+  id           String           @id @default(cuid())
+  tenantId     String
+  ifoodOrderId String
+  payload      Json
+  status       WebhookStatus
+  erro         String?
+  createdAt    DateTime         @default(now())
+  integracao   IFoodIntegration @relation(fields: [tenantId], references: [tenantId])
+
+  @@index([tenantId])
+}
+
+model IFoodItemMap {
+  id            String   @id @default(cuid())
+  tenantId      String
+  ifoodItemId   String
+  ifoodItemNome String
+  produtoId     String?
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  produto       Product? @relation(fields: [produtoId], references: [id])
+
+  @@unique([tenantId, ifoodItemId])
   @@index([tenantId])
 }

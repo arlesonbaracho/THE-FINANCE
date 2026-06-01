@@ -80,11 +80,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       data: { status: 'FINALIZADO', fechadoEm: new Date() },
     })
 
-    // Free the mesa
-    await tx.mesa.update({
-      where: { id: pedido.mesaId },
-      data: { status: 'LIVRE' },
-    })
+    // Free the mesa (if applicable)
+    if (pedido.mesaId) {
+      await tx.mesa.update({
+        where: { id: pedido.mesaId },
+        data: { status: 'LIVRE' },
+      })
+    }
   })
 
   // Emit socket events

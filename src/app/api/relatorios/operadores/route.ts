@@ -40,6 +40,7 @@ export async function GET(req: Request) {
 
   for (const p of pedidos) {
     const gid = p.garcomId
+    if (!gid || !p.garcom) continue
     const cur = opMap.get(gid) ?? {
       userId: p.garcom.id,
       nome: p.garcom.name ?? '(sem nome)',

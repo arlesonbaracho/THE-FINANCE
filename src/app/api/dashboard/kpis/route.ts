@@ -50,6 +50,7 @@ export async function GET() {
     // Operador com mais pedidos
     const porOperador: Record<string, number> = {}
     for (const p of pedidosHoje) {
+      if (!p.garcomId) continue
       porOperador[p.garcomId] = (porOperador[p.garcomId] ?? 0) + 1
     }
     const topOperadorId =

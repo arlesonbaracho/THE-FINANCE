@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     if (p.status === 'CANCELADO') {
       cancelamentos.push({
         data: p.criadoEm.toISOString().split('T')[0],
-        operador: p.garcom.name ?? '—',
+        operador: p.garcom?.name ?? '—',
         produtos: p.itens.map((i) => `${i.quantidade}× ${i.product.name}`),
         pedidoId: p.id,
       })

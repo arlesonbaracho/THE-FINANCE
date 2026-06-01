@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale'
 type Pedido = {
   id: string
   total: number
-  mesa: { numero: number }
+  mesa?: { numero: number }
   fechadoEm?: string
   criadoEm?: string
 }
@@ -106,7 +106,7 @@ export function DashboardCaixa() {
               className="flex justify-between py-1"
             >
               <span style={{ fontSize: 13, color: 'var(--tf-txt)' }}>
-                Mesa {p.mesa.numero}
+                Mesa {p.mesa?.numero ?? '—'}
               </span>
               <span style={{ fontSize: 13, color: 'var(--tf-txt2)' }}>
                 {fmtCurrency(p.total)}
@@ -129,7 +129,7 @@ export function DashboardCaixa() {
             <div key={p.id} className="flex justify-between items-center py-1">
               <div>
                 <span style={{ fontSize: 13, color: 'var(--tf-txt)' }}>
-                  Mesa {p.mesa.numero}
+                  Mesa {p.mesa?.numero ?? '—'}
                 </span>
                 {p.fechadoEm && (
                   <span style={{ fontSize: 11, color: 'var(--tf-txt3)', marginLeft: 6 }}>

@@ -76,7 +76,6 @@ export async function processarWebhook(tenantId: string, payload: IFoodWebhookPa
 
   const mappingMap = new Map(mappings.map((m) => [m.ifoodItemId, m.produtoId!]))
 
-  // Buscar preços dos produtos mapeados
   const produtoIds = Array.from(new Set(mappings.map((m) => m.produtoId!)))
   const produtos = produtoIds.length > 0
     ? await prisma.product.findMany({ where: { id: { in: produtoIds } }, select: { id: true, salePrice: true } })
@@ -93,62 +92,66 @@ export async function processarWebhook(tenantId: string, payload: IFoodWebhookPa
 
   const subtotal = pedidoItems.reduce((s, i) => s + i.precoUnitario * i.quantidade, 0)
 
-  // Extrair comissão (primeiro método de pagamento iFood)
-  const comissao = payload.payments?.methods?.[0]?.value ?? 0
+  // Buscar ficha técnica para desconto de estoque
+  const fichas = pedidoItems.length > 0
+    ? await prisma.productIngredient.findMany({
+        where: { productId: { in: pedidoItems.map((i) => i.productId) } },
+        include: { ingredient: true },
+      })
+    : []
 
-  // Criar Pedido
-  const pedido = await prisma.pedido.create({
-    data: {
-      tenantId,
-      origem: 'IFOOD',
-      status: 'ABERTO',
-      subtotal,
-      taxaServico: 0,
-      total: subtotal,
-      itens: pedidoItems.length > 0
-        ? { create: pedidoItems }
-        : undefined,
-    },
-  })
-
-  // Criar IFoodPedido
-  await prisma.iFoodPedido.create({
-    data: {
-      tenantId,
-      pedidoId: pedido.id,
-      ifoodOrderId,
-      ifoodReference: payload.reference ?? null,
-      statusIfood: 'PLACED',
-      comissaoPercent: comissao,
-      enderecoEntrega: (payload.deliveryAddress ?? {}) as object,
-    },
-  })
-
-  // Descontar estoque via ficha técnica
-  for (const item of pedidoItems) {
-    const ingredientes = await prisma.productIngredient.findMany({
-      where: { productId: item.productId },
-      include: { ingredient: true },
+  // Criar Pedido, IFoodPedido e descontar estoque em uma transação
+  const pedido = await prisma.$transaction(async (tx) => {
+    const novoPedido = await tx.pedido.create({
+      data: {
+        tenantId,
+        origem: 'IFOOD',
+        status: 'ABERTO',
+        subtotal,
+        taxaServico: 0,
+        total: subtotal,
+        itens: pedidoItems.length > 0 ? { create: pedidoItems } : undefined,
+      },
     })
-    for (const pi of ingredientes) {
-      const qtdConsumida = pi.quantity * item.quantidade
-      await prisma.ingredient.update({
-        where: { id: pi.ingredientId },
-        data: { currentQty: { decrement: qtdConsumida } },
-      })
-      await prisma.ingredientMovement.create({
-        data: {
-          ingredientId: pi.ingredientId,
-          tenantId,
-          type: 'OUT',
-          quantity: qtdConsumida,
-          reason: `Pedido iFood ${ifoodOrderId}`,
-        },
-      })
-    }
-  }
 
-  // Emitir via Socket.io
+    await tx.iFoodPedido.create({
+      data: {
+        tenantId,
+        pedidoId: novoPedido.id,
+        ifoodOrderId,
+        ifoodReference: payload.reference ?? null,
+        statusIfood: 'PLACED',
+        // comissaoPercent: não disponível no webhook — configurado por acordo comercial iFood
+        comissaoPercent: 0,
+        enderecoEntrega: (payload.deliveryAddress ?? {}) as object,
+      },
+    })
+
+    // Descontar estoque via ficha técnica
+    for (const item of pedidoItems) {
+      const itemFichas = fichas.filter((f) => f.productId === item.productId)
+      for (const pi of itemFichas) {
+        const qtdConsumida = pi.quantity * item.quantidade
+        await tx.ingredient.update({
+          where: { id: pi.ingredientId },
+          data: { currentQty: { decrement: qtdConsumida } },
+        })
+        await tx.ingredientMovement.create({
+          data: {
+            ingredientId: pi.ingredientId,
+            tenantId,
+            type: 'OUT',
+            quantity: qtdConsumida,
+            reason: `Pedido iFood ${ifoodOrderId}`,
+          },
+        })
+      }
+    }
+
+    return novoPedido
+  })
+
+  // Emitir via Socket.io (FORA da transação — I/O externo)
   const io = (global as { io?: { to: (room: string) => { emit: (ev: string, data: unknown) => void } } }).io
   if (io) {
     const pedidoCompleto = await prisma.pedido.findUnique({

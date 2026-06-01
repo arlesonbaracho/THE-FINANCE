@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       mesa: { select: { id: true, numero: true, identificacao: true } },
       garcom: { select: { id: true, name: true } },
       pagamentos: true,
+      ifoodPedido: { select: { enderecoEntrega: true, ifoodReference: true, ifoodOrderId: true } },
     },
     orderBy: { criadoEm: 'desc' },
   })

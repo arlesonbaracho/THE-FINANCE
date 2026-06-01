@@ -32,7 +32,8 @@ type TenantInfo  = { id: string; name: string }
 type Step        = 'select' | 'pin' | 'dashboard'
 
 type PedidoItem  = { id: string; quantidade: number; product: { name: string }; observacao: string | null }
-type Pedido      = { id: string; status: string; criadoEm: string; itens: PedidoItem[]; mesa: { numero: number } | null; garcom: { name: string } | null }
+type IFoodMeta   = { enderecoEntrega: Record<string, unknown>; ifoodReference: string | null; ifoodOrderId?: string }
+type Pedido      = { id: string; status: string; criadoEm: string; itens: PedidoItem[]; mesa: { numero: number } | null; garcom: { name: string } | null; origem?: string; ifoodPedido?: IFoodMeta | null }
 
 const STATUS_ORDER: Record<string, number> = { ABERTO: 0, EM_PREPARO: 1, PRONTO: 2 }
 
@@ -61,6 +62,9 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
   const [now, setNow]               = useState(new Date())
   const [pedidos, setPedidos]       = useState<Pedido[]>([])
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [rejectModal, setRejectModal] = useState<{ pedidoId: string; ifoodOrderId?: string } | null>(null)
+  const [rejectMotivo, setRejectMotivo] = useState('PedidoUnavailable')
+  const [rejecting, setRejecting] = useState(false)
 
   // Atualiza o relógio a cada minuto
   useEffect(() => {
@@ -100,6 +104,19 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
     })
     setUpdatingId(null)
     if (r.ok) await loadPedidos()
+  }
+
+  async function rejectIFoodOrder() {
+    if (!rejectModal) return
+    setRejecting(true)
+    await fetch(`/api/pedidos/${rejectModal.pedidoId}?slug=${slug}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'CANCELADO' }),
+    })
+    setRejecting(false)
+    setRejectModal(null)
+    await loadPedidos()
   }
 
   const loadKitchen = useCallback((fresh = false) => {
@@ -268,14 +285,27 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
                 return (
                   <div key={p.id} style={{ background: C.surface, border: `2px solid ${borderColor}`, borderRadius: 12, overflow: 'hidden' }}>
                     <div style={{ padding: '10px 14px', background: C.surface2, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {p.origem === 'IFOOD' && (
+                          <span style={{ fontSize: 10, fontWeight: 800, color: '#f97316', background: '#1c0e00', border: '1px solid #f97316', padding: '2px 7px', borderRadius: 10 }}>
+                            iFood
+                          </span>
+                        )}
                         <span style={{ fontWeight: 700, fontSize: 16, color: C.txt }}>
-                          Mesa #{p.mesa?.numero ?? '?'}
+                          {p.origem === 'IFOOD' ? 'Delivery' : `Mesa #${p.mesa?.numero ?? '?'}`}
                         </span>
-                        {p.garcom && <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>{p.garcom.name}</span>}
+                        {p.garcom && <span style={{ fontSize: 12, color: C.muted }}>{p.garcom.name}</span>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 11, color: C.muted }}>{timeAgo(p.criadoEm)}</span>
+                        {(() => {
+                          const mins = Math.floor((Date.now() - new Date(p.criadoEm).getTime()) / 60000)
+                          const urgente = mins > 8
+                          return (
+                            <span style={{ fontSize: 11, color: urgente ? C.red : C.muted, fontWeight: urgente ? 700 : 400 }}>
+                              {timeAgo(p.criadoEm)}{urgente ? ' ⚠' : ''}
+                            </span>
+                          )
+                        })()}
                         <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, background: statusColor + '22', padding: '2px 6px', borderRadius: 4 }}>
                           {statusLabel}
                         </span>
@@ -289,6 +319,22 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
                         </div>
                       ))}
                     </div>
+                    {p.origem === 'IFOOD' && p.ifoodPedido && (
+                      <div style={{ padding: '6px 14px', background: '#120a00', borderTop: `1px solid #2a1a00` }}>
+                        {p.ifoodPedido.ifoodReference && (
+                          <p style={{ margin: 0, fontSize: 11, color: '#f97316' }}>Ref: {p.ifoodPedido.ifoodReference}</p>
+                        )}
+                        {p.ifoodPedido.enderecoEntrega && typeof p.ifoodPedido.enderecoEntrega === 'object' && (
+                          <p style={{ margin: 0, fontSize: 11, color: C.muted, marginTop: 2 }}>
+                            {[
+                              (p.ifoodPedido.enderecoEntrega as Record<string, unknown>).streetName,
+                              (p.ifoodPedido.enderecoEntrega as Record<string, unknown>).streetNumber,
+                              (p.ifoodPedido.enderecoEntrega as Record<string, unknown>).neighborhood,
+                            ].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div style={{ padding: '10px 14px', display: 'flex', gap: 8 }}>
                       {isAberto && (
                         <button
@@ -297,6 +343,14 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
                           style={{ flex: 1, padding: '8px 0', background: C.green, border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, fontSize: 13, cursor: isUpdating ? 'not-allowed' : 'pointer', opacity: isUpdating ? 0.6 : 1 }}
                         >
                           {isUpdating ? '...' : 'Iniciar'}
+                        </button>
+                      )}
+                      {p.origem === 'IFOOD' && isAberto && (
+                        <button
+                          onClick={() => setRejectModal({ pedidoId: p.id, ifoodOrderId: p.ifoodPedido?.ifoodOrderId })}
+                          style={{ padding: '8px 12px', background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, color: C.red, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                        >
+                          Rejeitar
                         </button>
                       )}
                       {isEmPreparo && (
@@ -320,6 +374,25 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
             </div>
           )}
         </div>
+        {rejectModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%' }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, marginBottom: 12 }}>Rejeitar pedido iFood</p>
+              <label style={{ display: 'block', fontSize: 12, color: C.txt2, marginBottom: 6 }}>Motivo</label>
+              <select value={rejectMotivo} onChange={(e) => setRejectMotivo(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface2, color: C.txt, fontSize: 13, marginBottom: 20 }}>
+                <option value="PedidoUnavailable">Item indisponível</option>
+                <option value="OperationProblem">Problema operacional</option>
+                <option value="RestauranteClosed">Restaurante fechado</option>
+              </select>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setRejectModal(null)} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.txt2, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={rejectIFoodOrder} disabled={rejecting} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: C.red, color: '#fff', fontWeight: 600, cursor: rejecting ? 'not-allowed' : 'pointer', opacity: rejecting ? 0.6 : 1 }}>
+                  {rejecting ? '...' : 'Rejeitar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

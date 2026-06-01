@@ -442,7 +442,7 @@ Funcionalidades:
 
 **Rota:** `/estoque/entrada-inteligente` e `/estoque/notas-fiscais`
 **API:** `/api/ai/processar-nf`, `/api/ai/nf-status/[nfId]`, `/api/ai/chat-estoque`, `/api/ai/nfs`, `/api/ai/usage`, `/api/estoque/entrada-lote`
-**Provedor de IA:** Google Gemini 1.5 Flash (grátis — 1.500 req/dia)
+**Provedor de IA:** Google Gemini 2.5 Flash (grátis — 1.500 req/dia)
 **Armazenamento:** Supabase Storage (bucket `nfs`, público)
 **Jobs:** BullMQ (`nf-processing`) + reset mensal (`ai-usage-reset`, cron `0 0 1 * *`)
 

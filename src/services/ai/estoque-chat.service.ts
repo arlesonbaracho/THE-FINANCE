@@ -51,7 +51,7 @@ Use os dados em tempo real abaixo para responder com precisão:
 ${contexto}`
 
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
     systemInstruction: systemPrompt,
   })
 

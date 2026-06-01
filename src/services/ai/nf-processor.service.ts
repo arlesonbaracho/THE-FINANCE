@@ -47,7 +47,7 @@ export async function extrairItensComClaude(params: {
   const { cloudinaryUrl, mediaType, texto } = params
 
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+    model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
     systemInstruction: SYSTEM_PROMPT_NF,
   })
 

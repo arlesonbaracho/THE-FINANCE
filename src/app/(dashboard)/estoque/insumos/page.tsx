@@ -104,7 +104,7 @@ export default function InsumoPage() {
 
   useEffect(() => {
     fetchCached<{ id: string; name: string }[]>('/api/categories?type=INGREDIENT')
-      .then(setCategories).catch(() => {})
+      .then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => ingredients.filter(ing => {

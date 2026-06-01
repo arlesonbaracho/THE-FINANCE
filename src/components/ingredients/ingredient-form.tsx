@@ -106,8 +106,8 @@ export function IngredientForm({ open, onOpenChange, ingredient, onSuccess }: In
 
   useEffect(() => {
     if (open) {
-      fetch('/api/categories?type=INGREDIENT').then(r => r.json()).then(setCategories).catch(() => {})
-      fetch('/api/suppliers').then(r => r.json()).then(setSuppliers).catch(() => {})
+      fetch('/api/categories?type=INGREDIENT').then(r => r.json()).then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
+      fetch('/api/suppliers').then(r => r.json()).then(data => setSuppliers(Array.isArray(data) ? data : [])).catch(() => {})
     }
   }, [open])
 

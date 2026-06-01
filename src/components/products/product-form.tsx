@@ -232,8 +232,8 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
 
   useEffect(() => {
     if (open) {
-      fetch('/api/categories?type=PRODUCT').then(r => r.json()).then(setCategories).catch(() => {})
-      fetch('/api/ingredients').then(r => r.json()).then(setAllIngredients).catch(() => {})
+      fetch('/api/categories?type=PRODUCT').then(r => r.json()).then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
+      fetch('/api/ingredients').then(r => r.json()).then(data => setAllIngredients(Array.isArray(data) ? data : [])).catch(() => {})
       setActiveTab('details')
       setPendingItems([])
       setIngSearch('')

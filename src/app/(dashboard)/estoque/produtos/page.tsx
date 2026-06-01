@@ -115,7 +115,7 @@ export default function ProdutosPage() {
 
   useEffect(() => {
     fetchCached<{ id: string; name: string }[]>('/api/categories?type=PRODUCT')
-      .then(setCategories).catch(() => {})
+      .then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
   }, [])
 
   const filtered = useMemo(() => products.filter(p => {

@@ -201,7 +201,7 @@ function StockPosition({ onFetched }: { onFetched: () => void }) {
 
   useEffect(() => {
     fetchIngredients()
-    fetchCached<Category[]>('/api/categories?type=INGREDIENT').then(setCategories).catch(() => {})
+    fetchCached<Category[]>('/api/categories?type=INGREDIENT').then(data => setCategories(Array.isArray(data) ? data : [])).catch(() => {})
   }, [fetchIngredients])
 
   const filtered = useMemo(() => ingredients.filter(ing => {

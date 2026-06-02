@@ -52,10 +52,12 @@ app.prepare().then(async () => {
     const { startDashboardWorkers } = await import('./src/jobs/dashboard')
     const { startAiWorkers } = await import('./src/jobs/ai')
     const { startIFoodWorkers } = await import('./src/jobs/ifood')
+    const { startWhatsAppWorkers } = await import('./src/jobs/whatsapp')
     await startAlertWorkers(io)
     await startDashboardWorkers()
     await startAiWorkers(io)
     await startIFoodWorkers(io)
+    await startWhatsAppWorkers(io)
   } else {
     console.warn('> Redis not available — BullMQ workers skipped. Run redis-server to enable alert jobs.')
   }

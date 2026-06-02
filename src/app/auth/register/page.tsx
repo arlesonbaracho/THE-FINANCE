@@ -1,14 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, ChefHat } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
+import { TFMark } from '@/components/ui/tf-mark'
+import { AuthLeft, C } from '@/components/auth/auth-left'
 import { toast } from 'sonner'
 
 export default function RegisterPage() {
@@ -20,6 +17,8 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -70,119 +69,294 @@ export default function RegisterPage() {
     }
   }
 
+  const inputBase: React.CSSProperties = {
+    width: '100%', padding: '11px 14px', borderRadius: 7, fontSize: 13.5,
+    background: C.surface2,
+    border: `1px solid ${C.border}`,
+    color: C.txt2, outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 py-8">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
-            <ChefHat className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">THE FINANCE</h1>
-          <p className="text-zinc-400 text-sm">Cadastre seu restaurante gratuitamente</p>
+    <div style={{ background: C.pageBg, minHeight: '100vh' }}>
+      <style>{`
+        @media (min-width: 768px) {
+          .auth-left  { display: flex !important; }
+          .auth-logo  { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          .auth-right { width: 100% !important; border-left: none !important; }
+          .auth-card  {
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 32px 0 !important;
+            background: transparent !important;
+          }
+        }
+        input::placeholder { color: ${C.dim}; }
+        .reg-submit:hover:not(:disabled) {
+          background: #207d58 !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 20px rgba(42,157,111,.25) !important;
+        }
+        .reg-submit:active:not(:disabled) { transform: translateY(0) !important; }
+      `}</style>
+
+      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        {/* Left panel */}
+        <div className="auth-left" style={{ display: 'none' }}>
+          <AuthLeft />
         </div>
 
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-white">Criar conta</CardTitle>
-            <CardDescription className="text-zinc-400">
+        {/* Right panel */}
+        <div
+          className="auth-right"
+          style={{
+            width: 480, background: C.pageBg,
+            borderLeft: `1px solid ${C.border}`,
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'center', alignItems: 'center',
+            padding: 32, overflowY: 'auto',
+          }}
+        >
+          {/* Mobile back button */}
+          <div className="auth-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginBottom: 20 }}>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12, fontWeight: 500, color: C.muted,
+                textDecoration: 'none', padding: '6px 10px',
+                borderRadius: 6, border: `1px solid ${C.border}`,
+              }}
+            >
+              <ArrowLeft size={13} /> Voltar
+            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TFMark size={22} main={C.greenLight} accent={C.green} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                THE FINANCE
+              </span>
+            </div>
+          </div>
+
+          {/* Card */}
+          <div
+            className="auth-card"
+            style={{
+              width: '100%', maxWidth: 400,
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: 40,
+            }}
+          >
+            {/* Mini logo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 22 }}>
+              <TFMark size={54} main={C.greenLight} accent={C.green} />
+              <span style={{ fontSize: 22, fontWeight: 600, color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                THE FINANCE
+              </span>
+            </div>
+
+            <h2 style={{
+              fontSize: 22, fontWeight: 600, color: C.txt,
+              letterSpacing: '-0.3px', margin: '0 0 6px',
+            }}>
+              Criar conta
+            </h2>
+            <p style={{ fontSize: 13, color: C.dim, margin: `0 0 28px` }}>
               Preencha os dados do seu restaurante para começar
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {error && (
-                <Alert variant="destructive" className="border-red-800 bg-red-950 text-red-300">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="restaurantName" className="text-zinc-300">Nome do Restaurante</Label>
-                <Input
-                  id="restaurantName"
-                  name="restaurantName"
+            </p>
+
+            {/* Error banner */}
+            {error && (
+              <div style={{
+                padding: '12px 16px', borderRadius: 8, marginBottom: 20,
+                background: 'rgba(220,38,38,.08)', border: '1px solid rgba(220,38,38,.25)',
+                display: 'flex', gap: 10, alignItems: 'center',
+              }}>
+                <AlertCircle size={16} style={{ color: '#f87171', flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: '#f87171', margin: 0 }}>{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Nome do restaurante */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, color: C.subtle, marginBottom: 7 }}>
+                  Nome do Restaurante
+                </label>
+                <input
+                  name="restaurantName" required
+                  value={formData.restaurantName} onChange={handleChange}
                   placeholder="Ex: Restaurante Sabor da Casa"
-                  value={formData.restaurantName}
-                  onChange={handleChange}
-                  required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
+                  style={inputBase}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = C.green
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)'
+                    e.currentTarget.style.background = C.pageBg
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = C.border
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background = C.surface2
+                  }}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-zinc-300">Seu Nome</Label>
-                <Input
-                  id="name"
-                  name="name"
+
+              {/* Seu nome */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, color: C.subtle, marginBottom: 7 }}>
+                  Seu Nome
+                </label>
+                <input
+                  name="name" required
+                  value={formData.name} onChange={handleChange}
                   placeholder="Ex: João Silva"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
+                  style={inputBase}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = C.green
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)'
+                    e.currentTarget.style.background = C.pageBg
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = C.border
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background = C.surface2
+                  }}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-zinc-300">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
+
+              {/* Email */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, color: C.subtle, marginBottom: 7 }}>
+                  Email
+                </label>
+                <input
+                  type="email" name="email" required
+                  value={formData.email} onChange={handleChange}
                   placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
+                  style={inputBase}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = C.green
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)'
+                    e.currentTarget.style.background = C.pageBg
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = C.border
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background = C.surface2
+                  }}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-zinc-300">Senha</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
-                />
+
+              {/* Senha */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, color: C.subtle, marginBottom: 7 }}>
+                  Senha
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password" required
+                    value={formData.password} onChange={handleChange}
+                    placeholder="Mínimo 6 caracteres"
+                    style={{ ...inputBase, paddingRight: 40 }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = C.green
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)'
+                      e.currentTarget.style.background = C.pageBg
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = C.border
+                      e.currentTarget.style.boxShadow = 'none'
+                      e.currentTarget.style.background = C.surface2
+                    }}
+                  />
+                  <button
+                    type="button" onClick={() => setShowPassword((v) => !v)}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer', color: C.dim,
+                      padding: 4, display: 'flex', alignItems: 'center',
+                      transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = C.subtle }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = C.dim }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-zinc-300">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Repita a senha"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-ring"
-                />
+
+              {/* Confirmar senha */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 500, color: C.subtle, marginBottom: 7 }}>
+                  Confirmar Senha
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    name="confirmPassword" required
+                    value={formData.confirmPassword} onChange={handleChange}
+                    placeholder="Repita a senha"
+                    style={{ ...inputBase, paddingRight: 40 }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = C.green
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(42,157,111,.12)'
+                      e.currentTarget.style.background = C.pageBg
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = C.border
+                      e.currentTarget.style.boxShadow = 'none'
+                      e.currentTarget.style.background = C.surface2
+                    }}
+                  />
+                  <button
+                    type="button" onClick={() => setShowConfirm((v) => !v)}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer', color: C.dim,
+                      padding: 4, display: 'flex', alignItems: 'center',
+                      transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = C.subtle }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = C.dim }}
+                  >
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-3">
-              <Button
+
+              <button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
                 disabled={loading}
+                className="reg-submit"
+                style={{
+                  width: '100%', padding: '13px', borderRadius: 7, border: 'none',
+                  background: C.green, color: '#fff',
+                  fontWeight: 600, fontSize: 14,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.75 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'background 0.15s, box-shadow 0.15s, transform 0.1s',
+                  transform: 'translateY(0)',
+                  marginTop: 4,
+                }}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Criando conta...
-                  </>
-                ) : (
-                  'Criar Conta'
-                )}
-              </Button>
-              <p className="text-sm text-zinc-400 text-center">
-                Já tem conta?{' '}
-                <Link href="/auth/login" className="text-primary hover:text-primary/80 font-medium">
-                  Fazer login
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
-        </Card>
+                {loading ? (<><Loader2 size={16} className="animate-spin" /> Criando conta...</>) : 'Criar Conta'}
+              </button>
+            </form>
+
+            <p style={{ textAlign: 'center', marginTop: 22, fontSize: 12, color: C.dim }}>
+              Já tem conta?{' '}
+              <Link href="/auth/login" style={{ color: C.green, textDecoration: 'none', fontWeight: 500 }}>
+                Fazer login
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

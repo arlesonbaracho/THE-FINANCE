@@ -210,6 +210,7 @@ model Tenant {
   aiUsageHistory       AiUsageHistory[]
   ifoodIntegracao      IFoodIntegration?
   ifoodItemMaps        IFoodItemMap[]
+  whatsappIntegracao  WhatsAppIntegration?
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -969,4 +970,53 @@ model IFoodItemMap {
 
   @@unique([tenantId, ifoodItemId])
   @@index([tenantId])
+}
+
+// ── WhatsApp Integration ──────────────────────────────────────────────────────
+
+enum WhatsAppStatus {
+  CONECTADO
+  DESCONECTADO
+  ERRO
+}
+
+enum WhatsAppMsgTipo {
+  ALERTA
+  RESUMO_DIARIO
+  PEDIDO_IFOOD
+}
+
+enum WhatsAppMsgStatus {
+  ENVIADO
+  FALHOU
+}
+
+model WhatsAppIntegration {
+  id              String          @id @default(cuid())
+  tenantId        String          @unique
+  instanceId      String
+  tokenEncrypted  String
+  numeroConectado String?
+  status          WhatsAppStatus
+  ultimaConexao   DateTime?
+  config          Json            @default("{}")
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  logs            WhatsAppLog[]
+
+  @@index([tenantId])
+}
+
+model WhatsAppLog {
+  id           String              @id @default(cuid())
+  tenantId     String
+  tipo         WhatsAppMsgTipo
+  destinatario String
+  mensagem     String
+  status       WhatsAppMsgStatus
+  erro         String?
+  createdAt    DateTime            @default(now())
+  integracao   WhatsAppIntegration @relation(fields: [tenantId], references: [tenantId])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
 }

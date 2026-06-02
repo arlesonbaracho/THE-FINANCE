@@ -7,15 +7,17 @@ describe('isInSilenceWindow', () => {
   })
 
   it('returns true when current time is within window', () => {
+    // Use a window guaranteed to contain the current time:
+    // start = 1 minute ago, end = 1 minute from now (expressed as HH:MM)
     const now = new Date()
-    const h = now.getHours()
-    const startH = h > 0 ? h - 1 : 0
-    const endH = h < 23 ? h + 1 : 23
-    const pad = (n: number) => String(n).padStart(2, '0')
+    const totalMinutes = now.getHours() * 60 + now.getMinutes()
+    const startMin = totalMinutes > 0 ? totalMinutes - 1 : 0
+    const endMin = totalMinutes < 1439 ? totalMinutes + 1 : 1439
+    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
     expect(
       isInSilenceWindow({
-        horarioSilencioInicio: `${pad(startH)}:00`,
-        horarioSilencioFim: `${pad(endH)}:00`,
+        horarioSilencioInicio: fmt(startMin),
+        horarioSilencioFim: fmt(endMin),
       })
     ).toBe(true)
   })

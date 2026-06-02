@@ -801,7 +801,7 @@ Cobertura: `npm run test:coverage`
 | `EMAIL_SMTP_PASS` | Senha SMTP |
 | `PASSWORD_RESET_SECRET` | Secret adicional para tokens de reset de senha |
 | `GEMINI_API_KEY` | Chave da API Google Gemini (grátis em aistudio.google.com/apikey) |
-| `GEMINI_MODEL` | Modelo Gemini a usar (padrão: `gemini-1.5-flash`) |
+| `GEMINI_MODEL` | Modelo Gemini a usar (padrão: `gemini-2.5-flash`) |
 | `AI_MAX_TOKENS_PER_REQUEST` | Limite de tokens por requisição à IA (padrão: 2000) |
 | `AI_DEFAULT_MONTHLY_LIMIT_PRO` | Limite mensal de tokens para planos Pro (padrão: 500000) |
 | `AI_DEFAULT_MONTHLY_LIMIT_ENTERPRISE` | Limite mensal Enterprise — `0` = ilimitado |

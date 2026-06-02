@@ -113,4 +113,18 @@ export async function createAlert(
   } catch (err) {
     console.error('[createAlert] Failed to emit socket event:', err)
   }
+
+  // Notificação WhatsApp (fire-and-forget)
+  if (payload.severidade === 'CRITICA' || payload.severidade === 'ALTA') {
+    import('@/services/integrations/whatsapp/whatsapp-messages.service')
+      .then(({ enviarAlerta }) => enviarAlerta(payload.tenantId, {
+        tenantId: payload.tenantId,
+        tipo: payload.tipo,
+        severidade: payload.severidade,
+        titulo: payload.titulo,
+        descricao: payload.descricao,
+        metadata: payload.metadata as Record<string, unknown>,
+      }))
+      .catch((err) => console.error('[whatsapp] enviarAlerta failed:', err))
+  }
 }

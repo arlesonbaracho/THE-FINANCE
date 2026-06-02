@@ -164,5 +164,21 @@ export async function processarWebhook(tenantId: string, payload: IFoodWebhookPa
     io.to(tenantId).emit('pedido:novo', pedidoCompleto)
   }
 
+  // Notificação WhatsApp para pedido iFood (fire-and-forget)
+  const ifoodPedidoData = await prisma.iFoodPedido.findUnique({
+    where: { pedidoId: pedido.id },
+    select: { ifoodReference: true, enderecoEntrega: true },
+  })
+  import('@/services/integrations/whatsapp/whatsapp-messages.service')
+    .then(({ enviarNotificacaoPedidoIfood }) =>
+      enviarNotificacaoPedidoIfood(tenantId, {
+        id: pedido.id,
+        total: pedido.total,
+        ifoodReference: ifoodPedidoData?.ifoodReference ?? null,
+        enderecoEntrega: (ifoodPedidoData?.enderecoEntrega ?? {}) as Record<string, unknown>,
+      })
+    )
+    .catch((err) => console.error('[whatsapp] enviarNotificacaoPedidoIfood failed:', err))
+
   return pedido
 }

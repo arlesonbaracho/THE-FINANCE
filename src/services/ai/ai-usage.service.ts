@@ -67,6 +67,31 @@ export async function incrementarUso(
       custoEstimado: calcularCusto(newInput, newOutput),
     },
   })
+
+  // Verificar e notificar limites de uso de IA via WhatsApp (fire-and-forget)
+  _verificarENotificarLimite(tenantId).catch((err) =>
+    console.error('[ai-usage] _verificarENotificarLimite failed:', err)
+  )
+}
+
+async function _verificarENotificarLimite(tenantId: string): Promise<void> {
+  const { percentual } = await verificarLimite(tenantId)
+
+  if (percentual !== 80 && percentual !== 100) return
+
+  // Anti-spam: Redis key expires in 24h per threshold
+  const { redisConnection } = await import('@/lib/bullmq')
+  const key = `wpp:ai-limit:${tenantId}:${percentual}`
+  const existing = await redisConnection.get(key)
+  if (existing) return
+
+  await redisConnection.set(key, '1', 'EX', 86400)
+
+  import('@/services/integrations/whatsapp/whatsapp-messages.service')
+    .then(({ enviarAlertaLimiteIA }) =>
+      enviarAlertaLimiteIA(tenantId, percentual as 80 | 100)
+    )
+    .catch((err) => console.error('[whatsapp] enviarAlertaLimiteIA failed:', err))
 }
 
 export async function resetarUsoMensal(): Promise<void> {

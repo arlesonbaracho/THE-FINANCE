@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import {
   BookOpen, Rocket, UtensilsCrossed, ChefHat, CreditCard,
-  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles, Truck,
+  BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles, Truck, MessageCircle,
 } from 'lucide-react'
 
 type SectionId =
   | 'intro' | 'primeiros-passos' | 'garcom' | 'cozinha' | 'caixa'
   | 'insumos' | 'produtos' | 'inventario' | 'relatorios' | 'usuarios'
-  | 'entrada-inteligente' | 'ifood' | 'faq'
+  | 'entrada-inteligente' | 'ifood' | 'whatsapp' | 'faq'
 
 const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: 'intro',                label: 'Introdução',                icon: BookOpen },
@@ -24,6 +24,7 @@ const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: 'relatorios',           label: 'Relatórios',                icon: BarChart3 },
   { id: 'usuarios',             label: 'Usuários e Acessos',        icon: Users },
   { id: 'ifood',                label: 'Integração iFood',          icon: Truck },
+  { id: 'whatsapp',             label: 'WhatsApp',                  icon: MessageCircle },
   { id: 'faq',                  label: 'Perguntas Frequentes',      icon: HelpCircle },
 ]
 
@@ -627,6 +628,58 @@ function IFoodHelp() {
   )
 }
 
+function WhatsAppHelp() {
+  return (
+    <>
+      <SectionTitle sub="Como conectar e configurar notificações via WhatsApp">Integração WhatsApp</SectionTitle>
+      <Tip type="info">
+        Acesse em <strong>Configurações → WhatsApp</strong>. É necessário ter uma instância ativa no <strong>portal.z-api.io</strong>.
+      </Tip>
+
+      <Sub>Conectar o WhatsApp</Sub>
+      <Step n={1} title="Crie uma instância no portal Z-API">
+        Acesse <strong>portal.z-api.io</strong>, crie uma conta e gere uma nova instância. Copie o <strong>Instance ID</strong> e o <strong>Token</strong>.
+      </Step>
+      <Step n={2} title="Informe as credenciais no The Finance">
+        Em <strong>Configurações → WhatsApp</strong>, cole o Instance ID e o Token e clique em <strong>Conectar e gerar QR Code</strong>.
+      </Step>
+      <Step n={3} title="Escaneie o QR Code">
+        Um QR Code será exibido. Abra o WhatsApp no celular que receberá as notificações, vá em <strong>Dispositivos conectados → Conectar um dispositivo</strong> e escaneie. O sistema confirma a conexão automaticamente.
+      </Step>
+
+      <Sub>Tipos de notificação</Sub>
+      <Step n={4} title="Alertas críticos">
+        Ative o toggle <strong>Alertas críticos por WhatsApp</strong> e cadastre os números de destino. Quando um alerta de severidade Alta ou Crítica for gerado (estoque zerado, CMV elevado, etc.), a mensagem é enviada para todos os números cadastrados. Anti-spam: o mesmo alerta não é reenviado por 2 horas.
+      </Step>
+      <Step n={5} title="Resumo diário">
+        Ative <strong>Resumo diário por WhatsApp</strong> e informe os números. Todo dia às 23h o sistema envia automaticamente: total de vendas, número de pedidos, ticket médio, CMV do dia e produto mais vendido.
+      </Step>
+      <Step n={6} title="Notificações de pedido iFood">
+        Disponível somente se o iFood estiver conectado. Ative e defina um <strong>valor mínimo (R$)</strong> — pedidos acima desse valor disparam uma notificação com o endereço de entrega.
+      </Step>
+
+      <Tip type="warning">
+        O sistema tem um limite de 10 mensagens por hora por restaurante para evitar bloqueios do WhatsApp. Alertas acima desse limite são descartados silenciosamente.
+      </Tip>
+
+      <Sub>Mensagem de teste</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        Após configurar os números, clique em <strong>Enviar teste</strong> para verificar se a mensagem chega corretamente no primeiro número cadastrado nos alertas.
+      </p>
+
+      <Sub>Histórico de mensagens</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        Na parte inferior da página de configuração, você vê as últimas 50 mensagens enviadas com tipo, destinatário (mascarado por privacidade) e status (Enviado / Falhou). Filtre por tipo para diagnosticar problemas.
+      </p>
+
+      <Sub>Desconectar</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7 }}>
+        Clique em <strong>Desconectar WhatsApp</strong> e confirme. As configurações de números e toggles são mantidas — ao reconectar, tudo volta ao estado anterior.
+      </p>
+    </>
+  )
+}
+
 function Faq() {
   const items = [
     {
@@ -711,6 +764,7 @@ const CONTENT: Record<SectionId, React.ReactNode> = {
   relatorios:             <Relatorios />,
   usuarios:               <Usuarios />,
   ifood:                  <IFoodHelp />,
+  whatsapp:               <WhatsAppHelp />,
   faq:                    <Faq />,
 }
 

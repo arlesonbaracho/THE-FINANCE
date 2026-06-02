@@ -17,6 +17,8 @@ import {
   LogOut,
   BarChart3,
   HelpCircle,
+  Plug,
+  Truck,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -46,8 +48,11 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Relatórios',
-    href: '/relatorios',
     icon: BarChart3,
+    children: [
+      { label: 'Geral',    href: '/relatorios',         icon: BarChart3 },
+      { label: 'Delivery', href: '/relatorios/delivery', icon: Truck },
+    ],
   },
   {
     label: 'Estoque',
@@ -67,10 +72,11 @@ const navItems: NavItem[] = [
     label: 'Configurações',
     icon: Settings,
     children: [
-      { label: 'Usuários',    href: '/configuracoes/usuarios',    icon: Users },
-      { label: 'Restaurante', href: '/configuracoes/restaurante', icon: UtensilsCrossed },
-      { label: 'Meu Perfil',  href: '/configuracoes/perfil',      icon: User },
-      { label: 'Assinatura',  href: '/configuracoes/assinatura',  icon: Settings },
+      { label: 'Usuários',    href: '/configuracoes/usuarios',              icon: Users },
+      { label: 'Restaurante', href: '/configuracoes/restaurante',          icon: UtensilsCrossed },
+      { label: 'Meu Perfil',  href: '/configuracoes/perfil',               icon: User },
+      { label: 'Assinatura',  href: '/configuracoes/assinatura',           icon: Settings },
+      { label: 'Integrações', href: '/configuracoes/integracoes/ifood',    icon: Plug },
     ],
   },
 ]

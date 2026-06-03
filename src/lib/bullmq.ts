@@ -28,8 +28,11 @@ export const redisConnection = new IORedis(process.env.REDIS_URL ?? 'redis://loc
 })
 
 // Prevent unhandled error events from crashing the process
+// ECONNREFUSED = Redis não está rodando
+// EPIPE = pipe quebrado durante reconexão (ioredis reconecta automaticamente)
+const IGNORED_REDIS_ERRORS = new Set(['ECONNREFUSED', 'EPIPE', 'ECONNRESET'])
 redisConnection.on('error', (err) => {
-  if ((err as NodeJS.ErrnoException).code !== 'ECONNREFUSED') {
+  if (!IGNORED_REDIS_ERRORS.has((err as NodeJS.ErrnoException).code ?? '')) {
     console.error('[redis]', err.message)
   }
 })

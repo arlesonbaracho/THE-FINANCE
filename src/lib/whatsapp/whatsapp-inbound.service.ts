@@ -41,6 +41,7 @@ export async function processarMensagem(payload: EvolutionWebhookPayload): Promi
 
   const contato = await prisma.whatsAppContato.findFirst({
     where: { numero, ativo: true },
+    orderBy: { createdAt: 'asc' },
     select: { tenantId: true, permiteComandos: true },
   })
 

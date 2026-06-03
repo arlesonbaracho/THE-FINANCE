@@ -3,7 +3,12 @@ import { createHmac, timingSafeEqual } from 'crypto'
 
 function validateSignature(rawBody: string, signature: string): boolean {
   const secret = process.env.WHATSAPP_WEBHOOK_SECRET ?? ''
-  if (!secret) return true
+  if (!secret) {
+    // Webhook secret not configured — all requests accepted (development mode)
+    // Set WHATSAPP_WEBHOOK_SECRET in production to secure this endpoint
+    console.warn('[whatsapp/inbound] WHATSAPP_WEBHOOK_SECRET not set — webhook endpoint is unauthenticated')
+    return true
+  }
   const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
   try {
     return timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))

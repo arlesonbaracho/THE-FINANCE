@@ -7,6 +7,12 @@ function allowed(role?: string | null) {
   return role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'MANAGER'
 }
 
+const VALID_TIPOS = new Set([
+  'ALERTA_CRITICO', 'ALERTA_ALTO', 'ESTOQUE_BAIXO', 'RESUMO_DIARIO',
+  'LIMITE_IA', 'CONFIRMACAO_BOT', 'RESPOSTA_BOT', 'TESTE',
+])
+const VALID_STATUS = new Set(['ENVIADO', 'FALHOU', 'PENDENTE'])
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.tenantId || !allowed(session.user.role)) {
@@ -22,8 +28,8 @@ export async function GET(req: NextRequest) {
   const logs = await prisma.whatsAppLog.findMany({
     where: {
       tenantId,
-      ...(tipo ? { tipo: tipo as 'ALERTA' | 'RESUMO_DIARIO' | 'PEDIDO_IFOOD' } : {}),
-      ...(status ? { status: status as 'ENVIADO' | 'FALHOU' } : {}),
+      ...(tipo && VALID_TIPOS.has(tipo) ? { tipo: tipo as never } : {}),
+      ...(status && VALID_STATUS.has(status) ? { status: status as never } : {}),
       ...(start || end ? {
         createdAt: {
           ...(start ? { gte: new Date(start) } : {}),
@@ -33,14 +39,7 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    select: {
-      id: true,
-      tipo: true,
-      destinatario: true,
-      status: true,
-      erro: true,
-      createdAt: true,
-    },
+    select: { id: true, tipo: true, destinatario: true, status: true, erro: true, createdAt: true },
   })
 
   return NextResponse.json(logs)

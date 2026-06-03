@@ -1,38 +1,36 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { enviarMensagem } from '@/services/integrations/whatsapp/zapi.service'
+import { enviarTeste } from '@/lib/whatsapp/whatsapp-messages.service'
 
 function allowed(role?: string | null) {
   return role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'MANAGER'
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.tenantId || !allowed(session.user.role)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
   const tenantId = session.user.tenantId
 
-  const integration = await prisma.whatsAppIntegration.findUnique({
-    where: { tenantId },
-    select: { config: true, numeroConectado: true },
-  })
+  const body = await req.json().catch(() => ({}))
+  const { numero } = body as { numero?: string }
 
-  const config = (integration?.config ?? {}) as { alertas?: { numeros?: string[] } }
-  const primeiroNumero = config?.alertas?.numeros?.[0] ?? integration?.numeroConectado
-
-  if (!primeiroNumero) {
-    return NextResponse.json({ error: 'Nenhum número configurado. Adicione um número em Alertas críticos.' }, { status: 400 })
+  let destino = numero
+  if (!destino) {
+    const contato = await prisma.whatsAppContato.findFirst({
+      where: { tenantId, ativo: true },
+      select: { numero: true },
+    })
+    destino = contato?.numero
   }
 
-  const mensagem = [
-    `✅ *THE FINANCE — Mensagem de Teste*`,
-    `WhatsApp configurado com sucesso!`,
-    `As notificações serão enviadas para este número.`,
-  ].join('\n')
+  if (!destino) {
+    return NextResponse.json({ error: 'Nenhum contato cadastrado. Adicione um contato primeiro.' }, { status: 400 })
+  }
 
-  const ok = await enviarMensagem(tenantId, primeiroNumero, mensagem, 'ALERTA')
+  const ok = await enviarTeste(tenantId, destino)
   return NextResponse.json({ ok })
 }

@@ -631,50 +631,85 @@ function IFoodHelp() {
 function WhatsAppHelp() {
   return (
     <>
-      <SectionTitle sub="Como conectar e configurar notificações via WhatsApp">Integração WhatsApp</SectionTitle>
+      <SectionTitle sub="Como receber notificações e usar o bot de cadastro via WhatsApp">Integração WhatsApp</SectionTitle>
       <Tip type="info">
-        Acesse em <strong>Configurações → WhatsApp</strong>. É necessário ter uma instância ativa no <strong>portal.z-api.io</strong>.
+        Acesse em <strong>Configurações → Integrações → WhatsApp</strong>. O The Finance usa um único número WhatsApp centralizado que serve todos os restaurantes da plataforma — sem necessidade de configurar instâncias individuais.
       </Tip>
 
-      <Sub>Conectar o WhatsApp</Sub>
-      <Step n={1} title="Crie uma instância no portal Z-API">
-        Acesse <strong>portal.z-api.io</strong>, crie uma conta e gere uma nova instância. Copie o <strong>Instance ID</strong> e o <strong>Token</strong>.
+      <Sub>Status do sistema</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
+        O card de status no topo da página mostra se o número do sistema está <Tag color="green">Conectado</Tag> ou <Tag color="red">Desconectado</Tag>. Essa informação é somente leitura — a conexão é gerenciada pela equipe de administração do The Finance.
+      </p>
+
+      <Sub>Cadastrar contatos</Sub>
+      <Step n={1} title="Clique em Adicionar contato">
+        Na seção <strong>Contatos cadastrados</strong>, clique no botão <strong>+ Adicionar contato</strong>. Preencha:
+        <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+          <li><strong>Nome</strong> — identificação do responsável (ex.: &ldquo;Gerente João&rdquo;)</li>
+          <li><strong>Número</strong> — no formato E.164: <code style={{ fontSize: 12, background: 'var(--tf-surface2)', padding: '1px 5px', borderRadius: 4 }}>+5511999999999</code></li>
+          <li><strong>Permite comandos ao bot</strong> — se ativado, o número pode enviar comandos de cadastro via WhatsApp</li>
+          <li><strong>Recebe alertas críticos</strong> — alertas de estoque, CMV e operacionais</li>
+          <li><strong>Recebe resumo diário (23h)</strong> — resumo automático de vendas e desempenho</li>
+        </ul>
       </Step>
-      <Step n={2} title="Informe as credenciais no The Finance">
-        Em <strong>Configurações → WhatsApp</strong>, cole o Instance ID e o Token e clique em <strong>Conectar e gerar QR Code</strong>.
-      </Step>
-      <Step n={3} title="Escaneie o QR Code">
-        Um QR Code será exibido. Abra o WhatsApp no celular que receberá as notificações, vá em <strong>Dispositivos conectados → Conectar um dispositivo</strong> e escaneie. O sistema confirma a conexão automaticamente.
+      <Step n={2} title="Editar ou remover um contato">
+        Use o ícone de lápis para editar as configurações do contato. O ícone de lixeira faz a remoção — o histórico de mensagens enviadas ao número é preservado para auditoria.
       </Step>
 
-      <Sub>Tipos de notificação</Sub>
-      <Step n={4} title="Alertas críticos">
-        Ative o toggle <strong>Alertas críticos por WhatsApp</strong> e cadastre os números de destino. Quando um alerta de severidade Alta ou Crítica for gerado (estoque zerado, CMV elevado, etc.), a mensagem é enviada para todos os números cadastrados. Anti-spam: o mesmo alerta não é reenviado por 2 horas.
+      <Sub>Tipos de notificação automática</Sub>
+      <Step n={3} title="Alertas críticos e altos">
+        Contatos com <strong>Recebe alertas</strong> ativado recebem mensagens quando alertas de severidade Alta ou Crítica são gerados (estoque zerado, CMV elevado, limite de IA atingido, etc.). Anti-spam: o mesmo alerta não é reenviado por 2 horas.
       </Step>
-      <Step n={5} title="Resumo diário">
-        Ative <strong>Resumo diário por WhatsApp</strong> e informe os números. Todo dia às 23h o sistema envia automaticamente: total de vendas, número de pedidos, ticket médio, CMV do dia e produto mais vendido.
+      <Step n={4} title="Resumo diário automático">
+        Contatos com <strong>Recebe resumo diário</strong> ativado recebem todo dia às 23h um resumo com: total de vendas, número de pedidos, ticket médio, CMV% do dia e produto mais vendido.
       </Step>
-      <Step n={6} title="Notificações de pedido iFood">
-        Disponível somente se o iFood estiver conectado. Ative e defina um <strong>valor mínimo (R$)</strong> — pedidos acima desse valor disparam uma notificação com o endereço de entrega.
+      <Step n={5} title="Notificações de pedido iFood">
+        Quando um pedido iFood é recebido, uma notificação automática é enviada para todos os contatos com <strong>Recebe alertas</strong> ativado, incluindo o endereço de entrega.
       </Step>
 
       <Tip type="warning">
-        O sistema tem um limite de 10 mensagens por hora por restaurante para evitar bloqueios do WhatsApp. Alertas acima desse limite são descartados silenciosamente.
+        O sistema tem um limite de 10 mensagens por hora por restaurante. Notificações acima desse limite são descartadas silenciosamente para evitar bloqueios.
+      </Tip>
+
+      <Sub>Bot de cadastro via WhatsApp</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Contatos com <strong>Permite comandos ao bot</strong> ativado podem cadastrar insumos e produtos diretamente pelo WhatsApp, sem acessar o dashboard. O bot usa IA (Gemini) para interpretar a mensagem.
+      </p>
+
+      <Step n={6} title="Cadastrar um insumo pelo WhatsApp">
+        Envie uma mensagem no formato:<br />
+        <code style={{ fontSize: 12, background: 'var(--tf-surface2)', padding: '3px 8px', borderRadius: 4, display: 'inline-block', marginTop: 6 }}>
+          Novo insumo: Farinha de trigo, kg, R$ 4,50
+        </code>
+        <p style={{ marginTop: 8, fontSize: 13, color: 'var(--tf-txt2)' }}>
+          O bot extrai nome, unidade e custo, exibe um resumo de confirmação e aguarda sua resposta. Responda <strong>SIM</strong> para confirmar ou <strong>NÃO</strong> para cancelar. A sessão expira em 10 minutos.
+        </p>
+      </Step>
+      <Step n={7} title="Cadastrar um produto pelo WhatsApp">
+        Envie uma mensagem no formato:<br />
+        <code style={{ fontSize: 12, background: 'var(--tf-surface2)', padding: '3px 8px', borderRadius: 4, display: 'inline-block', marginTop: 6 }}>
+          Novo produto: X-Burguer | pão 1un, carne 150g, queijo 2un
+        </code>
+        <p style={{ marginTop: 8, fontSize: 13, color: 'var(--tf-txt2)' }}>
+          O bot identifica o produto e os insumos da ficha técnica (que precisam já estar cadastrados no estoque). Confirme com <strong>SIM</strong> para criar o produto e vincular os insumos automaticamente.
+        </p>
+      </Step>
+
+      <Tip>
+        Se o bot não entender o comando, ele exibe um menu de ajuda com exemplos. Você pode tentar novamente a qualquer momento.
+      </Tip>
+      <Tip type="warning">
+        O bot só responde a contatos com <strong>Permite comandos ao bot</strong> ativado. Números não cadastrados na plataforma são ignorados silenciosamente.
       </Tip>
 
       <Sub>Mensagem de teste</Sub>
       <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
-        Após configurar os números, clique em <strong>Enviar teste</strong> para verificar se a mensagem chega corretamente no primeiro número cadastrado nos alertas.
+        Na seção <strong>Mensagem de teste</strong>, selecione um contato no dropdown e clique em <strong>Enviar teste</strong>. Uma mensagem de confirmação é enviada imediatamente — use para verificar se o número está recebendo corretamente.
       </p>
 
       <Sub>Histórico de mensagens</Sub>
-      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 16 }}>
-        Na parte inferior da página de configuração, você vê as últimas 50 mensagens enviadas com tipo, destinatário (mascarado por privacidade) e status (Enviado / Falhou). Filtre por tipo para diagnosticar problemas.
-      </p>
-
-      <Sub>Desconectar</Sub>
       <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7 }}>
-        Clique em <strong>Desconectar WhatsApp</strong> e confirme. As configurações de números e toggles são mantidas — ao reconectar, tudo volta ao estado anterior.
+        A seção <strong>Histórico de mensagens</strong> exibe as últimas 50 mensagens com tipo, destinatário (mascarado por privacidade) e status (<Tag color="green">Enviado</Tag> / <Tag color="red">Falhou</Tag>). Use os filtros por tipo — Alertas, Resumos ou Bot — para diagnosticar problemas de entrega.
       </p>
     </>
   )

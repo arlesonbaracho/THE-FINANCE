@@ -210,7 +210,7 @@ model Tenant {
   aiUsageHistory       AiUsageHistory[]
   ifoodIntegracao      IFoodIntegration?
   ifoodItemMaps        IFoodItemMap[]
-  whatsappIntegracao  WhatsAppIntegration?
+  whatsappContatos     WhatsAppContato[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -972,50 +972,52 @@ model IFoodItemMap {
   @@index([tenantId])
 }
 
-// ── WhatsApp Integration ──────────────────────────────────────────────────────
-
-enum WhatsAppStatus {
-  CONECTADO
-  DESCONECTADO
-  ERRO
-}
+// ── WhatsApp Integration (Evolution API — centralized) ───────────────────────
 
 enum WhatsAppMsgTipo {
-  ALERTA
+  ALERTA_CRITICO
+  ALERTA_ALTO
+  ESTOQUE_BAIXO
   RESUMO_DIARIO
-  PEDIDO_IFOOD
+  LIMITE_IA
+  CONFIRMACAO_BOT
+  RESPOSTA_BOT
+  TESTE
 }
 
 enum WhatsAppMsgStatus {
   ENVIADO
   FALHOU
+  PENDENTE
 }
 
-model WhatsAppIntegration {
-  id              String          @id @default(cuid())
-  tenantId        String          @unique
-  instanceId      String
-  tokenEncrypted  String
-  numeroConectado String?
-  status          WhatsAppStatus
-  ultimaConexao   DateTime?
-  config          Json            @default("{}")
-  tenant          Tenant          @relation(fields: [tenantId], references: [id])
-  logs            WhatsAppLog[]
+model WhatsAppContato {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nome               String
+  numero             String
+  ativo              Boolean  @default(true)
+  permiteComandos    Boolean  @default(false)
+  recebeAlertas      Boolean  @default(true)
+  recebeResumoDiario Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
+  @@unique([tenantId, numero])
   @@index([tenantId])
+  @@index([numero])
 }
 
 model WhatsAppLog {
-  id           String              @id @default(cuid())
+  id           String            @id @default(cuid())
   tenantId     String
   tipo         WhatsAppMsgTipo
   destinatario String
-  mensagem     String
+  conteudo     String
   status       WhatsAppMsgStatus
   erro         String?
-  createdAt    DateTime            @default(now())
-  integracao   WhatsAppIntegration @relation(fields: [tenantId], references: [tenantId])
+  createdAt    DateTime          @default(now())
 
   @@index([tenantId])
   @@index([tenantId, createdAt])

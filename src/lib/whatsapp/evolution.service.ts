@@ -13,8 +13,11 @@ export async function enviarMensagem(
 ): Promise<boolean> {
   try {
     const rateLimitKey = `whatsapp:ratelimit:${tenantId}`
-    const count = await redisConnection.incr(rateLimitKey)
-    if (count === 1) await redisConnection.expire(rateLimitKey, 3600)
+    const pipeline = redisConnection.pipeline()
+    pipeline.incr(rateLimitKey)
+    pipeline.expire(rateLimitKey, 3600)
+    const results = await pipeline.exec()
+    const count = (results?.[0]?.[1] as number) ?? 0
     if (count > RATE_LIMIT) {
       console.warn(`[evolution] Rate limit atingido para tenant ${tenantId}`)
       return false

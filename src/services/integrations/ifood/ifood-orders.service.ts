@@ -169,7 +169,7 @@ export async function processarWebhook(tenantId: string, payload: IFoodWebhookPa
     where: { pedidoId: pedido.id },
     select: { ifoodReference: true, enderecoEntrega: true },
   })
-  import('@/services/integrations/whatsapp/whatsapp-messages.service')
+  import('@/lib/whatsapp/whatsapp-messages.service')
     .then(({ enviarNotificacaoPedidoIfood }) =>
       enviarNotificacaoPedidoIfood(tenantId, {
         id: pedido.id,

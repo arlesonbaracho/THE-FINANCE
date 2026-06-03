@@ -116,7 +116,7 @@ export async function createAlert(
 
   // Notificação WhatsApp (fire-and-forget)
   if (payload.severidade === 'CRITICA' || payload.severidade === 'ALTA') {
-    import('@/services/integrations/whatsapp/whatsapp-messages.service')
+    import('@/lib/whatsapp/whatsapp-messages.service')
       .then(({ enviarAlerta }) => enviarAlerta(payload.tenantId, {
         tenantId: payload.tenantId,
         tipo: payload.tipo,

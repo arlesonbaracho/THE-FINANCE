@@ -87,7 +87,7 @@ async function _verificarENotificarLimite(tenantId: string): Promise<void> {
 
   await redisConnection.set(key, '1', 'EX', 86400)
 
-  import('@/services/integrations/whatsapp/whatsapp-messages.service')
+  import('@/lib/whatsapp/whatsapp-messages.service')
     .then(({ enviarAlertaLimiteIA }) =>
       enviarAlertaLimiteIA(tenantId, percentual as 80 | 100)
     )

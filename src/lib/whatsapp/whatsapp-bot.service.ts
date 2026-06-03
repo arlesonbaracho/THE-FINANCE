@@ -86,8 +86,12 @@ export async function interpretarComando(
   try {
     const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
     const result = await model.generateContent(`${SYSTEM_PROMPT}\n\nMensagem: ${texto}`)
-    const responseText = result.response.text().trim()
-    geminiResult = JSON.parse(responseText) as GeminiResponse
+    const raw = result.response.text().trim().replace(/^```(?:json)?\n?|\n?```$/g, '').trim()
+    const parsed = JSON.parse(raw) as GeminiResponse
+    // Runtime guards for malformed Gemini output
+    if (!parsed || typeof parsed.intencao !== 'string') throw new Error('invalid Gemini response')
+    if (!Array.isArray(parsed.camposFaltando)) parsed.camposFaltando = []
+    geminiResult = parsed
   } catch (err) {
     console.error('[bot] Gemini error:', err)
     await responder(tenantId, numero, MENU_AJUDA)
@@ -164,6 +168,8 @@ export async function interpretarComando(
     }
     await redisConnection.set(sessionKey, JSON.stringify(session), 'EX', 600)
     await responder(tenantId, numero, confirmacao)
+  } else {
+    await responder(tenantId, numero, MENU_AJUDA)
   }
 }
 
@@ -188,6 +194,14 @@ export async function processarConfirmacao(
     return
   }
 
+  // Delete session before DB writes — prevents double-submission on retry/concurrent delivery
+  const deleted = await redisConnection.del(sessionKey)
+  if (deleted === 0) {
+    // Another process already consumed this session
+    await responder(tenantId, numero, 'Comando já está sendo processado.')
+    return
+  }
+
   try {
     if (session.intencao === 'NOVO_INSUMO') {
       const d = session.dados as {
@@ -196,32 +210,33 @@ export async function processarConfirmacao(
         custoUnitario: number
         quantidadeInicial?: number | null
       }
-      const ingredient = await prisma.ingredient.create({
-        data: {
-          tenantId,
-          name: d.nome,
-          unit: d.unidade as 'KG' | 'G' | 'L' | 'ML' | 'UN',
-          unitCost: d.custoUnitario,
-          custoMedioPonderado: d.custoUnitario,
-          currentQty: d.quantidadeInicial ?? 0,
-          minimumQty: 0,
-          pontoReposicao: 0,
-        },
-      })
-      if ((d.quantidadeInicial ?? 0) > 0) {
-        await prisma.ingredientMovement.create({
+      await prisma.$transaction(async (tx) => {
+        const ingredient = await tx.ingredient.create({
           data: {
             tenantId,
-            ingredientId: ingredient.id,
-            type: 'IN',
-            quantity: d.quantidadeInicial!,
+            name: d.nome,
+            unit: d.unidade as 'KG' | 'G' | 'L' | 'ML' | 'UN',
             unitCost: d.custoUnitario,
-            totalCost: d.quantidadeInicial! * d.custoUnitario,
-            reason: 'Cadastro via WhatsApp Bot',
+            custoMedioPonderado: d.custoUnitario,
+            currentQty: d.quantidadeInicial ?? 0,
+            minimumQty: 0,
+            pontoReposicao: 0,
           },
         })
-      }
-      await redisConnection.del(sessionKey)
+        if ((d.quantidadeInicial ?? 0) > 0) {
+          await tx.ingredientMovement.create({
+            data: {
+              tenantId,
+              ingredientId: ingredient.id,
+              type: 'IN',
+              quantity: d.quantidadeInicial!,
+              unitCost: d.custoUnitario,
+              totalCost: d.quantidadeInicial! * d.custoUnitario,
+              reason: 'Cadastro via WhatsApp Bot',
+            },
+          })
+        }
+      })
       await responder(tenantId, numero, `✅ Insumo *${d.nome}* cadastrado!\nAcesse: app.thefinance.com.br/estoque/insumos`)
     } else if (session.intencao === 'NOVO_PRODUTO') {
       const d = session.dados as {
@@ -240,12 +255,11 @@ export async function processarConfirmacao(
       if (links.length > 0) {
         await prisma.productIngredient.createMany({ data: links })
       }
-      await redisConnection.del(sessionKey)
       await responder(tenantId, numero, `✅ Produto *${d.nome}* cadastrado!\nAcesse: app.thefinance.com.br/estoque/produtos`)
     }
   } catch (err) {
     console.error('[bot] processarConfirmacao error:', err)
     await responder(tenantId, numero, '❌ Erro ao cadastrar. Tente novamente.')
-    await redisConnection.del(sessionKey)
+    // Session is already deleted — user must re-send command
   }
 }

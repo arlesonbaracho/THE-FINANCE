@@ -35,12 +35,12 @@ import { redisConnection } from '@/lib/bullmq'
 import { prisma } from '@/lib/prisma'
 import { enviarMensagem } from '../evolution.service'
 
-const redis = redisConnection as {
+const redis = redisConnection as unknown as {
   get: ReturnType<typeof vi.fn>
   set: ReturnType<typeof vi.fn>
   del: ReturnType<typeof vi.fn>
 }
-const db = prisma as {
+const db = prisma as unknown as {
   ingredient: { findMany: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> }
   product: { create: ReturnType<typeof vi.fn> }
   productIngredient: { createMany: ReturnType<typeof vi.fn> }

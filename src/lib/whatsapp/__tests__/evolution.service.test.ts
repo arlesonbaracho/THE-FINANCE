@@ -12,7 +12,7 @@ vi.stubGlobal('fetch', mockFetch)
 import { enviarMensagem, verificarConexao } from '../evolution.service'
 import { redisConnection } from '@/lib/bullmq'
 
-const redis = redisConnection as { pipeline: ReturnType<typeof vi.fn> }
+const redis = redisConnection as unknown as { pipeline: ReturnType<typeof vi.fn> }
 
 function mockPipeline(count: number) {
   const pipeline = {

@@ -20,8 +20,8 @@ import { redisConnection } from '@/lib/bullmq'
 import { enviarMensagem } from '../evolution.service'
 import { interpretarComando, processarConfirmacao } from '../whatsapp-bot.service'
 
-const db = prisma as { whatsAppContato: { findFirst: ReturnType<typeof vi.fn> } }
-const redis = redisConnection as { get: ReturnType<typeof vi.fn> }
+const db = prisma as unknown as { whatsAppContato: { findFirst: ReturnType<typeof vi.fn> } }
+const redis = redisConnection as unknown as { get: ReturnType<typeof vi.fn> }
 const enviar = enviarMensagem as ReturnType<typeof vi.fn>
 const interpretar = interpretarComando as ReturnType<typeof vi.fn>
 const confirmar = processarConfirmacao as ReturnType<typeof vi.fn>

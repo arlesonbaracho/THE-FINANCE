@@ -32,10 +32,12 @@ export async function processarMensagem(payload: EvolutionWebhookPayload): Promi
 
   const jid = payload.data?.key?.remoteJid
   if (!jid) return
+  // Ignore group chats, broadcast lists, and system JIDs
+  if (jid.includes('@g.us') || jid.includes('@lid') || jid.includes('@broadcast')) return
 
   const numero = extrairNumero(jid)
   const texto = extrairTexto(payload)
-  if (!texto) return
+  if (!texto?.trim()) return
 
   const contato = await prisma.whatsAppContato.findFirst({
     where: { numero, ativo: true },

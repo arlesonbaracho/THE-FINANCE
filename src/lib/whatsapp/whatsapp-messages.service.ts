@@ -35,11 +35,15 @@ async function salvarLog(
 }
 
 async function antiSpam(tenantId: string, chave: string): Promise<boolean> {
-  const key = `whatsapp:antispam:${tenantId}:${chave}`
-  const exists = await redisConnection.get(key)
-  if (exists) return true
-  await redisConnection.set(key, '1', 'EX', 7200)
-  return false
+  try {
+    const key = `whatsapp:antispam:${tenantId}:${chave}`
+    // SET NX is atomic: returns 'OK' if key was absent (first send), null if key existed (spam)
+    const result = await redisConnection.set(key, '1', 'EX', 7200, 'NX')
+    return result === null // null means key already existed → it's spam
+  } catch {
+    // Redis unavailable: fail open (allow the message through)
+    return false
+  }
 }
 
 export async function enviarAlerta(tenantId: string, alerta: AlertaPayload): Promise<void> {

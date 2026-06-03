@@ -11,15 +11,15 @@ export async function enviarMensagem(
   texto: string,
   tenantId: string
 ): Promise<boolean> {
-  const rateLimitKey = `whatsapp:ratelimit:${tenantId}`
-  const count = await redisConnection.incr(rateLimitKey)
-  if (count === 1) await redisConnection.expire(rateLimitKey, 3600)
-  if (count > RATE_LIMIT) {
-    console.warn(`[evolution] Rate limit atingido para tenant ${tenantId}`)
-    return false
-  }
-
   try {
+    const rateLimitKey = `whatsapp:ratelimit:${tenantId}`
+    const count = await redisConnection.incr(rateLimitKey)
+    if (count === 1) await redisConnection.expire(rateLimitKey, 3600)
+    if (count > RATE_LIMIT) {
+      console.warn(`[evolution] Rate limit atingido para tenant ${tenantId}`)
+      return false
+    }
+
     const res = await fetch(`${BASE}/message/sendText/${INSTANCE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: API_KEY },

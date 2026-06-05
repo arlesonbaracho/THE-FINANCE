@@ -2,27 +2,26 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PlanFormModal, type PlanData } from '@/components/admin/plan-form-modal'
 import { toast } from 'sonner'
 
-interface Props { planId: string; subCount: number; planName: string }
+interface Props {
+  plan: PlanData
+  subCount: number
+}
 
-export function PlanActions({ planId, subCount, planName }: Props) {
+export function PlanActions({ plan, subCount }: Props) {
   const router = useRouter()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleDelete() {
@@ -33,7 +32,7 @@ export function PlanActions({ planId, subCount, planName }: Props) {
     }
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/plans/${planId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/plans/${plan.id}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('Plano excluído')
         router.refresh()
@@ -50,23 +49,32 @@ export function PlanActions({ planId, subCount, planName }: Props) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+        <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="border-slate-700 bg-slate-900 text-slate-200">
           <DropdownMenuItem
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-2 focus:bg-slate-800"
+          >
+            <Pencil className="h-4 w-4" /> Editar plano
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-slate-700" />
+          <DropdownMenuItem
             onClick={() => setConfirmOpen(true)}
-            className="flex items-center gap-2 text-red-400 focus:text-red-400"
+            className="flex items-center gap-2 text-red-400 focus:text-red-400 focus:bg-slate-800"
           >
             <Trash2 className="h-4 w-4" /> Excluir plano
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <PlanFormModal plan={plan} open={editOpen} onOpenChange={setEditOpen} />
+
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="border-slate-700 bg-slate-900 text-slate-100">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir plano &quot;{planName}&quot;?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir plano &quot;{plan.name}&quot;?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
               {subCount > 0
                 ? `Este plano possui ${subCount} assinatura(s) ativa(s) e não pode ser excluído.`

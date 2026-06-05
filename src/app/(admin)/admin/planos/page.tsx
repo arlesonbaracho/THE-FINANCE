@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { PlanActions } from '@/components/admin/plan-actions'
+import type { PlanData } from '@/components/admin/plan-form-modal'
 
 const featureLabels: Record<string, string> = {
   aiAgent: 'Agente IA',
@@ -38,7 +39,20 @@ export default async function PlanosPage() {
                   <p className="font-semibold text-white">{plan.name}</p>
                   {plan.description && <p className="text-xs text-slate-400 mt-0.5">{plan.description}</p>}
                 </div>
-                <PlanActions planId={plan.id} subCount={plan._count.subscriptions} planName={plan.name} />
+                <PlanActions
+                  plan={{
+                    id: plan.id,
+                    name: plan.name,
+                    description: plan.description,
+                    monthlyPrice: plan.monthlyPrice,
+                    annualPrice: plan.annualPrice,
+                    maxUsers: plan.maxUsers,
+                    maxProducts: plan.maxProducts,
+                    maxOrdersMonth: plan.maxOrdersMonth,
+                    features: (plan.features ?? {}) as PlanData['features'],
+                  }}
+                  subCount={plan._count.subscriptions}
+                />
               </div>
 
               <div className="flex gap-4">

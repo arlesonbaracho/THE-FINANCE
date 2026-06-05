@@ -114,6 +114,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           tenantId: user.tenantId,
           tenantName: user.tenant?.name,
+          brandId: user.tenant?.brandId ?? null,
           customRoleId: user.customRoleId,
           avatarUrl: user.avatarUrl,
           subscriptionStatus: sub?.status ?? null,
@@ -136,6 +137,7 @@ export const authOptions: NextAuthOptions = {
         token.role = u.role
         token.tenantId = u.tenantId
         token.tenantName = u.tenantName
+        token.brandId = (u as { brandId?: string | null }).brandId ?? null
         token.customRoleId = u.customRoleId
         token.avatarUrl = u.avatarUrl
         token.subscriptionStatus = u.subscriptionStatus
@@ -172,6 +174,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.user.tenantId = token.tenantId as string
         session.user.tenantName = token.tenantName as string
+        session.user.brandId = token.brandId as string | null | undefined
         session.user.customRoleId = token.customRoleId as string | undefined
         session.user.avatarUrl = token.avatarUrl as string | undefined
         ;(session.user as Record<string, unknown>).subscriptionStatus = token.subscriptionStatus

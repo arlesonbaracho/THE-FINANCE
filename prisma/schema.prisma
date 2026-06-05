@@ -75,6 +75,8 @@ model User {
   chatMessages        ChatMessage[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  brandsAdmin         Brand[]              @relation("BrandAdmin")
+  purchaseOrdersCriados PurchaseOrder[]    @relation("PurchaseOrderCriador")
 
   @@index([tenantId])
 }
@@ -211,6 +213,10 @@ model Tenant {
   ifoodIntegracao      IFoodIntegration?
   ifoodItemMaps        IFoodItemMap[]
   whatsappContatos     WhatsAppContato[]
+  brandId              String?
+  isHeadquarters       Boolean              @default(false)
+  brand                Brand?               @relation(fields: [brandId], references: [id])
+  produtoOverrides     ProdutoOverride[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -230,7 +236,81 @@ model Plan {
   updatedAt       DateTime             @updatedAt
   subscriptions   TenantSubscription[]
   invoices        Invoice[]
+  brands          Brand[]
 }
+
+// ── Multi-Unidade ─────────────────────────────────────────────────────────────
+
+model Brand {
+  id             String          @id @default(cuid())
+  nome           String
+  slug           String          @unique
+  logoUrl        String?
+  adminUserId    String
+  planId         String
+  createdAt      DateTime        @default(now())
+  unidades       Tenant[]
+  produtos       Product[]
+  admin          User            @relation("BrandAdmin", fields: [adminUserId], references: [id])
+  plan           Plan            @relation(fields: [planId], references: [id])
+  purchaseOrders PurchaseOrder[]
+
+  @@index([adminUserId])
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  brandId      String
+  status       PurchaseOrderStatus @default(RASCUNHO)
+  fornecedorId String
+  valorTotal   Decimal             @default(0)
+  createdBy    String
+  createdAt    DateTime            @default(now())
+  brand        Brand               @relation(fields: [brandId], references: [id])
+  fornecedor   Supplier            @relation("PurchaseOrderFornecedor", fields: [fornecedorId], references: [id])
+  itens        PurchaseOrderItem[]
+  criador      User                @relation("PurchaseOrderCriador", fields: [createdBy], references: [id])
+
+  @@index([brandId])
+  @@index([fornecedorId])
+}
+
+enum PurchaseOrderStatus {
+  RASCUNHO
+  ENVIADO
+  RECEBIDO
+}
+
+model PurchaseOrderItem {
+  id                     String        @id @default(cuid())
+  purchaseOrderId        String
+  insumoId               String
+  quantidadeTotal        Decimal
+  unidadeMedida          String
+  custoUnitarioEstimado  Decimal?
+  distribuicaoPorUnidade Json
+  purchaseOrder          PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  insumo                 Ingredient    @relation(fields: [insumoId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([insumoId])
+}
+
+model ProdutoOverride {
+  id        String   @id @default(cuid())
+  tenantId  String
+  produtoId String
+  preco     Decimal?
+  ativo     Boolean  @default(true)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  produto   Product  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, produtoId])
+  @@index([tenantId])
+  @@index([produtoId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 model TenantSubscription {
   id               String             @id @default(cuid())
@@ -365,6 +445,7 @@ model Supplier {
   ingredientesSecundarios Ingredient[] @relation("FornecedorSecundario")
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
+  purchaseOrders       PurchaseOrder[] @relation("PurchaseOrderFornecedor")
 
   @@index([tenantId])
 }
@@ -407,6 +488,7 @@ model Ingredient {
   productItems         ProductIngredient[]
   movements            IngredientMovement[]
   inventarioItems      InventarioItem[]
+  purchaseOrderItems   PurchaseOrderItem[]
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -459,6 +541,10 @@ model Product {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   ifoodItemMaps IFoodItemMap[]
+  brandId     String?
+  isShared    Boolean             @default(false)
+  brand       Brand?              @relation(fields: [brandId], references: [id])
+  overrides   ProdutoOverride[]
 
   @@index([tenantId])
   @@index([categoryId])
@@ -1021,4 +1107,68 @@ model WhatsAppLog {
 
   @@index([tenantId])
   @@index([tenantId, createdAt])
+}
+
+// ── Platform Health & SaaS Metrics (Super Admin Fase 3) ───────────────────────
+
+enum HealthLogTipo {
+  API
+  JOB
+  WEBHOOK
+  DATABASE
+  REDIS
+  AI
+}
+
+enum HealthLogStatus {
+  OK
+  ALERTA
+  CRITICO
+}
+
+model PlatformHealthLog {
+  id           String          @id @default(cuid())
+  tipo         HealthLogTipo
+  metrica      String
+  valor        Decimal
+  status       HealthLogStatus
+  detalhes     Json?
+  registradoEm DateTime        @default(now())
+
+  @@index([tipo, registradoEm])
+  @@index([registradoEm])
+}
+
+model SaasMetricsSnapshot {
+  id           String   @id @default(cuid())
+  data         DateTime
+  mrr          Decimal
+  mrrPorPlano  Json
+  churnRate    Decimal?
+  tenantCount  Int
+  tenantAtivos Int
+  registradoEm DateTime @default(now())
+
+  @@unique([data])
+  @@index([data])
+}
+
+model AdminNotification {
+  id          String   @id @default(cuid())
+  tipo        String
+  titulo      String
+  descricao   String
+  severidade  String
+  resolvido   Boolean  @default(false)
+  criadoEm    DateTime @default(now())
+  resolvidoEm DateTime?
+
+  @@index([resolvido, criadoEm])
+}
+
+model AdminSettings {
+  id        String   @id @default(cuid())
+  chave     String   @unique
+  valor     Json
+  updatedAt DateTime @updatedAt
 }

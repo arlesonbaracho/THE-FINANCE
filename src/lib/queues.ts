@@ -17,3 +17,24 @@ nfQueue.on('error', (err) => {
     console.error('[nfQueue]', err.message)
   }
 })
+
+// ── Admin queues (Super Admin Fase 3) ─────────────────────────────────────────
+
+export const platformHealthQueue = new Queue('platform-health', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: { attempts: 2, backoff: { type: 'fixed', delay: 3000 } },
+})
+
+export const saasMetricsQueue = new Queue('saas-metrics-snapshot', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: { attempts: 2, backoff: { type: 'fixed', delay: 5000 } },
+})
+
+for (const q of [platformHealthQueue, saasMetricsQueue]) {
+  q.on('error', (err) => {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code !== 'ECONNREFUSED' && code !== 'EPIPE') {
+      console.error(`[${q.name}]`, err.message)
+    }
+  })
+}

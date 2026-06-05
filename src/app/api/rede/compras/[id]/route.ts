@@ -1,0 +1,19 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
+import { checkMultiUnitFeature, MultiUnitForbiddenError } from '@/lib/check-multi-unit'
+import { prisma } from '@/lib/prisma'
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession()
+  if (!session?.user?.tenantId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  try { await checkMultiUnitFeature(session.user.tenantId) }
+  catch (e) { if (e instanceof MultiUnitForbiddenError) return NextResponse.json({ error: e.message }, { status: 403 }); throw e }
+
+  const { status } = await req.json()
+  const updated = await prisma.purchaseOrder.update({
+    where: { id: params.id, brandId: session.user.brandId! },
+    data: { status },
+  })
+  return NextResponse.json(updated)
+}

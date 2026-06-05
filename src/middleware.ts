@@ -49,6 +49,7 @@ const PROTECTED_PREFIXES = [
   '/estoque',
   '/configuracoes',
   '/plano-bloqueado',
+  '/rede',
 ]
 
 export default withAuth(
@@ -94,6 +95,7 @@ export const config = {
     '/estoque/:path*',
     '/configuracoes/:path*',
     '/plano-bloqueado/:path*',
+    '/rede/:path*',
     '/auth/:path*',
     '/admin/:path*',
     '/recuperar-senha/:path*',

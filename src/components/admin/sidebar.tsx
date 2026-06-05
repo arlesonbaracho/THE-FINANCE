@@ -8,6 +8,10 @@ import {
   CreditCard,
   ScrollText,
   LogOut,
+  HeartPulse,
+  Sparkles,
+  Plug,
+  TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +20,11 @@ const nav = [
   { href: '/admin/restaurantes', label: 'Restaurantes', icon: Store },
   { href: '/admin/planos', label: 'Planos', icon: CreditCard },
   { href: '/admin/logs', label: 'Logs', icon: ScrollText },
+  // Fase 3
+  { href: '/admin/saude', label: 'Saúde', icon: HeartPulse },
+  { href: '/admin/uso-ia', label: 'Uso de IA', icon: Sparkles },
+  { href: '/admin/integracoes', label: 'Integrações', icon: Plug },
+  { href: '/admin/financeiro', label: 'Financeiro', icon: TrendingUp },
 ]
 
 export function AdminSidebar() {

@@ -126,7 +126,7 @@ export async function cohortAnalysis(): Promise<Array<{ cohort: string; retencao
   const agora = new Date()
   const result: Array<{ cohort: string; retencao: number[] }> = []
 
-  for (const [cohort, membros] of cohortMap.entries()) {
+  for (const [cohort, membros] of Array.from(cohortMap.entries())) {
     const cohortDate = new Date(cohort + '-01')
     const maxMeses = Math.floor((agora.getTime() - cohortDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
     const retencao: number[] = []
@@ -134,7 +134,7 @@ export async function cohortAnalysis(): Promise<Array<{ cohort: string; retencao
     for (let mes = 0; mes <= Math.min(maxMeses, 11); mes++) {
       const refDate = addMonths(cohortDate, mes)
       const ativos = membros.filter(
-        (m) => m.startDate <= refDate && m.status !== 'CANCELLED'
+        (m: { startDate: Date; status: string }) => m.startDate <= refDate && m.status !== 'CANCELLED'
       ).length
       retencao.push(membros.length > 0 ? Math.round((ativos / membros.length) * 100) : 0)
     }

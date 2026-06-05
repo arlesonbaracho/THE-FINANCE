@@ -74,7 +74,7 @@ export async function coletarMetricas(): Promise<PlatformMetrics> {
   const aiTokensHoje = (aiAgg._sum.tokensInput ?? 0) + (aiAgg._sum.tokensOutput ?? 0)
 
   // Webhooks iFood com falha nas últimas 24h
-  const webhooksIfoodFalhos24h = await prisma.ifoodWebhookLog
+  const webhooksIfoodFalhos24h = await prisma.iFoodWebhookLog
     .findMany({
       where: { status: 'FALHOU', createdAt: { gte: inicio24h } },
       select: { id: true },

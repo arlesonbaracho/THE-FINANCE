@@ -30,7 +30,6 @@ export function IntegracoesClient() {
   async function desconectar(tenantId: string, integracao: 'ifood' | 'whatsapp') {
     const label = integracao === 'ifood' ? 'iFood' : 'WhatsApp'
     if (!confirm(`Forçar desconexão do ${label} para este tenant?`)) return
-
     await fetch(`/api/admin/integracoes/${tenantId}/desconectar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -39,162 +38,87 @@ export function IntegracoesClient() {
     carregar()
   }
 
-  const th: React.CSSProperties = {
-    textAlign: 'left',
-    padding: '10px 16px',
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--tf-txt3)',
-    borderBottom: '1px solid var(--tf-border)',
-  }
-  const td: React.CSSProperties = {
-    padding: '10px 16px',
-    fontSize: 13,
-    color: 'var(--tf-txt)',
-    borderBottom: '1px solid var(--tf-border)',
-  }
-
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1200 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--tf-txt)', marginBottom: 24, marginTop: 0 }}>
-        Integrações
-      </h1>
+    <div className="max-w-5xl space-y-6">
+      <h1 className="text-2xl font-bold text-white">Integrações</h1>
 
-      <div
-        style={{
-          background: 'var(--tf-surface)',
-          border: '1px solid var(--tf-border)',
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
+      <div className="overflow-hidden rounded-xl border border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-900/80">
             <tr>
               {['Tenant', 'iFood', 'WhatsApp', 'Última atividade', ''].map((col) => (
-                <th key={col} style={th}>{col}</th>
+                <th key={col} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400 border-b border-slate-800">{col}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-800">
             {tenants.map((t) => (
               <>
                 <tr
                   key={t.id}
                   onClick={() => setExpandido(expandido === t.id ? null : t.id)}
-                  style={{
-                    cursor: 'pointer',
-                    background:
-                      expandido === t.id
-                        ? 'var(--tf-surface-hover, rgba(0,0,0,0.03))'
-                        : 'transparent',
-                  }}
+                  className={`cursor-pointer transition-colors ${expandido === t.id ? 'bg-slate-800/40' : 'bg-[#0a0d14] hover:bg-slate-800/20'}`}
                 >
-                  <td style={td}>{t.name}</td>
-                  <td style={td}>
+                  <td className="px-4 py-2.5 text-sm text-white">{t.name}</td>
+                  <td className="px-4 py-2.5">
                     <span
-                      style={{
-                        fontSize: 11,
-                        background: STATUS_COLOR[t.ifoodIntegracao?.status ?? 'DESCONECTADO'],
-                        color: '#fff',
-                        borderRadius: 4,
-                        padding: '2px 8px',
-                      }}
+                      className="rounded px-2 py-0.5 text-[11px] font-semibold text-white"
+                      style={{ background: STATUS_COLOR[t.ifoodIntegracao?.status ?? 'DESCONECTADO'] }}
                     >
                       {t.ifoodIntegracao?.status ?? 'DESCONECTADO'}
                     </span>
                   </td>
-                  <td style={td}>
+                  <td className="px-4 py-2.5">
                     <span
-                      style={{
-                        fontSize: 11,
-                        background: t.whatsappContatos.length > 0 ? '#10b981' : '#6b7280',
-                        color: '#fff',
-                        borderRadius: 4,
-                        padding: '2px 8px',
-                      }}
+                      className="rounded px-2 py-0.5 text-[11px] font-semibold text-white"
+                      style={{ background: t.whatsappContatos.length > 0 ? '#10b981' : '#6b7280' }}
                     >
                       {t.whatsappContatos.length > 0 ? 'CONECTADO' : 'DESCONECTADO'}
                     </span>
                   </td>
-                  <td style={{ ...td, fontSize: 12, color: 'var(--tf-txt3)' }}>
+                  <td className="px-4 py-2.5 text-xs text-slate-400">
                     {t.ifoodIntegracao?.ultimaSincronizacao
                       ? new Date(t.ifoodIntegracao.ultimaSincronizacao).toLocaleString('pt-BR')
                       : '—'}
                   </td>
-                  <td style={td}>
-                    {expandido === t.id ? (
-                      <ChevronUp className="w-4 h-4" style={{ color: 'var(--tf-txt3)' }} />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" style={{ color: 'var(--tf-txt3)' }} />
-                    )}
+                  <td className="px-4 py-2.5 text-slate-400">
+                    {expandido === t.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </td>
                 </tr>
                 {expandido === t.id && (
                   <tr key={`${t.id}-detail`}>
-                    <td
-                      colSpan={5}
-                      style={{
-                        padding: '16px 24px',
-                        background: 'var(--tf-surface-hover, rgba(0,0,0,0.03))',
-                        borderBottom: '1px solid var(--tf-border)',
-                      }}
-                    >
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                        {/* iFood */}
+                    <td colSpan={5} className="px-6 py-4 bg-slate-800/20 border-b border-slate-800">
+                      <div className="grid grid-cols-2 gap-6">
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--tf-txt3)', marginBottom: 8 }}>
-                            iFood
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--tf-txt)', marginBottom: 4 }}>
-                            Merchant ID: {t.ifoodIntegracao?.merchantId ?? '—'}
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--tf-txt)', marginBottom: 12 }}>
+                          <p className="text-xs font-semibold text-slate-400 mb-2">iFood</p>
+                          <p className="text-sm text-white mb-1">Merchant ID: {t.ifoodIntegracao?.merchantId ?? '—'}</p>
+                          <p className="text-sm text-white mb-3">
                             Última sync:{' '}
                             {t.ifoodIntegracao?.ultimaSincronizacao
                               ? new Date(t.ifoodIntegracao.ultimaSincronizacao).toLocaleString('pt-BR')
                               : '—'}
-                          </div>
+                          </p>
                           {t.ifoodIntegracao?.status === 'CONECTADO' && (
                             <button
                               onClick={() => desconectar(t.id, 'ifood')}
-                              style={{
-                                fontSize: 12,
-                                padding: '5px 12px',
-                                borderRadius: 6,
-                                border: '1px solid #ef4444',
-                                background: 'transparent',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                              }}
+                              className="rounded-md border border-red-500/30 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors"
                             >
                               Forçar desconexão iFood
                             </button>
                           )}
                         </div>
-                        {/* WhatsApp */}
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--tf-txt3)', marginBottom: 8 }}>
-                            WhatsApp
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--tf-txt)', marginBottom: 12 }}>
+                          <p className="text-xs font-semibold text-slate-400 mb-2">WhatsApp</p>
+                          <p className="text-sm text-white mb-3">
                             Último envio:{' '}
                             {t.whatsappContatos[0]?.updatedAt
                               ? new Date(t.whatsappContatos[0].updatedAt).toLocaleString('pt-BR')
                               : '—'}
-                          </div>
+                          </p>
                           {t.whatsappContatos.length > 0 && (
                             <button
                               onClick={() => desconectar(t.id, 'whatsapp')}
-                              style={{
-                                fontSize: 12,
-                                padding: '5px 12px',
-                                borderRadius: 6,
-                                border: '1px solid #ef4444',
-                                background: 'transparent',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                              }}
+                              className="rounded-md border border-red-500/30 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors"
                             >
                               Forçar desconexão WhatsApp
                             </button>
@@ -208,10 +132,7 @@ export function IntegracoesClient() {
             ))}
             {tenants.length === 0 && (
               <tr>
-                <td
-                  colSpan={5}
-                  style={{ ...td, textAlign: 'center', color: 'var(--tf-txt3)', padding: 32 }}
-                >
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm bg-[#0a0d14]">
                   Nenhum tenant encontrado.
                 </td>
               </tr>

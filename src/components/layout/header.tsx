@@ -12,10 +12,115 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogOut, Store, UserCircle, Sun, Moon, Bell } from 'lucide-react'
+import { LogOut, Store, UserCircle, Sun, Moon, Bell, Network } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAlerts } from '@/components/alerts/AlertsProvider'
 import { AlertsDrawer } from '@/components/alerts/AlertsDrawer'
+
+function BrandUnitDropdown({ tenantName, brandId }: { tenantName: string; brandId: string }) {
+  const [open, setOpen] = useState(false)
+  const [unidades, setUnidades] = useState<Array<{ id: string; name: string; isHeadquarters: boolean }>>([])
+  const router = useRouter()
+
+  useEffect(() => {
+    fetch('/api/rede/unidades')
+      .then((r) => r.json())
+      .then(setUnidades)
+      .catch(() => {})
+  }, [brandId])
+
+  async function irPara(tenantId: string | null) {
+    await fetch('/api/rede/switch-unit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId }),
+    })
+    setOpen(false)
+    if (tenantId === null) {
+      router.push('/rede/dashboard')
+    } else {
+      router.push('/dashboard')
+    }
+    router.refresh()
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '3px 10px',
+          borderRadius: 8,
+          border: '1px solid var(--tf-border)',
+          background: 'transparent',
+          color: 'var(--tf-txt)',
+          fontSize: 13,
+          cursor: 'pointer',
+        }}
+      >
+        <Network className="w-3 h-3" style={{ color: 'var(--tf-primary, #6366f1)' }} />
+        {tenantName}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '110%',
+            left: 0,
+            background: 'var(--tf-surface)',
+            border: '1px solid var(--tf-border)',
+            borderRadius: 8,
+            minWidth: 220,
+            zIndex: 200,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          }}
+        >
+          <button
+            onClick={() => irPara(null)}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '10px 16px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: '1px solid var(--tf-border)',
+              color: 'var(--tf-primary, #6366f1)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: 13,
+            }}
+          >
+            Visão consolidada →
+          </button>
+          {unidades.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => irPara(u.id)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '10px 16px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--tf-border)',
+                color: 'var(--tf-txt)',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              {u.isHeadquarters ? '★ ' : ''}{u.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Header() {
   const { data: session } = useSession()
@@ -46,10 +151,16 @@ export function Header() {
       }}
     >
       <div className="flex items-center gap-2">
-        <Store className="w-4 h-4" style={{ color: 'var(--tf-txt3)' }} />
-        <span style={{ color: 'var(--tf-txt)', fontSize: 13.5, fontWeight: 500 }}>
-          {session?.user?.tenantName ?? 'Carregando...'}
-        </span>
+        {session?.user?.brandId ? (
+          <BrandUnitDropdown tenantName={session.user.tenantName} brandId={session.user.brandId} />
+        ) : (
+          <>
+            <Store className="w-4 h-4" style={{ color: 'var(--tf-txt3)' }} />
+            <span style={{ color: 'var(--tf-txt)', fontSize: 13.5, fontWeight: 500 }}>
+              {session?.user?.tenantName ?? 'Carregando...'}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

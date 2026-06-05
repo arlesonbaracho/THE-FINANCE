@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import {
@@ -65,6 +65,17 @@ export function PlanFormModal({ plan, open, onOpenChange }: PlanFormModalProps) 
   const [features, setFeatures] = useState<PlanData['features']>(plan?.features ?? defaultFeatures)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    setName(plan?.name ?? '')
+    setDescription(plan?.description ?? '')
+    setMonthlyPrice(String(plan?.monthlyPrice ?? ''))
+    setAnnualPrice(String(plan?.annualPrice ?? ''))
+    setMaxUsers(String(plan?.maxUsers ?? ''))
+    setMaxProducts(String(plan?.maxProducts ?? ''))
+    setMaxOrdersMonth(String(plan?.maxOrdersMonth ?? ''))
+    setFeatures(plan?.features ?? defaultFeatures)
+  }, [plan])
+
   function reset() {
     setName(plan?.name ?? '')
     setDescription(plan?.description ?? '')
@@ -88,14 +99,26 @@ export function PlanFormModal({ plan, open, onOpenChange }: PlanFormModalProps) 
     }
     setLoading(true)
     try {
+      const pMonthly = parseFloat(monthlyPrice)
+      const pAnnual = parseFloat(annualPrice)
+      const pUsers = parseInt(maxUsers, 10)
+      const pProducts = parseInt(maxProducts, 10)
+      const pOrders = parseInt(maxOrdersMonth, 10)
+
+      if ([pMonthly, pAnnual, pUsers, pProducts, pOrders].some(isNaN)) {
+        toast.error('Preencha todos os campos numéricos corretamente')
+        setLoading(false)
+        return
+      }
+
       const body = {
         name: name.trim(),
         description: description.trim() || undefined,
-        monthlyPrice: parseFloat(monthlyPrice),
-        annualPrice: parseFloat(annualPrice),
-        maxUsers: parseInt(maxUsers, 10),
-        maxProducts: parseInt(maxProducts, 10),
-        maxOrdersMonth: parseInt(maxOrdersMonth, 10),
+        monthlyPrice: pMonthly,
+        annualPrice: pAnnual,
+        maxUsers: pUsers,
+        maxProducts: pProducts,
+        maxOrdersMonth: pOrders,
         features,
       }
       const url = isEdit ? `/api/admin/plans/${plan.id}` : '/api/admin/plans'

@@ -42,28 +42,28 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
       <div className="flex items-center gap-3">
         <Link href="/admin/restaurantes" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">← Restaurantes</Link>
         <span className="text-slate-600">/</span>
-        <h1 className="text-xl font-semibold text-white">{tenant.name}</h1>
+        <h1 className="text-2xl font-bold text-white">{tenant.name}</h1>
         <Badge variant="outline" className="text-xs">{statusLabel[status] ?? status}</Badge>
       </div>
 
       <Tabs defaultValue="geral">
-        <TabsList className="bg-slate-800 border border-slate-700">
-          <TabsTrigger value="geral" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Geral</TabsTrigger>
-          <TabsTrigger value="uso" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Uso</TabsTrigger>
-          <TabsTrigger value="financeiro" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Financeiro</TabsTrigger>
+        <TabsList className="bg-slate-900 border border-slate-800">
+          <TabsTrigger value="geral" className="data-[state=active]:bg-indigo-600/20 data-[state=active]:text-indigo-400">Geral</TabsTrigger>
+          <TabsTrigger value="uso" className="data-[state=active]:bg-indigo-600/20 data-[state=active]:text-indigo-400">Uso</TabsTrigger>
+          <TabsTrigger value="financeiro" className="data-[state=active]:bg-indigo-600/20 data-[state=active]:text-indigo-400">Financeiro</TabsTrigger>
         </TabsList>
 
         {/* Aba Geral */}
         <TabsContent value="geral" className="space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 space-y-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-3">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Dados Cadastrais</p>
               <Row label="Nome" value={tenant.name} />
               <Row label="Slug" value={tenant.slug} />
               <Row label="Telefone" value={tenant.phone ?? '—'} />
               <Row label="Cadastro" value={new Date(tenant.createdAt).toLocaleDateString('pt-BR')} />
             </div>
-            <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 space-y-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-3">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Assinatura</p>
               <Row label="Plano" value={tenant.subscription?.plan?.name ?? '—'} />
               <Row label="Status" value={statusLabel[status] ?? status} />
@@ -81,13 +81,13 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
               { label: 'Insumos cadastrados', value: tenant._count.ingredients },
               { label: 'Movimentações', value: tenant._count.movements },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
+              <div key={s.label} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
                 <p className="text-xs text-slate-400">{s.label}</p>
                 <p className="mt-1 text-2xl font-bold text-white">{s.value}</p>
               </div>
             ))}
           </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
             <p className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-400">Usuários do restaurante</p>
             <table className="w-full text-sm">
               <thead>
@@ -114,9 +114,9 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
 
         {/* Aba Financeiro */}
         <TabsContent value="financeiro" className="space-y-4 mt-4">
-          <div className="rounded-xl border border-slate-700 bg-slate-800/60 overflow-hidden">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-slate-800 text-slate-400">
+              <thead className="bg-slate-900/80 text-slate-400">
                 <tr>
                   {['Data', 'Plano', 'Valor', 'Vencimento', 'Status'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">{h}</th>
@@ -125,7 +125,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {tenant.invoices.map((inv) => (
-                  <tr key={inv.id} className="bg-slate-900 hover:bg-slate-800/40">
+                  <tr key={inv.id} className="bg-[#0a0d14] hover:bg-slate-800/40">
                     <td className="px-4 py-2 text-slate-400">{new Date(inv.createdAt).toLocaleDateString('pt-BR')}</td>
                     <td className="px-4 py-2 text-slate-300">{inv.plan.name}</td>
                     <td className="px-4 py-2 text-white font-medium">{formatCurrency(inv.amount)}</td>

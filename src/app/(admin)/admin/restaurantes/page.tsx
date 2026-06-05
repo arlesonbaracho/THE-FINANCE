@@ -57,7 +57,7 @@ export default async function TenantsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-white">
+        <h1 className="text-2xl font-bold text-white">
           Restaurantes
           <span className="ml-2 text-base font-normal text-slate-400">({tenants.length})</span>
         </h1>
@@ -66,9 +66,9 @@ export default async function TenantsPage({ searchParams }: PageProps) {
         </Suspense>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-700">
+      <div className="overflow-hidden rounded-xl border border-slate-800">
         <table className="w-full text-sm">
-          <thead className="bg-slate-800 text-slate-400">
+          <thead className="bg-slate-900/80 text-slate-400">
             <tr>
               {['Restaurante', 'Responsável', 'Plano', 'Status', 'Cadastro', 'Ações'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">{h}</th>
@@ -81,7 +81,7 @@ export default async function TenantsPage({ searchParams }: PageProps) {
               const subStatus = sub?.status ?? 'TRIAL'
               const admin = t.users[0]
               return (
-                <tr key={t.id} className="bg-slate-900 hover:bg-slate-800/60 transition-colors">
+                <tr key={t.id} className="bg-[#0a0d14] hover:bg-slate-800/40 transition-colors">
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/restaurantes/${t.id}`}

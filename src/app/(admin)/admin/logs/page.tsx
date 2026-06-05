@@ -29,11 +29,11 @@ export default async function LogsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-white">Log de Ações ({logs.length})</h1>
+      <h1 className="text-2xl font-bold text-white">Log de Ações ({logs.length})</h1>
 
-      <div className="overflow-hidden rounded-xl border border-slate-700">
+      <div className="overflow-hidden rounded-xl border border-slate-800">
         <table className="w-full text-sm">
-          <thead className="bg-slate-800 text-slate-400">
+          <thead className="bg-slate-900/80 text-slate-400">
             <tr>
               {['Data/Hora', 'Admin', 'Ação', 'IP', 'Detalhes'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">{h}</th>
@@ -42,7 +42,7 @@ export default async function LogsPage() {
           </thead>
           <tbody className="divide-y divide-slate-800">
             {logs.map((log) => (
-              <tr key={log.id} className="bg-slate-900 hover:bg-slate-800/40">
+              <tr key={log.id} className="bg-[#0a0d14] hover:bg-slate-800/40">
                 <td className="px-4 py-2 text-slate-400 text-xs">
                   {new Date(log.createdAt).toLocaleString('pt-BR')}
                 </td>

@@ -87,11 +87,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-white">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-white">Dashboard</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
+          <div key={s.label} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
             <p className="text-xs text-slate-400">{s.label}</p>
             <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.value}</p>
           </div>
@@ -99,17 +99,17 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="col-span-2 rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+        <div className="col-span-2 rounded-xl border border-slate-800 bg-slate-900 p-5">
           <p className="mb-3 text-sm font-medium text-slate-300">MRR — últimos 12 meses</p>
           <MrrChart data={mrrByMonth} />
         </div>
-        <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
           <p className="mb-3 text-sm font-medium text-slate-300">Distribuição por plano</p>
           <PlanDistributionChart data={enrichedPlanDist} />
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-5">
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
         <p className="mb-3 text-sm font-medium text-slate-300">Novos cadastros por mês</p>
         <SignupsChart data={signupsByMonth} />
       </div>

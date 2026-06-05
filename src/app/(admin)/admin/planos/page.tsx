@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { PlanActions } from '@/components/admin/plan-actions'
+import { CreatePlanButton } from '@/components/admin/plan-form-modal'
 import type { PlanData } from '@/components/admin/plan-form-modal'
 
 const featureLabels: Record<string, string> = {
@@ -26,33 +27,32 @@ export default async function PlanosPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Planos ({plans.length})</h1>
+        <h1 className="text-2xl font-bold text-white">Planos ({plans.length})</h1>
+        <CreatePlanButton />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan) => {
-          const features = ((plan.features ?? {}) as Record<string, boolean>)
+          const features = ((plan.features ?? {}) as PlanData['features'])
+          const planData: PlanData = {
+            id: plan.id,
+            name: plan.name,
+            description: plan.description,
+            monthlyPrice: plan.monthlyPrice,
+            annualPrice: plan.annualPrice,
+            maxUsers: plan.maxUsers,
+            maxProducts: plan.maxProducts,
+            maxOrdersMonth: plan.maxOrdersMonth,
+            features,
+          }
           return (
-            <div key={plan.id} className="rounded-xl border border-slate-700 bg-slate-800/60 p-5 space-y-4">
+            <div key={plan.id} className="rounded-xl border border-slate-800 bg-slate-900 p-5 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold text-white">{plan.name}</p>
                   {plan.description && <p className="text-xs text-slate-400 mt-0.5">{plan.description}</p>}
                 </div>
-                <PlanActions
-                  plan={{
-                    id: plan.id,
-                    name: plan.name,
-                    description: plan.description,
-                    monthlyPrice: plan.monthlyPrice,
-                    annualPrice: plan.annualPrice,
-                    maxUsers: plan.maxUsers,
-                    maxProducts: plan.maxProducts,
-                    maxOrdersMonth: plan.maxOrdersMonth,
-                    features: (plan.features ?? {}) as PlanData['features'],
-                  }}
-                  subCount={plan._count.subscriptions}
-                />
+                <PlanActions plan={planData} subCount={plan._count.subscriptions} />
               </div>
 
               <div className="flex gap-4">
@@ -86,7 +86,7 @@ export default async function PlanosPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between border-t border-slate-700 pt-3">
+              <div className="flex items-center justify-between border-t border-slate-800 pt-3">
                 <p className="text-xs text-slate-500">
                   <span className="text-white font-medium">{plan._count.subscriptions}</span> assinatura(s)
                 </p>

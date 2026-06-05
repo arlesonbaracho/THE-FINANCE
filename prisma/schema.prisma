@@ -1108,3 +1108,67 @@ model WhatsAppLog {
   @@index([tenantId])
   @@index([tenantId, createdAt])
 }
+
+// ── Platform Health & SaaS Metrics (Super Admin Fase 3) ───────────────────────
+
+enum HealthLogTipo {
+  API
+  JOB
+  WEBHOOK
+  DATABASE
+  REDIS
+  AI
+}
+
+enum HealthLogStatus {
+  OK
+  ALERTA
+  CRITICO
+}
+
+model PlatformHealthLog {
+  id           String          @id @default(cuid())
+  tipo         HealthLogTipo
+  metrica      String
+  valor        Decimal
+  status       HealthLogStatus
+  detalhes     Json?
+  registradoEm DateTime        @default(now())
+
+  @@index([tipo, registradoEm])
+  @@index([registradoEm])
+}
+
+model SaasMetricsSnapshot {
+  id           String   @id @default(cuid())
+  data         DateTime
+  mrr          Decimal
+  mrrPorPlano  Json
+  churnRate    Decimal?
+  tenantCount  Int
+  tenantAtivos Int
+  registradoEm DateTime @default(now())
+
+  @@unique([data])
+  @@index([data])
+}
+
+model AdminNotification {
+  id          String   @id @default(cuid())
+  tipo        String
+  titulo      String
+  descricao   String
+  severidade  String
+  resolvido   Boolean  @default(false)
+  criadoEm    DateTime @default(now())
+  resolvidoEm DateTime?
+
+  @@index([resolvido, criadoEm])
+}
+
+model AdminSettings {
+  id        String   @id @default(cuid())
+  chave     String   @unique
+  valor     Json
+  updatedAt DateTime @updatedAt
+}

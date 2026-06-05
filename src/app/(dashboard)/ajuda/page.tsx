@@ -4,14 +4,16 @@ import { useState } from 'react'
 import {
   BookOpen, Rocket, UtensilsCrossed, ChefHat, CreditCard,
   BarChart3, Users, HelpCircle, ShoppingBasket, ClipboardList, Sparkles, Truck, MessageCircle,
+  Network, ShoppingCart,
 } from 'lucide-react'
 
 type SectionId =
   | 'intro' | 'primeiros-passos' | 'garcom' | 'cozinha' | 'caixa'
   | 'insumos' | 'produtos' | 'inventario' | 'relatorios' | 'usuarios'
-  | 'entrada-inteligente' | 'ifood' | 'whatsapp' | 'faq'
+  | 'entrada-inteligente' | 'ifood' | 'whatsapp'
+  | 'multi-unidade' | 'faq'
 
-const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
+const SECTIONS: { id: SectionId; label: string; icon: React.ElementType; group?: string }[] = [
   { id: 'intro',                label: 'Introdução',                icon: BookOpen },
   { id: 'primeiros-passos',     label: 'Primeiros Passos',          icon: Rocket },
   { id: 'garcom',               label: 'Atendimento (Garçom)',      icon: UtensilsCrossed },
@@ -25,6 +27,7 @@ const SECTIONS: { id: SectionId; label: string; icon: React.ElementType }[] = [
   { id: 'usuarios',             label: 'Usuários e Acessos',        icon: Users },
   { id: 'ifood',                label: 'Integração iFood',          icon: Truck },
   { id: 'whatsapp',             label: 'WhatsApp',                  icon: MessageCircle },
+  { id: 'multi-unidade',        label: 'Multi-Unidade (Rede)',      icon: Network, group: 'Enterprise' },
   { id: 'faq',                  label: 'Perguntas Frequentes',      icon: HelpCircle },
 ]
 
@@ -715,6 +718,109 @@ function WhatsAppHelp() {
   )
 }
 
+function MultiUnidade() {
+  return (
+    <>
+      <SectionTitle sub="Gerencie múltiplas unidades da sua rede em um painel unificado">
+        Multi-Unidade (Rede)
+      </SectionTitle>
+      <Tip type="info">
+        Disponível exclusivamente no plano <strong>Enterprise</strong>. O módulo de rede aparece automaticamente no header quando sua conta está vinculada a uma Brand.
+      </Tip>
+
+      <Sub>O que é o módulo Multi-Unidade?</Sub>
+      <p style={{ fontSize: 14, color: 'var(--tf-txt2)', lineHeight: 1.8, marginBottom: 20 }}>
+        O módulo Multi-Unidade permite que donos de redes de restaurantes gerenciem todas as suas unidades em um painel consolidado. É possível comparar desempenho entre unidades, compartilhar cardápio, centralizar compras e visualizar relatórios agregados — sem precisar acessar cada unidade individualmente.
+      </p>
+
+      <Sub>Acessar o painel da rede</Sub>
+      <Step n={1} title="Clique no ícone de rede no header">
+        Ao lado do nome do restaurante, um ícone de rede (<strong>⬡</strong>) indica que você está em uma conta multi-unidade. Clique nele para abrir o seletor de unidades.
+      </Step>
+      <Step n={2} title="Escolha 'Visão consolidada'">
+        A primeira opção do dropdown é <strong>Visão consolidada →</strong>. Ao clicar, você é levado ao <strong>/rede/dashboard</strong>, o painel central da rede. Para voltar a uma unidade específica, selecione-a no mesmo dropdown.
+      </Step>
+
+      <Sub>Dashboard Consolidado</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Em <strong>/rede/dashboard</strong> você encontra:
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        {[
+          { label: '4 KPI cards', desc: 'Vendas totais, Total de pedidos, Ticket médio e CMV% — somados de todas as unidades no período selecionado.' },
+          { label: 'Destaques', desc: 'Card da melhor unidade (badge verde) e da unidade em atenção (badge âmbar), identificadas automaticamente por faturamento.' },
+          { label: 'Tabela comparativa', desc: 'Lista todas as unidades com Vendas, Pedidos, Ticket Médio, CMV% e alertas ativos. Clique em uma linha para ir direto ao dashboard daquela unidade.' },
+          { label: 'Gráfico comparativo', desc: 'BarChart agrupado com toggle entre Vendas, Pedidos, CMV e Ticket Médio. Visualize qual unidade lidera em cada métrica.' },
+          { label: 'Mapa', desc: 'Mapa Google Maps Embed com marcadores coloridos por performance (verde/âmbar/vermelho) — configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.' },
+        ].map(({ label, desc }) => (
+          <div key={label} style={{ display: 'flex', gap: 10, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--tf-border)', background: 'var(--tf-surface)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tf-primary)', flexShrink: 0, paddingTop: 2 }}>★</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--tf-txt)', marginBottom: 2 }}>{label}</p>
+              <p style={{ fontSize: 12.5, color: 'var(--tf-txt2)' }}>{desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--tf-txt3)', marginBottom: 20 }}>
+        Use os botões de período no topo (7d, 15d, 30d, 90d) para filtrar os dados de todas as seções da tela.
+      </p>
+
+      <Sub>Cardápio Compartilhado</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Em <strong>/rede/cardapio</strong> você gerencia o cardápio centralizado da rede com duas abas:
+      </p>
+      <Step n={3} title="Aba 'Cardápio da rede'">
+        Crie e edite produtos que são compartilhados com todas as unidades. Use o botão <strong>＋ Novo produto da rede</strong> para cadastrar um item. O botão <strong>Sincronizar</strong> ao lado de cada produto limpa os overrides de preço de todas as unidades, fazendo-as usar o preço base da rede.
+      </Step>
+      <Step n={4} title="Aba 'Overrides por unidade'">
+        Selecione uma unidade e ajuste preços individualmente. Digite um preço override no campo — ele tem prioridade sobre o preço base da rede naquela unidade. Deixe vazio para usar o preço da rede. Use o toggle para ativar/desativar o produto em cada unidade.
+      </Step>
+
+      <Sub>Compras Centralizadas</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Em <strong>/rede/compras</strong> o sistema consolida automaticamente as necessidades de compra de todas as unidades:
+      </p>
+      <Step n={5} title="Gerar pedido consolidado">
+        Selecione o fornecedor e clique em <strong>Gerar pedido de compra</strong>. O sistema varre os alertas de estoque ativos em todas as unidades, agrupa por insumo (somando as quantidades necessárias) e cria um pedido único consolidado. Cada item registra de quais unidades a necessidade vem e em que quantidade.
+      </Step>
+      <Step n={6} title="Exportar o pedido">
+        No histórico de pedidos, use os botões de ação para:
+        <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+          <li><strong>PDF</strong> — Documento formatado com itens, quantidades e distribuição por unidade</li>
+          <li><strong>Excel</strong> — Planilha com todos os itens para enviar ao fornecedor</li>
+          <li><strong>✓ Marcar recebido</strong> — Atualiza o status do pedido para Recebido</li>
+        </ul>
+      </Step>
+
+      <Sub>Relatórios de Benchmark</Sub>
+      <p style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.7, marginBottom: 12 }}>
+        Em <strong>/rede/relatorios</strong> você acessa o benchmark comparativo entre unidades:
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        {[
+          { label: 'CMV %', desc: 'Menor CMV% = líder (usa menos custo para gerar receita). Badge "Líder" na melhor unidade.' },
+          { label: 'Ticket Médio', desc: 'Maior ticket = líder. Unidades com ticket abaixo de 80% da média ganham badge "Abaixo da média".' },
+          { label: 'Margem Bruta %', desc: 'Maior margem = líder. Calculada como 100% − CMV%.' },
+          { label: 'Linha de média da rede', desc: 'Rodapé da tabela exibe os valores médios da rede para cada coluna.' },
+        ].map(({ label, desc }) => (
+          <div key={label} style={{ display: 'flex', gap: 10 }}>
+            <Tag color="blue">{label}</Tag>
+            <span style={{ fontSize: 13, color: 'var(--tf-txt2)', paddingTop: 2 }}>{desc}</span>
+          </div>
+        ))}
+      </div>
+
+      <Tip type="warning">
+        As métricas do dashboard consolidado são calculadas a partir dos snapshots diários de cada unidade. Se uma unidade não tiver movimentação no período selecionado, ela aparece com valores zero na tabela comparativa — isso é normal e não indica erro.
+      </Tip>
+      <Tip>
+        Para que o Mapa exiba os marcadores corretamente, cada unidade precisa ter coordenadas de geolocalização configuradas. Isso é feito pelo Super Admin ao registrar as unidades na Brand.
+      </Tip>
+    </>
+  )
+}
+
 function Faq() {
   const items = [
     {
@@ -769,6 +875,22 @@ function Faq() {
       q: 'Atingi o limite de IA do mês. Quando volta a funcionar?',
       a: 'O limite é resetado automaticamente no dia 1 de cada mês. Enquanto isso, você ainda pode lançar entradas manualmente em Estoque → Insumos → Registrar Movimentação. O histórico de NFs anteriores continua acessível.',
     },
+    {
+      q: 'Como acesso o painel da rede (Multi-Unidade)?',
+      a: 'Clique no ícone de rede (⬡) no header ao lado do nome do restaurante e selecione "Visão consolidada". Se o ícone não aparecer, sua conta não está vinculada a uma Brand Enterprise — entre em contato com o suporte.',
+    },
+    {
+      q: 'Por que o gráfico do dashboard consolidado está vazio?',
+      a: 'O dashboard usa snapshots diários. Se as unidades foram cadastradas recentemente ou não tiveram movimentação no período selecionado, os gráficos ficam vazios. Aguarde pelo menos um dia de operação após vincular as unidades à rede.',
+    },
+    {
+      q: 'O pedido de compra consolidado inclui todas as unidades automaticamente?',
+      a: 'Sim. Ao gerar um pedido, o sistema varre os alertas de estoque com status "Não lido" em todas as unidades da rede. Se uma unidade não tem alertas ativos, ela não aparece na distribuição do pedido. Você pode gerar um novo pedido a qualquer momento.',
+    },
+    {
+      q: 'Posso ter preços diferentes por unidade no cardápio da rede?',
+      a: 'Sim, usando Overrides. Na aba "Overrides por unidade" do cardápio da rede, selecione a unidade e informe o preço override para cada produto desejado. Para remover o override e usar o preço da rede, deixe o campo em branco ou clique em "Sincronizar" na aba do cardápio.',
+    },
   ]
 
   return (
@@ -800,6 +922,7 @@ const CONTENT: Record<SectionId, React.ReactNode> = {
   usuarios:               <Usuarios />,
   ifood:                  <IFoodHelp />,
   whatsapp:               <WhatsAppHelp />,
+  'multi-unidade':        <MultiUnidade />,
   faq:                    <Faq />,
 }
 
@@ -812,25 +935,38 @@ export default function AjudaPage() {
       <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--tf-border)', background: 'var(--tf-surface)', overflowY: 'auto', padding: '16px 10px' }}>
         <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--tf-txt3)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 8px', marginBottom: 8 }}>Manual de Uso</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {SECTIONS.map(({ id, label, icon: Icon }) => {
+          {SECTIONS.map(({ id, label, icon: Icon, group }, idx) => {
             const isActive = active === id
+            const showGroupLabel = group && (idx === 0 || SECTIONS[idx - 1].group !== group)
             return (
-              <button
-                key={id}
-                onClick={() => setActive(id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '7px 10px', borderRadius: 7,
-                  fontSize: 12.5, fontWeight: isActive ? 600 : 400,
-                  color: isActive ? 'var(--tf-primary)' : 'var(--tf-txt2)',
-                  background: isActive ? 'var(--tf-primary-bg)' : 'transparent',
-                  border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
-                  transition: 'background 100ms, color 100ms',
-                }}
-              >
-                <Icon size={14} />
-                {label}
-              </button>
+              <div key={id}>
+                {showGroupLabel && (
+                  <p style={{
+                    fontSize: 9.5, fontWeight: 700, color: 'var(--tf-primary)',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    padding: '10px 10px 4px',
+                    borderTop: '1px solid var(--tf-border)',
+                    marginTop: 6,
+                  }}>
+                    {group}
+                  </p>
+                )}
+                <button
+                  onClick={() => setActive(id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '7px 10px', borderRadius: 7,
+                    fontSize: 12.5, fontWeight: isActive ? 600 : 400,
+                    color: isActive ? 'var(--tf-primary)' : 'var(--tf-txt2)',
+                    background: isActive ? 'var(--tf-primary-bg)' : 'transparent',
+                    border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
+                    transition: 'background 100ms, color 100ms',
+                  }}
+                >
+                  <Icon size={14} />
+                  {label}
+                </button>
+              </div>
             )
           })}
         </div>

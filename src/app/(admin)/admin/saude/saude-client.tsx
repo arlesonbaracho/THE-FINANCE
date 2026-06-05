@@ -22,6 +22,12 @@ const STATUS_COLOR: Record<string, string> = {
   CRITICO: '#ef4444',
 }
 
+const tooltipStyle = {
+  background: '#0f172a',
+  border: '1px solid #1e293b',
+  borderRadius: 8,
+}
+
 export function SaudeClient() {
   const [metricas, setMetricas] = useState<MetricaItem[]>([])
   const [alertas, setAlertas] = useState<Alerta[]>([])
@@ -44,176 +50,90 @@ export function SaudeClient() {
     setAlertas((prev) => prev.filter((a) => a.id !== id))
   }
 
-  const card: React.CSSProperties = {
-    background: 'var(--tf-surface)',
-    border: '1px solid var(--tf-border)',
-    borderRadius: 12,
-    padding: 20,
-  }
-
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1200 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--tf-txt)', marginBottom: 24, marginTop: 0 }}>
-        Saúde da Plataforma
-      </h1>
+    <div className="max-w-5xl space-y-6">
+      <h1 className="text-2xl font-bold text-white">Saúde da Plataforma</h1>
 
-      {/* Cards de status */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
+      <div className="grid grid-cols-5 gap-3">
         {metricas.map(({ tipo, log }) => (
           <div
             key={tipo}
-            style={{
-              ...card,
-              borderTop: `3px solid ${STATUS_COLOR[log?.status ?? 'OK']}`,
-            }}
+            className="rounded-xl border border-slate-800 bg-slate-900 p-5"
+            style={{ borderTop: `3px solid ${STATUS_COLOR[log?.status ?? 'OK']}` }}
           >
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--tf-txt3)', marginBottom: 8 }}>
-              {tipo}
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--tf-txt)' }}>
-              {log ? Number(log.valor).toFixed(1) : '—'}
-            </div>
-            <div
-              style={{
-                display: 'inline-block',
-                marginTop: 4,
-                fontSize: 10,
-                fontWeight: 600,
-                color: '#fff',
-                background: STATUS_COLOR[log?.status ?? 'OK'],
-                borderRadius: 4,
-                padding: '1px 6px',
-              }}
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2">{tipo}</div>
+            <div className="text-lg font-bold text-white">{log ? Number(log.valor).toFixed(1) : '—'}</div>
+            <span
+              className="mt-1 inline-block rounded px-1.5 py-px text-[10px] font-semibold text-white"
+              style={{ background: STATUS_COLOR[log?.status ?? 'OK'] }}
             >
               {log?.status ?? 'SEM DADOS'}
-            </div>
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Gráfico de latência */}
-      <div style={{ ...card, marginBottom: 24 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--tf-txt)', marginBottom: 16, marginTop: 0 }}>
-          Latência das últimas 24h (ms)
-        </h2>
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <h2 className="text-sm font-semibold text-white mb-4">Latência das últimas 24h (ms)</h2>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={historico.map((h) => ({ ...h, valor: Number(h.valor) }))}>
             <XAxis
               dataKey="registradoEm"
-              tickFormatter={(v) =>
-                new Date(v).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-              }
-              tick={{ fontSize: 10, fill: 'var(--tf-txt3)' }}
+              tickFormatter={(v) => new Date(v).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
             />
-            <YAxis tick={{ fontSize: 10, fill: 'var(--tf-txt3)' }} />
-            <Tooltip
-              contentStyle={{
-                background: 'var(--tf-surface)',
-                border: '1px solid var(--tf-border)',
-                borderRadius: 8,
-              }}
-              labelFormatter={(v) => new Date(v).toLocaleString('pt-BR')}
-            />
-            <ReferenceLine
-              y={2000}
-              stroke="#ef4444"
-              strokeDasharray="4 4"
-              label={{ value: '2000ms', fill: '#ef4444', fontSize: 10 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="valor"
-              stroke="var(--tf-primary, #6366f1)"
-              dot={false}
-              strokeWidth={1.5}
-            />
+            <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => new Date(v).toLocaleString('pt-BR')} />
+            <ReferenceLine y={2000} stroke="#ef4444" strokeDasharray="4 4" label={{ value: '2000ms', fill: '#ef4444', fontSize: 10 }} />
+            <Line type="monotone" dataKey="valor" stroke="#6366f1" dot={false} strokeWidth={1.5} />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Alertas ativos */}
       {alertas.length > 0 && (
-        <div style={{ ...card, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--tf-txt)', marginBottom: 12, marginTop: 0 }}>
-            Alertas Ativos
-          </h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Tipo', 'Título', 'Severidade', 'Horário', 'Ação'].map((col) => (
-                  <th
-                    key={col}
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 12px',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: 'var(--tf-txt3)',
-                      borderBottom: '1px solid var(--tf-border)',
-                    }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {alertas.map((a) => (
-                <tr key={a.id}>
-                  <td style={{ padding: '8px 12px', fontSize: 13, color: 'var(--tf-txt)', borderBottom: '1px solid var(--tf-border)' }}>
-                    {a.tipo}
-                  </td>
-                  <td style={{ padding: '8px 12px', fontSize: 13, color: 'var(--tf-txt)', borderBottom: '1px solid var(--tf-border)' }}>
-                    {a.titulo}
-                  </td>
-                  <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--tf-border)' }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        background: STATUS_COLOR[a.severidade] ?? '#6b7280',
-                        color: '#fff',
-                        borderRadius: 4,
-                        padding: '2px 8px',
-                      }}
-                    >
-                      {a.severidade}
-                    </span>
-                  </td>
-                  <td style={{ padding: '8px 12px', fontSize: 12, color: 'var(--tf-txt3)', borderBottom: '1px solid var(--tf-border)' }}>
-                    {new Date(a.criadoEm).toLocaleString('pt-BR')}
-                  </td>
-                  <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--tf-border)' }}>
-                    <button
-                      onClick={() => resolverAlerta(a.id)}
-                      style={{
-                        fontSize: 11,
-                        padding: '3px 10px',
-                        borderRadius: 6,
-                        border: '1px solid var(--tf-border)',
-                        background: 'transparent',
-                        color: 'var(--tf-txt)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Resolver
-                    </button>
-                  </td>
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+          <h2 className="text-sm font-semibold text-white mb-4">Alertas Ativos</h2>
+          <div className="overflow-hidden rounded-lg border border-slate-800">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-900/80">
+                <tr>
+                  {['Tipo', 'Título', 'Severidade', 'Horário', 'Ação'].map((col) => (
+                    <th key={col} className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400 border-b border-slate-800">{col}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {alertas.map((a) => (
+                  <tr key={a.id} className="bg-[#0a0d14]">
+                    <td className="px-3 py-2.5 text-sm text-white">{a.tipo}</td>
+                    <td className="px-3 py-2.5 text-sm text-white">{a.titulo}</td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className="rounded px-2 py-0.5 text-[11px] font-semibold text-white"
+                        style={{ background: STATUS_COLOR[a.severidade] ?? '#6b7280' }}
+                      >
+                        {a.severidade}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-slate-400">{new Date(a.criadoEm).toLocaleString('pt-BR')}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        onClick={() => resolverAlerta(a.id)}
+                        className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800 transition-colors"
+                      >
+                        Resolver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {metricas.length === 0 && (
-        <div style={{ ...card, textAlign: 'center', color: 'var(--tf-txt3)', fontSize: 13 }}>
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-400 text-sm">
           Nenhuma métrica coletada ainda. Inicie o worker BullMQ para começar a monitorar.
         </div>
       )}

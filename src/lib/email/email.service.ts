@@ -6,6 +6,7 @@ import { PasswordChangedEmail } from './templates/password-changed'
 import { AccountLockedEmail } from './templates/account-locked'
 import { WelcomeInviteEmail } from './templates/welcome-invite'
 import { AdminPasswordResetEmail } from './templates/admin-password-reset'
+import { EmailVerificationEmail } from './templates/email-verification'
 
 const FROM = process.env.EMAIL_FROM ?? 'THE FINANCE <noreply@thefinance.app>'
 
@@ -68,5 +69,10 @@ export const emailService = {
   async sendAdminPasswordReset(to: string, resetLink: string, ip: string) {
     const html = await render(AdminPasswordResetEmail({ resetLink, ip }))
     return send(to, '[SUPER ADMIN] Recuperação de senha — THE FINANCE', html)
+  },
+
+  async sendEmailVerification(to: string, code: string, userName?: string): Promise<void> {
+    const html = await render(EmailVerificationEmail({ code, name: userName, expiresInMinutes: 15 }))
+    await send(to, 'Confirme seu email — THE FINANCE', html)
   },
 }

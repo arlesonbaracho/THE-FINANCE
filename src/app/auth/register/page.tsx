@@ -82,7 +82,13 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error ?? 'Erro ao enviar código.')
+        if (res.status === 409) {
+          setError('Este email já está cadastrado.')
+        } else if (res.status === 429) {
+          setError('Muitas tentativas. Tente novamente em alguns minutos.')
+        } else {
+          setError(data.error ?? 'Erro ao enviar código.')
+        }
       } else {
         setStep('verify')
         setResendCooldown(RESEND_COOLDOWN)

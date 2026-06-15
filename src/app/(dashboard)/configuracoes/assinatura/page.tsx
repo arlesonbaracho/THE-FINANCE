@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -72,6 +73,24 @@ const ACTION_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
 export default function AssinaturaPage() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  useEffect(() => {
+    const sucesso = searchParams.get('sucesso')
+    const cancelado = searchParams.get('cancelado')
+
+    if (sucesso === '1') {
+      toast.success('Pagamento realizado! Sua assinatura será ativada em instantes.')
+      queryClient.invalidateQueries({ queryKey: ['assinatura'] })
+      router.replace('/configuracoes/assinatura')
+    }
+
+    if (cancelado === '1') {
+      toast.info('Pagamento cancelado. Nenhuma cobrança foi realizada.')
+      router.replace('/configuracoes/assinatura')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [tab, setTab] = useState<'plano' | 'historico'>('plano')
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'ANNUAL'>('MONTHLY')

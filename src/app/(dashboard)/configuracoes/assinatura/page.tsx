@@ -1,14 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { fetchCached, invalidateCache } from '@/lib/client-cache'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, AlertTriangle, XCircle, ArrowUpCircle, ArrowDownCircle, Clock } from 'lucide-react'
+import { toast } from 'sonner'
+
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 type Plan = {
   id: string
@@ -19,6 +22,7 @@ type Plan = {
   maxUsers: number
   maxProducts: number
   features: Record<string, boolean>
+  stripePriceId: string | null
 }
 
 type Subscription = {
@@ -64,14 +68,10 @@ const ACTION_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
   REACTIVATE: { label: 'Reativação', icon: <CheckCircle className="h-4 w-4 text-emerald-400" /> },
 }
 
+// ---- Main Page ----
 export default function AssinaturaPage() {
   const { data: session } = useSession()
-  const [data, setData] = useState<{
-    subscription: Subscription | null
-    plans: Plan[]
-    history: HistoryEntry[]
-    cancellation: Cancellation
-  } | null>(null)
+  const queryClient = useQueryClient()
 
   const [tab, setTab] = useState<'plano' | 'historico'>('plano')
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'ANNUAL'>('MONTHLY')
@@ -88,11 +88,22 @@ export default function AssinaturaPage() {
 
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
 
-  async function loadData() {
-    fetchCached<typeof data>('/api/assinatura').then(setData).catch(() => {})
+  type AssinaturaData = {
+    subscription: Subscription | null
+    plans: Plan[]
+    history: HistoryEntry[]
+    cancellation: Cancellation
   }
 
-  useEffect(() => { loadData() }, [])
+  const { data } = useQuery<AssinaturaData | null>({
+    queryKey: ['assinatura'],
+    queryFn: () => fetch('/api/assinatura').then(r => r.json()).catch(() => null),
+    staleTime: 2 * 60_000,
+  })
+
+  function loadData() {
+    queryClient.invalidateQueries({ queryKey: ['assinatura'] })
+  }
 
   async function handleChangePlan(planId: string, isUpgrade: boolean) {
     if (!isAdmin) return
@@ -116,9 +127,46 @@ export default function AssinaturaPage() {
 
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
-    invalidateCache('/api/assinatura')
     loadData()
     setTimeout(() => setMsg(''), 6000)
+  }
+
+  async function handleStripeUpgrade(plan: Plan) {
+    setMsg('')
+    setError('')
+
+    if (!plan.stripePriceId) {
+      toast.error(`Plano "${plan.name}" ainda não tem preço configurado no Stripe.`)
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/assinatura/stripe/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId: plan.stripePriceId }),
+      })
+
+      const d = await res.json()
+
+      if (!res.ok) {
+        toast.error(d.detail ?? d.error ?? 'Erro ao iniciar pagamento Stripe')
+        return
+      }
+
+      if (!d.url) {
+        toast.error('Stripe não retornou a URL de pagamento.')
+        return
+      }
+
+      // Redireciona para o Stripe Checkout hospedado
+      window.location.href = d.url
+    } catch {
+      toast.error('Erro de conexão ao tentar iniciar pagamento.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleCancel() {
@@ -134,7 +182,6 @@ export default function AssinaturaPage() {
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
     setShowCancelModal(false)
-    invalidateCache('/api/assinatura')
     loadData()
   }
 
@@ -144,7 +191,6 @@ export default function AssinaturaPage() {
     const d = await res.json()
     if (!res.ok) { setError(d.error); return }
     setMsg(d.message)
-    invalidateCache('/api/assinatura')
     loadData()
   }
 
@@ -301,6 +347,17 @@ export default function AssinaturaPage() {
                         {isUpgrade ? 'Fazer Upgrade' : 'Fazer Downgrade'}
                       </Button>
                     )}
+
+                    {isAdmin && !isCurrent && isUpgrade && stripeKey && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStripeUpgrade(plan)}
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 w-full mt-2"
+                      >
+                        Pagar com cartão (Stripe)
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -428,6 +485,7 @@ export default function AssinaturaPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

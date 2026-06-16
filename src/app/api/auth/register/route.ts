@@ -46,8 +46,15 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
+    // status 'unavailable' (Receita/BrasilAPI fora do ar) NÃO bloqueia o cadastro:
+    // cai aqui com cnpjVerifiedAt null e a verificação fica pendente para depois.
     const fiscalData = lookup.status === 'ok'
-      ? { razaoSocial: lookup.data.razaoSocial, nomeFantasia: lookup.data.nomeFantasia, situacaoCadastral: lookup.data.situacaoCadastral, cnpjVerifiedAt: new Date() }
+      ? {
+          razaoSocial: lookup.data.razaoSocial,
+          nomeFantasia: lookup.data.nomeFantasia,
+          situacaoCadastral: lookup.data.situacaoCadastral,
+          cnpjVerifiedAt: new Date(),
+        }
       : { cnpjVerifiedAt: null }
 
     const existingUser = await prisma.user.findUnique({ where: { email } })

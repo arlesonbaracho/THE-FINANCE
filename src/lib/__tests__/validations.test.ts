@@ -18,7 +18,7 @@ describe('registerSchema', () => {
     name: 'João Silva',
     email: 'joao@example.com',
     password: 'Senha123',
-    // Real CNPJ of Banco do Brasil S.A. — known-valid digits for unit tests
+    // CNPJ sintético que passa no algoritmo de dígitos verificadores (uso em testes)
     cnpj: '11.222.333/0001-81',
   }
 

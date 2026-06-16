@@ -27,3 +27,52 @@ export function isValidCnpj(raw: string): boolean {
   const dv2 = calcCheckDigit(d.slice(0, 12) + dv1)
   return d.slice(12) === `${dv1}${dv2}`
 }
+
+export type CnpjLookup = {
+  razaoSocial: string | null
+  nomeFantasia: string | null
+  situacaoCadastral: string | null
+  ativo: boolean
+}
+export type CnpjLookupResult =
+  | { status: 'ok'; data: CnpjLookup }
+  | { status: 'inactive'; data: CnpjLookup }
+  | { status: 'not_found' }
+  | { status: 'unavailable' }
+
+async function fetchJson(url: string, timeoutMs = 5000): Promise<unknown | null> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { signal: ctrl.signal })
+    if (res.status === 404) return { __notFound: true }
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+export async function lookupCnpj(digits: string): Promise<CnpjLookupResult> {
+  const cnpj = normalizeCnpj(digits)
+  let raw = await fetchJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)
+  if (raw && (raw as { __notFound?: boolean }).__notFound) return { status: 'not_found' }
+  if (!raw) {
+    raw = await fetchJson(`https://www.receitaws.com.br/v1/cnpj/${cnpj}`)
+    if (raw && (raw as { __notFound?: boolean }).__notFound) return { status: 'not_found' }
+  }
+  if (!raw) return { status: 'unavailable' }
+
+  const o = raw as Record<string, unknown>
+  const situacao = String(o.descricao_situacao_cadastral ?? o.situacao ?? '').toUpperCase()
+  const ativo = situacao.includes('ATIVA')
+  const data: CnpjLookup = {
+    razaoSocial: (o.razao_social ?? o.nome ?? null) as string | null,
+    nomeFantasia: (o.nome_fantasia ?? o.fantasia ?? null) as string | null,
+    situacaoCadastral: situacao || null,
+    ativo,
+  }
+  return { status: ativo ? 'ok' : 'inactive', data }
+}

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { normalizeCnpj, formatCnpj, isValidCnpj } from '../cnpj.service'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { normalizeCnpj, formatCnpj, isValidCnpj, lookupCnpj } from '../cnpj.service'
 
 describe('normalizeCnpj', () => {
   it('remove máscara deixando só dígitos', () => {
@@ -25,5 +25,43 @@ describe('isValidCnpj', () => {
   })
   it('rejeita todos os dígitos iguais', () => {
     expect(isValidCnpj('11111111111111')).toBe(false)
+  })
+})
+
+describe('lookupCnpj', () => {
+  beforeEach(() => { vi.restoreAllMocks() })
+
+  it('retorna ok + dados quando BrasilAPI acha ativo', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ razao_social: 'ACME LTDA', nome_fantasia: 'ACME', descricao_situacao_cadastral: 'ATIVA' }),
+    }))
+    const r = await lookupCnpj('11222333000181')
+    expect(r.status).toBe('ok')
+    if (r.status === 'ok') {
+      expect(r.data.razaoSocial).toBe('ACME LTDA')
+      expect(r.data.ativo).toBe(true)
+    }
+  })
+
+  it('retorna inactive quando situação não é ATIVA', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ razao_social: 'X', descricao_situacao_cadastral: 'BAIXADA' }),
+    }))
+    const r = await lookupCnpj('11222333000181')
+    expect(r.status).toBe('inactive')
+  })
+
+  it('retorna not_found em 404', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+    const r = await lookupCnpj('11222333000181')
+    expect(r.status).toBe('not_found')
+  })
+
+  it('retorna unavailable quando fetch lança (API fora do ar)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+    const r = await lookupCnpj('11222333000181')
+    expect(r.status).toBe('unavailable')
   })
 })

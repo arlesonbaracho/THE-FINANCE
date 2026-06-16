@@ -11,8 +11,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, AlertTriangle, XCircle, ArrowUpCircle, ArrowDownCircle, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { useTheme } from 'next-themes'
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 type Plan = {
   id: string
@@ -69,6 +73,135 @@ const ACTION_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
   REACTIVATE: { label: 'Reativação', icon: <CheckCircle className="h-4 w-4 text-emerald-400" /> },
 }
 
+// ---- Stripe Payment Element checkout ----
+function CheckoutForm({ plan, price, onSuccess, onClose }: {
+  plan: Plan
+  price: number
+  onSuccess: () => void
+  onClose: () => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!stripe || !elements || !plan.stripePriceId) return
+
+    setPaying(true)
+    setPayError('')
+
+    const { error, setupIntent } = await stripe.confirmSetup({
+      elements,
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      setPayError(error.message ?? 'Erro ao validar cartão')
+      setPaying(false)
+      return
+    }
+
+    const paymentMethodId = typeof setupIntent?.payment_method === 'string'
+      ? setupIntent.payment_method
+      : setupIntent?.payment_method?.id
+
+    if (!paymentMethodId) {
+      setPayError('Não foi possível obter o método de pagamento')
+      setPaying(false)
+      return
+    }
+
+    const res = await fetch('/api/assinatura/stripe/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priceId: plan.stripePriceId, paymentMethodId }),
+    })
+    const d = await res.json()
+    setPaying(false)
+
+    if (!res.ok) {
+      setPayError(d.detail ?? d.error ?? 'Erro ao criar assinatura')
+      return
+    }
+    onSuccess()
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'var(--tf-surface2)', borderRadius: 8, padding: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--tf-txt3)', margin: 0 }}>Plano selecionado</p>
+        <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--tf-txt)', margin: '2px 0 0' }}>
+          {plan.name} — R$ {price.toFixed(2)}/mês
+        </p>
+      </div>
+      <PaymentElement />
+      {payError && <p style={{ fontSize: 13, color: 'var(--tf-red)', margin: 0 }}>{payError}</p>}
+      <div style={{ display: 'flex', gap: 12, paddingTop: 4 }}>
+        <button type="button" onClick={onClose} disabled={paying}
+          style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--tf-border-color)', background: 'transparent', color: 'var(--tf-txt2)', cursor: 'pointer' }}>
+          Cancelar
+        </button>
+        <button type="submit" disabled={paying || !stripe}
+          style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)', cursor: 'pointer', opacity: paying ? 0.6 : 1 }}>
+          {paying ? 'Processando...' : `Pagar R$ ${price.toFixed(2)}`}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function CheckoutModal({ plan, price, onSuccess, onClose }: {
+  plan: Plan
+  price: number
+  onSuccess: () => void
+  onClose: () => void
+}) {
+  const { resolvedTheme } = useTheme()
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/assinatura/stripe/setup-intent', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.clientSecret) setClientSecret(d.clientSecret)
+        else setLoadError(d.error ?? 'Erro ao iniciar pagamento')
+      })
+      .catch(() => setLoadError('Erro de conexão'))
+  }, [])
+
+  const appearance = {
+    theme: (resolvedTheme === 'dark' ? 'night' : 'stripe') as 'night' | 'stripe',
+    variables: {
+      colorPrimary: '#2D6A4F',
+      colorBackground: resolvedTheme === 'dark' ? '#252528' : '#FFFFFF',
+      colorText: resolvedTheme === 'dark' ? '#FFFFFF' : '#1C1C1E',
+      borderRadius: '8px',
+    },
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
+      <div style={{ width: '100%', maxWidth: 440, borderRadius: 12, border: '1px solid var(--tf-border-color)', background: 'var(--tf-surface)', padding: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, color: 'var(--tf-txt)', margin: '0 0 16px' }}>
+          Pagamento com cartão
+        </h2>
+        {loadError && <p style={{ fontSize: 13, color: 'var(--tf-red)' }}>{loadError}</p>}
+        {!clientSecret && !loadError && (
+          <p style={{ fontSize: 13, color: 'var(--tf-txt3)' }}>Carregando...</p>
+        )}
+        {clientSecret && stripePromise && (
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+            <CheckoutForm plan={plan} price={price} onSuccess={onSuccess} onClose={onClose} />
+          </Elements>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ---- Main Page ----
 export default function AssinaturaPage() {
   const { data: session } = useSession()
@@ -104,6 +237,9 @@ export default function AssinaturaPage() {
   const [cancelFeedback, setCancelFeedback] = useState('')
   const [cancelConfirmation, setCancelConfirmation] = useState('')
   const [cancelLoading, setCancelLoading] = useState(false)
+
+  // Stripe checkout modal
+  const [checkoutPlan, setCheckoutPlan] = useState<{ plan: Plan; price: number } | null>(null)
 
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
 
@@ -150,42 +286,12 @@ export default function AssinaturaPage() {
     setTimeout(() => setMsg(''), 6000)
   }
 
-  async function handleStripeUpgrade(plan: Plan) {
-    setMsg('')
-    setError('')
-
+  function handleStripeUpgrade(plan: Plan, price: number) {
     if (!plan.stripePriceId) {
       toast.error(`Plano "${plan.name}" ainda não tem preço configurado no Stripe.`)
       return
     }
-
-    setLoading(true)
-    try {
-      const res = await fetch('/api/assinatura/stripe/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId: plan.stripePriceId }),
-      })
-
-      const d = await res.json()
-
-      if (!res.ok) {
-        toast.error(d.detail ?? d.error ?? 'Erro ao iniciar pagamento Stripe')
-        return
-      }
-
-      if (!d.url) {
-        toast.error('Stripe não retornou a URL de pagamento.')
-        return
-      }
-
-      // Redireciona para o Stripe Checkout hospedado
-      window.location.href = d.url
-    } catch {
-      toast.error('Erro de conexão ao tentar iniciar pagamento.')
-    } finally {
-      setLoading(false)
-    }
+    setCheckoutPlan({ plan, price })
   }
 
   async function handleCancel() {
@@ -370,7 +476,7 @@ export default function AssinaturaPage() {
                     {isAdmin && !isCurrent && isUpgrade && stripeKey && (
                       <Button
                         size="sm"
-                        onClick={() => handleStripeUpgrade(plan)}
+                        onClick={() => handleStripeUpgrade(plan, price)}
                         disabled={loading}
                         className="bg-blue-600 hover:bg-blue-700 w-full mt-2"
                       >
@@ -505,6 +611,19 @@ export default function AssinaturaPage() {
         </div>
       )}
 
+      {/* Stripe Payment Element checkout modal */}
+      {checkoutPlan && (
+        <CheckoutModal
+          plan={checkoutPlan.plan}
+          price={checkoutPlan.price}
+          onSuccess={() => {
+            setCheckoutPlan(null)
+            toast.success('Assinatura criada! Ativando seu plano...')
+            loadData()
+          }}
+          onClose={() => setCheckoutPlan(null)}
+        />
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { emailService } from '@/lib/email/email.service'
+import { isValidCnpj, normalizeCnpj } from '@/services/fiscal/cnpj.service'
 
 const MAX_FAILED_ATTEMPTS = 5
 const LOCK_DURATION_MS = 15 * 60 * 1000
@@ -30,13 +31,30 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciais inválidas')
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
-          include: {
-            tenant: { include: { subscription: { include: { plan: true } } } },
-            customRole: true,
-          },
-        })
+        const identifier = credentials.email.trim()
+        const include = {
+          tenant: { include: { subscription: { include: { plan: true } } } },
+          customRole: true,
+        }
+
+        let user
+        if (isValidCnpj(identifier)) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { cnpj: normalizeCnpj(identifier) },
+            select: { id: true },
+          })
+          user = tenant
+            ? await prisma.user.findFirst({
+                where: { tenantId: tenant.id, role: 'ADMIN' },
+                include,
+              })
+            : null
+        } else {
+          user = await prisma.user.findUnique({
+            where: { email: identifier.toLowerCase() },
+            include,
+          })
+        }
 
         // Always run bcrypt to prevent timing attacks
         const dummyHash = '$2a$12$dummyhashtopreventtimingattacks.padpadpadpa'
@@ -146,23 +164,31 @@ export const authOptions: NextAuthOptions = {
         token.passwordChangedAt = u.passwordChangedAt
       }
 
-      // On token refresh, verify password hasn't been changed (session invalidation)
+      // Verify user status/password periodically — skip DB on every request to keep APIs fast.
+      // _dbVerifiedAt stored in the signed JWT so clients cannot tamper with it.
       if (trigger === 'update' || (!user && token.sub)) {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.sub as string },
-            select: { passwordChangedAt: true, status: true, lockedUntil: true },
-          })
-          if (!dbUser || dbUser.status === 'INACTIVE') return {} as typeof token
+        const VERIFY_EVERY_MS = 5 * 60 * 1000
+        const lastVerified = (token._dbVerifiedAt as number | undefined) ?? 0
+        const needsCheck = trigger === 'update' || Date.now() - lastVerified > VERIFY_EVERY_MS
 
-          if (dbUser.passwordChangedAt && token.passwordChangedAt) {
-            const dbTs = dbUser.passwordChangedAt.toISOString()
-            if (dbTs !== token.passwordChangedAt) return {} as typeof token
-          }
-          if (dbUser.passwordChangedAt && !token.passwordChangedAt) {
-            return {} as typeof token
-          }
-        } catch { /* allow on DB error */ }
+        if (needsCheck) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.sub as string },
+              select: { passwordChangedAt: true, status: true, lockedUntil: true },
+            })
+            if (!dbUser || dbUser.status === 'INACTIVE') return {} as typeof token
+
+            if (dbUser.passwordChangedAt && token.passwordChangedAt) {
+              const dbTs = dbUser.passwordChangedAt.toISOString()
+              if (dbTs !== token.passwordChangedAt) return {} as typeof token
+            }
+            if (dbUser.passwordChangedAt && !token.passwordChangedAt) {
+              return {} as typeof token
+            }
+            token._dbVerifiedAt = Date.now()
+          } catch { /* allow on DB error */ }
+        }
       }
 
       return token

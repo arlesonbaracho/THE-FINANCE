@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { fetchCached, invalidateCache } from '@/lib/client-cache'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Ambiente = { id: string; nome: string; ordem: number; _count: { mesas: number } }
@@ -20,7 +19,17 @@ type ConfigPdv = {
   formasPagamento: string[]
 }
 
-type Tab = 'ambientes' | 'mesas' | 'config'
+type Tab = 'ambientes' | 'mesas' | 'config' | 'cnpj'
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function maskCnpj(v: string) {
+  return v.replace(/\D/g, '').slice(0, 14)
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+}
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -466,41 +475,129 @@ function ConfigTab({ config, reload }: { config: ConfigPdv | null; reload: () =>
   )
 }
 
+// ── CNPJ ──────────────────────────────────────────────────────────────────────
+
+function CnpjTab({ cnpjAtual, reload }: { cnpjAtual: string | null; reload: () => void }) {
+  const [value, setValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+
+  if (cnpjAtual) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 480 }}>
+        <div style={S.card}>
+          <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>CNPJ da Empresa</h3>
+          <p style={{ fontSize: 13, color: 'var(--tf-txt2)', marginBottom: 12 }}>
+            O CNPJ já está cadastrado. Para alterá-lo entre em contato com o suporte.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              fontWeight: 700,
+              fontSize: 15,
+              letterSpacing: 1,
+              color: 'var(--tf-txt)',
+              background: 'var(--tf-bg)',
+              border: '1px solid var(--tf-border)',
+              borderRadius: 6,
+              padding: '7px 14px',
+            }}>{cnpjAtual}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  async function save() {
+    setFieldError(null)
+    setSaving(true)
+    const r = await fetch('/api/configuracoes/cnpj', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cnpj: value }),
+    })
+    setSaving(false)
+    if (!r.ok) {
+      const data = await r.json()
+      setFieldError(data.error ?? 'Erro ao salvar CNPJ')
+      return
+    }
+    toast.success('CNPJ cadastrado com sucesso')
+    setValue('')
+    reload()
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 480 }}>
+      <div style={S.card}>
+        <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>CNPJ da Empresa</h3>
+        <p style={{ fontSize: 13, color: 'var(--tf-txt2)', marginBottom: 16 }}>
+          Informe o CNPJ para habilitar recursos fiscais. Ele será validado junto à Receita Federal.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Label style={{ fontSize: 12, color: 'var(--tf-txt2)' }}>CNPJ</Label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Input
+              placeholder="00.000.000/0000-00"
+              value={value}
+              onChange={(e) => { setValue(maskCnpj(e.target.value)); setFieldError(null) }}
+              onKeyDown={(e) => e.key === 'Enter' && !saving && save()}
+              style={{ maxWidth: 220 }}
+              autoComplete="off"
+            />
+            <Button onClick={save} disabled={saving || value.replace(/\D/g, '').length < 14} size="sm">
+              {saving ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </div>
+          {fieldError && (
+            <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{fieldError}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function RestaurantePage() {
+  const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('ambientes')
-  const [ambientes, setAmbientes] = useState<Ambiente[]>([])
-  const [mesas, setMesas] = useState<Mesa[]>([])
-  const [config, setConfig] = useState<ConfigPdv | null>(null)
-  const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [rA, rM, rC] = await Promise.all([
-        fetchCached<Ambiente[]>('/api/ambientes'),
-        fetchCached<Mesa[]>('/api/mesas'),
-        fetchCached<ConfigPdv>('/api/config-pdv'),
-      ])
-      setAmbientes(rA)
-      setMesas(rM)
-      setConfig(rC)
-    } catch { /* silent */ }
-    setLoading(false)
-  }, [])
+  const { data: ambientes = [], isLoading: loadingA } = useQuery<Ambiente[]>({
+    queryKey: ['ambientes'],
+    queryFn: () => fetch('/api/ambientes').then(r => r.json()),
+    staleTime: 5 * 60_000,
+  })
+  const { data: mesas = [], isLoading: loadingM } = useQuery<Mesa[]>({
+    queryKey: ['mesas'],
+    queryFn: () => fetch('/api/mesas').then(r => r.json()),
+    staleTime: 5 * 60_000,
+  })
+  const { data: config = null, isLoading: loadingC } = useQuery<ConfigPdv | null>({
+    queryKey: ['config-pdv'],
+    queryFn: () => fetch('/api/config-pdv').then(r => r.json()).catch(() => null),
+    staleTime: 10 * 60_000,
+  })
+  const { data: cnpjData, isLoading: loadingCnpj } = useQuery<{ cnpj: string | null }>({
+    queryKey: ['configuracoes-cnpj'],
+    queryFn: () => fetch('/api/configuracoes/cnpj').then(r => r.json()),
+    staleTime: 30 * 60_000,
+  })
+
+  const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj)
 
   const reload = useCallback(() => {
-    invalidateCache('/api/ambientes', '/api/mesas', '/api/config-pdv')
-    load()
-  }, [load])
-
-  useEffect(() => { load() }, [load])
+    queryClient.invalidateQueries({ queryKey: ['ambientes'] })
+    queryClient.invalidateQueries({ queryKey: ['mesas'] })
+    queryClient.invalidateQueries({ queryKey: ['config-pdv'] })
+    queryClient.invalidateQueries({ queryKey: ['configuracoes-cnpj'] })
+  }, [queryClient])
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'ambientes', label: 'Ambientes', icon: <LayoutGrid size={15} /> },
     { key: 'mesas', label: 'Mesas', icon: <Table2 size={15} /> },
     { key: 'config', label: 'Configurações PDV', icon: <Settings size={15} /> },
+    { key: 'cnpj', label: 'CNPJ', icon: <FileText size={15} /> },
   ]
 
   return (
@@ -547,6 +644,7 @@ export default function RestaurantePage() {
           {tab === 'ambientes' && <AmbientesTab ambientes={ambientes} reload={reload} />}
           {tab === 'mesas' && <MesasTab mesas={mesas} ambientes={ambientes} reload={reload} />}
           {tab === 'config' && <ConfigTab config={config} reload={reload} />}
+          {tab === 'cnpj' && <CnpjTab cnpjAtual={cnpjData?.cnpj ?? null} reload={reload} />}
         </>
       )}
     </div>

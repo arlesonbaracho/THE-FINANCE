@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 import { registerSchema, zodErrorResponse } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { normalizeCnpj, lookupCnpj } from '@/services/fiscal/cnpj.service'
+import { normalizeCnpj, lookupCnpj, buildFiscalData } from '@/services/fiscal/cnpj.service'
 import { z } from 'zod'
 
 export async function POST(req: Request) {
@@ -46,16 +46,8 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
-    // status 'unavailable' (Receita/BrasilAPI fora do ar) NÃO bloqueia o cadastro:
-    // cai aqui com cnpjVerifiedAt null e a verificação fica pendente para depois.
-    const fiscalData = lookup.status === 'ok'
-      ? {
-          razaoSocial: lookup.data.razaoSocial,
-          nomeFantasia: lookup.data.nomeFantasia,
-          situacaoCadastral: lookup.data.situacaoCadastral,
-          cnpjVerifiedAt: new Date(),
-        }
-      : { cnpjVerifiedAt: null }
+    // status 'unavailable' (Receita/BrasilAPI fora do ar) NÃO bloqueia o cadastro.
+    const fiscalData = buildFiscalData(lookup)
 
     const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {

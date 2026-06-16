@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { normalizeCnpj, formatCnpj, isValidCnpj, lookupCnpj } from '../cnpj.service'
+import { normalizeCnpj, formatCnpj, isValidCnpj, lookupCnpj, buildFiscalData } from '../cnpj.service'
 
 describe('normalizeCnpj', () => {
   it('remove máscara deixando só dígitos', () => {
@@ -25,6 +25,18 @@ describe('isValidCnpj', () => {
   })
   it('rejeita todos os dígitos iguais', () => {
     expect(isValidCnpj('11111111111111')).toBe(false)
+  })
+})
+
+describe('buildFiscalData', () => {
+  it('preenche campos quando status ok', () => {
+    const d = buildFiscalData({ status: 'ok', data: { razaoSocial: 'ACME', nomeFantasia: 'A', situacaoCadastral: 'ATIVA', ativo: true } })
+    expect(d.razaoSocial).toBe('ACME')
+    expect(d.cnpjVerifiedAt).toBeInstanceOf(Date)
+  })
+  it('cnpjVerifiedAt null quando unavailable', () => {
+    const d = buildFiscalData({ status: 'unavailable' })
+    expect(d.cnpjVerifiedAt).toBeNull()
   })
 })
 

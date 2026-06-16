@@ -55,6 +55,17 @@ async function fetchJson(url: string, timeoutMs = 5000): Promise<unknown | null>
   }
 }
 
+export function buildFiscalData(lookup: CnpjLookupResult) {
+  return lookup.status === 'ok'
+    ? {
+        razaoSocial: lookup.data.razaoSocial,
+        nomeFantasia: lookup.data.nomeFantasia,
+        situacaoCadastral: lookup.data.situacaoCadastral,
+        cnpjVerifiedAt: new Date(),
+      }
+    : { cnpjVerifiedAt: null }
+}
+
 export async function lookupCnpj(digits: string): Promise<CnpjLookupResult> {
   const cnpj = normalizeCnpj(digits)
   let raw = await fetchJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)

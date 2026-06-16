@@ -4,6 +4,7 @@ import { registerSchema, zodErrorResponse } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { emailService } from '@/lib/email/email.service'
 import { generateVerificationCode } from '@/lib/verification-code'
+import { normalizeCnpj } from '@/services/fiscal/cnpj.service'
 
 export async function POST(req: Request) {
   const ip = getClientIp(req)
@@ -30,6 +31,11 @@ export async function POST(req: Request) {
         { error: 'Este email já está cadastrado.' },
         { status: 409 }
       )
+    }
+
+    const cnpjEmUso = await prisma.tenant.findUnique({ where: { cnpj: normalizeCnpj(parsed.data.cnpj) } })
+    if (cnpjEmUso) {
+      return NextResponse.json({ error: 'Não foi possível criar a conta. Verifique os dados.' }, { status: 400 })
     }
 
     const code = generateVerificationCode()

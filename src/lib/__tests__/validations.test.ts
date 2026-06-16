@@ -18,6 +18,8 @@ describe('registerSchema', () => {
     name: 'João Silva',
     email: 'joao@example.com',
     password: 'Senha123',
+    // Real CNPJ of Banco do Brasil S.A. — known-valid digits for unit tests
+    cnpj: '11.222.333/0001-81',
   }
 
   it('accepts a valid registration', () => {
@@ -56,6 +58,28 @@ describe('registerSchema', () => {
   it('rejects empty restaurantName', () => {
     const result = registerSchema.safeParse({ ...valid, restaurantName: '' })
     expect(result.success).toBe(false)
+  })
+
+  it('rejects missing cnpj', () => {
+    const { cnpj: _, ...withoutCnpj } = valid
+    const result = registerSchema.safeParse(withoutCnpj)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects an invalid CNPJ', () => {
+    const result = registerSchema.safeParse({ ...valid, cnpj: '00.000.000/0000-00' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toMatch(/CNPJ inválido/)
+  })
+
+  it('accepts a valid CNPJ with formatting', () => {
+    const result = registerSchema.safeParse({ ...valid, cnpj: '11.222.333/0001-81' })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts a valid CNPJ as raw digits', () => {
+    const result = registerSchema.safeParse({ ...valid, cnpj: '11222333000181' })
+    expect(result.success).toBe(true)
   })
 })
 

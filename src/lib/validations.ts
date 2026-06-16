@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCnpj } from '@/services/fiscal/cnpj.service'
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,10 @@ export const registerSchema = z.object({
     .max(128)
     .regex(/[A-Z]/, 'A senha deve conter ao menos uma letra maiúscula')
     .regex(/[0-9]/, 'A senha deve conter ao menos um número'),
+  cnpj: z
+    .string()
+    .min(1, 'CNPJ é obrigatório')
+    .refine(isValidCnpj, 'CNPJ inválido'),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 import { registerSchema, zodErrorResponse } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { normalizeCnpj, lookupCnpj } from '@/services/fiscal/cnpj.service'
 import { z } from 'zod'
 
 export async function POST(req: Request) {
@@ -27,7 +28,27 @@ export async function POST(req: Request) {
       return NextResponse.json(zodErrorResponse(parsed.error), { status: 400 })
     }
 
-    const { restaurantName, name, email, password } = parsed.data
+    const { restaurantName, name, email, password, cnpj } = parsed.data
+    const cnpjDigits = normalizeCnpj(cnpj)
+
+    const cnpjEmUso = await prisma.tenant.findUnique({ where: { cnpj: cnpjDigits } })
+    if (cnpjEmUso) {
+      return NextResponse.json(
+        { error: 'Não foi possível criar a conta. Verifique os dados.' },
+        { status: 400 }
+      )
+    }
+
+    const lookup = await lookupCnpj(cnpjDigits)
+    if (lookup.status === 'not_found' || lookup.status === 'inactive') {
+      return NextResponse.json(
+        { error: 'CNPJ não encontrado ou inativo na Receita Federal.' },
+        { status: 400 }
+      )
+    }
+    const fiscalData = lookup.status === 'ok'
+      ? { razaoSocial: lookup.data.razaoSocial, nomeFantasia: lookup.data.nomeFantasia, situacaoCadastral: lookup.data.situacaoCadastral, cnpjVerifiedAt: new Date() }
+      : { cnpjVerifiedAt: null }
 
     const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
@@ -50,6 +71,8 @@ export async function POST(req: Request) {
       data: {
         name: restaurantName,
         slug,
+        cnpj: cnpjDigits,
+        fiscal: { create: fiscalData },
         users: {
           create: {
             name,

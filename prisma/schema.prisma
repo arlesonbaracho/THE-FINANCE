@@ -188,6 +188,7 @@ model Tenant {
   slug                String               @unique
   logo                String?
   phone               String?
+  cnpj                String?              @unique
   active              Boolean              @default(true)
   deletedAt           DateTime?
   createdAt           DateTime             @default(now())
@@ -219,6 +220,7 @@ model Tenant {
   kdsDevices           KdsDevice[]
   nfsProcessadas       NfProcessada[]
   chatMessages         ChatMessage[]
+  fiscal               TenantFiscal?
   aiUsage              AiUsage?
   aiUsageHistory       AiUsageHistory[]
   ifoodIntegracao      IFoodIntegration?
@@ -228,6 +230,8 @@ model Tenant {
   isHeadquarters       Boolean              @default(false)
   brand                Brand?               @relation(fields: [brandId], references: [id])
   produtoOverrides     ProdutoOverride[]
+  stripeCustomer       StripeCustomer?
+  paymentTransactions  PaymentTransaction[]
 }
 
 // ── Plans & Subscriptions ─────────────────────────────────────────────────────
@@ -242,6 +246,7 @@ model Plan {
   maxProducts     Int                  @default(100)
   maxOrdersMonth  Int                  @default(1000)
   features        Json
+  stripePriceId   String?
   active          Boolean              @default(true)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
@@ -461,6 +466,18 @@ model Supplier {
   @@index([tenantId])
 }
 
+model TenantFiscal {
+  id                String    @id @default(cuid())
+  tenantId          String    @unique
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  razaoSocial       String?
+  nomeFantasia      String?
+  situacaoCadastral String?
+  cnpjVerifiedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
 // ── Inventory ─────────────────────────────────────────────────────────────────
 
 enum Unit {
@@ -506,6 +523,8 @@ model Ingredient {
   @@unique([codigoInterno, tenantId])
   @@index([tenantId])
   @@index([categoryId])
+  @@index([supplierId])
+  @@index([fornecedorSecundarioId])
 }
 
 model IngredientMovement {
@@ -570,6 +589,7 @@ model ProductIngredient {
   quantity     Float
 
   @@unique([productId, ingredientId])
+  @@index([ingredientId])
 }
 
 // ── Inventory Counting ────────────────────────────────────────────────────────
@@ -1182,4 +1202,37 @@ model AdminSettings {
   chave     String   @unique
   valor     Json
   updatedAt DateTime @updatedAt
+}
+
+// ── Payment Integrations ──────────────────────────────────────────────────────
+
+model StripeCustomer {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  stripeCustomerId String   @unique
+  stripeSubId      String?
+  createdAt        DateTime @default(now())
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model PaymentTransaction {
+  id              String    @id @default(cuid())
+  tenantId        String
+  pedidoId        String?
+  gateway         String
+  gatewayTxId     String    @unique
+  amount          Int
+  currency        String    @default("BRL")
+  status          String
+  paymentMethod   String
+  pixQrCode       String?
+  pixQrCodeBase64 String?
+  pixExpiration   DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([pedidoId])
 }

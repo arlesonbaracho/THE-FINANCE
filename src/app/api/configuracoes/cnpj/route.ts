@@ -6,6 +6,8 @@ import { isValidCnpj, normalizeCnpj, formatCnpj, lookupCnpj, buildFiscalData } f
 export async function GET() {
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
+  const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPER_ADMIN'
+  if (!isAdmin) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.user.tenantId },

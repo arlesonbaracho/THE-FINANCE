@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText } from 'lucide-react'
@@ -549,7 +550,7 @@ function CnpjTab({ cnpjAtual, reload }: { cnpjAtual: string | null; reload: () =
             </Button>
           </div>
           {fieldError && (
-            <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{fieldError}</p>
+            <p style={{ fontSize: 12, color: 'var(--tf-red)', margin: 0 }}>{fieldError}</p>
           )}
         </div>
       </div>
@@ -561,6 +562,8 @@ function CnpjTab({ cnpjAtual, reload }: { cnpjAtual: string | null; reload: () =
 
 export default function RestaurantePage() {
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
   const [tab, setTab] = useState<Tab>('ambientes')
 
   const { data: ambientes = [], isLoading: loadingA } = useQuery<Ambiente[]>({
@@ -582,6 +585,7 @@ export default function RestaurantePage() {
     queryKey: ['configuracoes-cnpj'],
     queryFn: () => fetch('/api/configuracoes/cnpj').then(r => r.json()),
     staleTime: 30 * 60_000,
+    enabled: isAdmin,
   })
 
   const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj)
@@ -597,7 +601,8 @@ export default function RestaurantePage() {
     { key: 'ambientes', label: 'Ambientes', icon: <LayoutGrid size={15} /> },
     { key: 'mesas', label: 'Mesas', icon: <Table2 size={15} /> },
     { key: 'config', label: 'Configurações PDV', icon: <Settings size={15} /> },
-    { key: 'cnpj', label: 'CNPJ', icon: <FileText size={15} /> },
+    // CNPJ é configuração fiscal — visível apenas para administradores
+    ...(isAdmin ? [{ key: 'cnpj' as Tab, label: 'CNPJ', icon: <FileText size={15} /> }] : []),
   ]
 
   return (
@@ -644,7 +649,7 @@ export default function RestaurantePage() {
           {tab === 'ambientes' && <AmbientesTab ambientes={ambientes} reload={reload} />}
           {tab === 'mesas' && <MesasTab mesas={mesas} ambientes={ambientes} reload={reload} />}
           {tab === 'config' && <ConfigTab config={config} reload={reload} />}
-          {tab === 'cnpj' && <CnpjTab cnpjAtual={cnpjData?.cnpj ?? null} reload={reload} />}
+          {tab === 'cnpj' && isAdmin && <CnpjTab cnpjAtual={cnpjData?.cnpj ?? null} reload={reload} />}
         </>
       )}
     </div>

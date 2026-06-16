@@ -15,27 +15,46 @@ export async function getOrCreateStripeCustomer(tenantId: string, email: string,
   return customer.id
 }
 
-export async function createCheckoutSession(
+export async function createSetupIntent(
   tenantId: string,
-  priceId: string,
   email: string,
   name: string,
-  successUrl: string,
-  cancelUrl: string,
-): Promise<{ url: string }> {
+): Promise<{ clientSecret: string }> {
   const customerId = await getOrCreateStripeCustomer(tenantId, email, name)
-
-  const session = await stripe.checkout.sessions.create({
+  const intent = await stripe.setupIntents.create({
     customer: customerId,
     payment_method_types: ['card'],
-    line_items: [{ price: priceId, quantity: 1 }],
-    mode: 'subscription',
-    success_url: successUrl,
-    cancel_url: cancelUrl,
+    usage: 'off_session',
+  })
+  return { clientSecret: intent.client_secret! }
+}
+
+export async function createSubscriptionFromPaymentMethod(
+  tenantId: string,
+  priceId: string,
+  paymentMethodId: string,
+): Promise<{ status: string }> {
+  const customer = await prisma.stripeCustomer.findUnique({ where: { tenantId } })
+  if (!customer) throw new Error('Cliente Stripe não encontrado')
+
+  await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.stripeCustomerId })
+  await stripe.customers.update(customer.stripeCustomerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+  })
+
+  const subscription = await stripe.subscriptions.create({
+    customer: customer.stripeCustomerId,
+    items: [{ price: priceId }],
+    default_payment_method: paymentMethodId,
     metadata: { tenantId },
   })
 
-  return { url: session.url! }
+  await prisma.stripeCustomer.update({
+    where: { tenantId },
+    data: { stripeSubId: subscription.id },
+  })
+
+  return { status: subscription.status }
 }
 
 export async function cancelSubscription(tenantId: string): Promise<void> {

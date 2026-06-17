@@ -30,7 +30,12 @@ export const saasMetricsQueue = new Queue('saas-metrics-snapshot', {
   defaultJobOptions: { attempts: 2, backoff: { type: 'fixed', delay: 5000 } },
 })
 
-for (const q of [platformHealthQueue, saasMetricsQueue]) {
+export const nfCaptureQueue = new Queue('nf-capture', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: { attempts: 3, backoff: { type: 'fixed', delay: 5000 } },
+})
+
+for (const q of [platformHealthQueue, saasMetricsQueue, nfCaptureQueue]) {
   q.on('error', (err) => {
     const code = (err as NodeJS.ErrnoException).code
     if (code !== 'ECONNREFUSED' && code !== 'EPIPE') {

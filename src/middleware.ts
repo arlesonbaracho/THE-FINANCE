@@ -50,6 +50,7 @@ const PROTECTED_PREFIXES = [
   '/configuracoes',
   '/plano-bloqueado',
   '/rede',
+  '/fiscal',
 ]
 
 export default withAuth(
@@ -68,6 +69,9 @@ export default withAuth(
     return NextResponse.next()
   },
   {
+    pages: {
+      signIn: '/auth/login',
+    },
     callbacks: {
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl.pathname
@@ -96,6 +100,7 @@ export const config = {
     '/configuracoes/:path*',
     '/plano-bloqueado/:path*',
     '/rede/:path*',
+    '/fiscal/:path*',
     '/auth/:path*',
     '/admin/:path*',
     '/recuperar-senha/:path*',

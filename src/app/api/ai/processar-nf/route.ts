@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { NfOrigem } from '@prisma/client'
 import { getSession, unauthorizedResponse } from '@/lib/session'
 import { checkAiLimit } from '@/lib/middleware/ai-limit.middleware'
 import { uploadNfToCloudinary } from '@/services/ai/nf-processor.service'
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   let cloudinaryUrl: string | null = null
   let mediaType: string | null = null
   let texto: string | null = null
-  let origem: 'UPLOAD_IMAGEM' | 'UPLOAD_PDF' | 'TEXTO'
+  let origem: NfOrigem
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await req.formData()

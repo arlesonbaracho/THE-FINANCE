@@ -467,15 +467,21 @@ model Supplier {
 }
 
 model TenantFiscal {
-  id                String    @id @default(cuid())
-  tenantId          String    @unique
-  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  razaoSocial       String?
-  nomeFantasia      String?
-  situacaoCadastral String?
-  cnpjVerifiedAt    DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  tenantId                String    @unique
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  razaoSocial             String?
+  nomeFantasia            String?
+  situacaoCadastral       String?
+  cnpjVerifiedAt          DateTime?
+  certificadoCifrado      String?   @db.Text
+  certificadoSenhaCifrada String?   @db.Text
+  certificadoValidade     DateTime?
+  certificadoStatus       String?
+  focusEmpresaId          String?
+  ultimaSincronizacaoNf   DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 }
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -942,12 +948,20 @@ enum NfOrigem {
   UPLOAD_IMAGEM
   UPLOAD_PDF
   TEXTO
+  SEFAZ
+  EMISSAO
 }
 
 enum NfStatus {
   PROCESSANDO
   CONCLUIDA
   ERRO
+  CAPTURADA
+}
+
+enum NfTipo {
+  ENTRADA
+  SAIDA
 }
 
 enum ChatRole {
@@ -956,20 +970,25 @@ enum ChatRole {
 }
 
 model NfProcessada {
-  id             String    @id @default(cuid())
-  tenantId       String
-  origem         NfOrigem
-  cloudinaryUrl  String?
-  numeroNf       String?
-  fornecedorNome String?
-  dataEmissao    DateTime?
-  valorTotal     Decimal?
-  status         NfStatus
-  rawResponseIa  Json
-  itensCriados   Int       @default(0)
-  processadoPor  String
-  createdAt      DateTime  @default(now())
-  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(cuid())
+  tenantId           String
+  origem             NfOrigem
+  cloudinaryUrl      String?
+  numeroNf           String?
+  fornecedorNome     String?
+  dataEmissao        DateTime?
+  valorTotal         Decimal?
+  status             NfStatus
+  rawResponseIa      Json?
+  itensCriados       Int       @default(0)
+  processadoPor      String
+  createdAt          DateTime  @default(now())
+  chaveAcesso        String?   @unique
+  xml                String?   @db.Text
+  modelo             String?
+  tipo               NfTipo?
+  importadoEstoqueEm DateTime?
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, status])

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +20,7 @@ type ConfigPdv = {
   formasPagamento: string[]
 }
 
-type Tab = 'ambientes' | 'mesas' | 'config' | 'cnpj'
+type Tab = 'ambientes' | 'mesas' | 'config' | 'cnpj' | 'certificado'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -558,6 +558,178 @@ function CnpjTab({ cnpjAtual, reload }: { cnpjAtual: string | null; reload: () =
   )
 }
 
+// ── Certificado Digital ───────────────────────────────────────────────────────
+
+type CertificadoStatus = {
+  certificadoStatus: string | null
+  certificadoValidade: string | null
+  ultimaSincronizacaoNf: string | null
+}
+
+function CertificadoTab({ status, reload }: { status: CertificadoStatus | null; reload: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [senha, setSenha] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  function formatDateBR(d: string | null) {
+    if (!d) return null
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(d))
+  }
+
+  function readAsBase64(f: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // strip data URL prefix: "data:...;base64,"
+        const b64 = result.split(',')[1] ?? result
+        resolve(b64)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(f)
+    })
+  }
+
+  async function salvar() {
+    if (!file || !senha) return
+    setSaving(true)
+    try {
+      const certificadoBase64 = await readAsBase64(file)
+      const r = await fetch('/api/fiscal/certificado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ certificadoBase64, senha }),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        toast.error(data.error ?? 'Erro ao salvar certificado.')
+        return
+      }
+      const result = await r.json()
+      const validadeStr = result.validade
+        ? ` Validade: ${formatDateBR(result.validade)}.`
+        : ''
+      toast.success(`Certificado registrado com sucesso.${validadeStr}`)
+      setFile(null)
+      setSenha('')
+      reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const hasValidCert = status?.certificadoStatus === 'ATIVO'
+  const certExpired = status?.certificadoValidade
+    ? new Date(status.certificadoValidade) < new Date()
+    : false
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 520 }}>
+      {/* Current status */}
+      {status?.certificadoStatus && (
+        <div style={S.card}>
+          <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Status do Certificado</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--tf-txt2)', minWidth: 80 }}>Situação:</span>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '2px 8px',
+                borderRadius: 20,
+                fontSize: 11,
+                fontWeight: 600,
+                background: hasValidCert && !certExpired ? 'var(--tf-green-ok-bg)' : 'var(--tf-red-bg)',
+                color: hasValidCert && !certExpired ? 'var(--tf-green-ok)' : 'var(--tf-red)',
+                border: `1px solid ${hasValidCert && !certExpired ? 'var(--tf-green-ok-bd)' : 'var(--tf-red-bd)'}`,
+              }}>
+                {certExpired ? 'Vencido' : (status.certificadoStatus ?? '—')}
+              </span>
+            </div>
+            {status.certificadoValidade && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--tf-txt2)', minWidth: 80 }}>Validade:</span>
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: certExpired ? 'var(--tf-red)' : 'var(--tf-txt)',
+                }}>
+                  {formatDateBR(status.certificadoValidade)}
+                  {certExpired && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--tf-red)' }}>(vencido)</span>}
+                </span>
+              </div>
+            )}
+            {status.ultimaSincronizacaoNf && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--tf-txt2)', minWidth: 80 }}>Últ. sync:</span>
+                <span style={{ fontSize: 13, color: 'var(--tf-txt2)' }}>
+                  {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(status.ultimaSincronizacaoNf))}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Upload form */}
+      <div style={S.card}>
+        <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
+          {status?.certificadoStatus ? 'Renovar Certificado .pfx' : 'Carregar Certificado .pfx'}
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--tf-txt2)', marginBottom: 16 }}>
+          Selecione o arquivo <strong>.pfx</strong> do certificado digital A1 e informe a senha.
+          O certificado é enviado de forma segura e criptografado em repouso.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', marginBottom: 4, display: 'block' }}>
+              Arquivo .pfx
+            </Label>
+            <input
+              type="file"
+              accept=".pfx,.p12"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              style={{
+                ...S.input,
+                padding: '6px 10px',
+                cursor: 'pointer',
+              }}
+            />
+            {file && (
+              <p style={{ fontSize: 12, color: 'var(--tf-txt2)', marginTop: 4 }}>
+                Selecionado: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', marginBottom: 4, display: 'block' }}>
+              Senha do certificado
+            </Label>
+            <Input
+              type="password"
+              placeholder="Senha do .pfx"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !saving && salvar()}
+              autoComplete="new-password"
+              style={{ maxWidth: 260 }}
+            />
+          </div>
+          <Button
+            onClick={salvar}
+            disabled={saving || !file || !senha}
+            size="sm"
+            style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <ShieldCheck size={14} />
+            {saving ? 'Salvando…' : 'Salvar certificado'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function RestaurantePage() {
@@ -587,22 +759,30 @@ export default function RestaurantePage() {
     staleTime: 30 * 60_000,
     enabled: isAdmin,
   })
+  const { data: certData, isLoading: loadingCert } = useQuery<CertificadoStatus>({
+    queryKey: ['fiscal-certificado'],
+    queryFn: () => fetch('/api/fiscal/certificado').then(r => r.json()),
+    staleTime: 10 * 60_000,
+    enabled: isAdmin,
+  })
 
-  const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj)
+  const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj) || (tab === 'certificado' && loadingCert)
 
   const reload = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['ambientes'] })
     queryClient.invalidateQueries({ queryKey: ['mesas'] })
     queryClient.invalidateQueries({ queryKey: ['config-pdv'] })
     queryClient.invalidateQueries({ queryKey: ['configuracoes-cnpj'] })
+    queryClient.invalidateQueries({ queryKey: ['fiscal-certificado'] })
   }, [queryClient])
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'ambientes', label: 'Ambientes', icon: <LayoutGrid size={15} /> },
     { key: 'mesas', label: 'Mesas', icon: <Table2 size={15} /> },
     { key: 'config', label: 'Configurações PDV', icon: <Settings size={15} /> },
-    // CNPJ é configuração fiscal — visível apenas para administradores
+    // CNPJ e Certificado são configurações fiscais — visíveis apenas para administradores
     ...(isAdmin ? [{ key: 'cnpj' as Tab, label: 'CNPJ', icon: <FileText size={15} /> }] : []),
+    ...(isAdmin ? [{ key: 'certificado' as Tab, label: 'Certificado Digital', icon: <ShieldCheck size={15} /> }] : []),
   ]
 
   return (
@@ -650,6 +830,7 @@ export default function RestaurantePage() {
           {tab === 'mesas' && <MesasTab mesas={mesas} ambientes={ambientes} reload={reload} />}
           {tab === 'config' && <ConfigTab config={config} reload={reload} />}
           {tab === 'cnpj' && isAdmin && <CnpjTab cnpjAtual={cnpjData?.cnpj ?? null} reload={reload} />}
+          {tab === 'certificado' && isAdmin && <CertificadoTab status={certData ?? null} reload={reload} />}
         </>
       )}
     </div>

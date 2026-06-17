@@ -20,6 +20,7 @@ import {
   Plug,
   Truck,
   MessageCircle,
+  FileText,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -62,6 +63,13 @@ const navItems: NavItem[] = [
       { label: 'Insumos',    href: '/estoque/insumos',    icon: ShoppingBasket },
       { label: 'Produtos',   href: '/estoque/produtos',   icon: ChefHat },
       { label: 'Inventário', href: '/estoque/inventario', icon: Package },
+    ],
+  },
+  {
+    label: 'Fiscal',
+    icon: FileText,
+    children: [
+      { label: 'Notas Fiscais', href: '/fiscal/notas', icon: FileText },
     ],
   },
   {

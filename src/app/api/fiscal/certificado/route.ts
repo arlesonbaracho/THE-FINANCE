@@ -3,6 +3,23 @@ import { getSession, unauthorizedResponse } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { salvarCertificado } from '@/services/fiscal/certificado.service'
 
+export async function GET() {
+  const session = await getSession()
+  if (!session?.user?.tenantId) return unauthorizedResponse()
+  if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')
+    return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+
+  const fiscal = await prisma.tenantFiscal.findUnique({
+    where: { tenantId: session.user.tenantId },
+    select: { certificadoStatus: true, certificadoValidade: true, ultimaSincronizacaoNf: true },
+  })
+  return NextResponse.json({
+    certificadoStatus: fiscal?.certificadoStatus ?? null,
+    certificadoValidade: fiscal?.certificadoValidade ?? null,
+    ultimaSincronizacaoNf: fiscal?.ultimaSincronizacaoNf ?? null,
+  })
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()

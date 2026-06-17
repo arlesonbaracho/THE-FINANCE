@@ -37,10 +37,20 @@ describe('sincronizarNotasDestinadas', () => {
       data: expect.objectContaining({ chaveAcesso: 'B', origem: 'SEFAZ', tipo: 'ENTRADA', status: 'CAPTURADA' }),
     }))
     expect(mp.tenantFiscal.update).toHaveBeenCalled()
+    // baixarXml só é chamado para a chave nova ('B'), não para a duplicada ('A')
+    expect(fakeProvider.baixarXml).toHaveBeenCalledTimes(1)
+    expect(fakeProvider.baixarXml).toHaveBeenCalledWith('B')
   })
 
   it('não faz nada sem focusEmpresaId', async () => {
     mp.tenantFiscal.findUnique.mockResolvedValue({ tenantId: 't1', focusEmpresaId: null, tenant: { cnpj: '1' } })
+    const n = await sincronizarNotasDestinadas('t1', fakeProvider as any)
+    expect(n).toBe(0)
+    expect(fakeProvider.consultarNotasDestinadas).not.toHaveBeenCalled()
+  })
+
+  it('não faz nada sem CNPJ no tenant', async () => {
+    mp.tenantFiscal.findUnique.mockResolvedValue({ tenantId: 't1', focusEmpresaId: 'e1', tenant: { cnpj: null } })
     const n = await sincronizarNotasDestinadas('t1', fakeProvider as any)
     expect(n).toBe(0)
     expect(fakeProvider.consultarNotasDestinadas).not.toHaveBeenCalled()

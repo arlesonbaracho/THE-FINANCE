@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { enriquecerItens } from '@/services/ai/nf-processor.service'
-import type { ItemExtraido, ItemEnriquecido } from '@/services/ai/types'
+import type { ItemExtraido } from '@/services/ai/types'
 
 const UNIDADES = ['KG', 'G', 'L', 'ML', 'UN']
 

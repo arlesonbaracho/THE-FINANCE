@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe('salvarCertificado', () => {
   it('cifra o certificado/senha e registra o emitente', async () => {
-    await salvarCertificado('t1', '11222333000181', 'BASE64PFX', 'senha123', fakeProvider as any)
+    const result = await salvarCertificado('t1', '11222333000181', 'BASE64PFX', 'senha123', fakeProvider as any)
     expect(fakeProvider.registrarEmitente).toHaveBeenCalledWith({ cnpj: '11222333000181', certificadoBase64: 'BASE64PFX', senha: 'senha123' })
     const arg = mp.tenantFiscal.upsert.mock.calls[0][0]
     const stored = arg.update
@@ -28,5 +28,8 @@ describe('salvarCertificado', () => {
     expect(stored.focusEmpresaId).toBe('e1')
     expect(stored.certificadoStatus).toBe('ATIVO')
     expect(arg.where).toEqual({ tenantId: 't1' })
+    // o create também leva o tenantId, e o retorno expõe só a validade
+    expect(arg.create).toMatchObject({ tenantId: 't1' })
+    expect(result.validade).toEqual(new Date('2027-01-01'))
   })
 })

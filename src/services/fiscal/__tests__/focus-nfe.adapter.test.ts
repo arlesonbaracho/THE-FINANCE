@@ -30,4 +30,14 @@ describe('FocusNfeAdapter.consultarNotasDestinadas', () => {
     const adapter = new FocusNfeAdapter()
     await expect(adapter.consultarNotasDestinadas({ cnpj: '11222333000181' })).rejects.toThrow()
   })
+
+  it('usa data atual válida quando data_emissao está ausente', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ([{ chave_nfe: 'X', numero: '1', nome_emitente: 'A', valor_total: '1', modelo: '55' }]),
+    }))
+    const adapter = new FocusNfeAdapter()
+    const r = await adapter.consultarNotasDestinadas({ cnpj: '11222333000181' })
+    expect(Number.isNaN(r[0].dataEmissao.getTime())).toBe(false)
+  })
 })

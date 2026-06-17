@@ -25,7 +25,7 @@ export class FocusNfeAdapter implements FiscalProvider {
       numero: String(o.numero ?? ''),
       emitenteNome: String(o.nome_emitente ?? ''),
       valorTotal: Number(o.valor_total ?? 0),
-      dataEmissao: new Date(String(o.data_emissao ?? Date.now())),
+      dataEmissao: o.data_emissao != null ? new Date(String(o.data_emissao)) : new Date(),
       modelo: MODELO_MAP[String(o.modelo ?? '55')] ?? 'NFe',
     }))
   }

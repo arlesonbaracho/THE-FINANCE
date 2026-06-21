@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, type Part } from '@google/generative-ai'
-import levenshtein from 'fast-levenshtein'
 import { prisma } from '@/lib/prisma'
+import { melhorMatchPorNome } from '@/lib/match-nome'
 import { uploadBuffer } from '@/lib/cloudinary'
 import type { ItemExtraido, ItemEnriquecido, NfExtraidaData } from './types'
 
@@ -105,20 +105,8 @@ export async function enriquecerItens(
   }
 
   return itens.map((item) => {
-    const termo = item.descricao.toLowerCase()
-
-    const scored = ingredients.map((ing) => {
-      const name = ing.name.toLowerCase()
-      const dist = levenshtein.get(termo, name)
-      const maxLen = Math.max(termo.length, name.length)
-      const score = maxLen === 0 ? 0 : Math.round((1 - dist / maxLen) * 100)
-      return { ...ing, score }
-    })
-
-    const best = scored.sort((a, b) => b.score - a.score)[0]
-    const scoreConfianca = Math.max(0, Math.min(100, best.score))
-
-    return { ...item, insumoId: best.id, insumoNome: best.name, scoreConfianca }
+    const best = melhorMatchPorNome(item.descricao, ingredients)
+    return { ...item, insumoId: best?.id ?? null, insumoNome: best?.name ?? null, scoreConfianca: best?.score ?? 0 }
   })
 }
 

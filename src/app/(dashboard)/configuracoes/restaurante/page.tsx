@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText, ShieldCheck } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, LayoutGrid, Table2, Settings, FileText, ShieldCheck, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +20,7 @@ type ConfigPdv = {
   formasPagamento: string[]
 }
 
-type Tab = 'ambientes' | 'mesas' | 'config' | 'cnpj' | 'certificado'
+type Tab = 'ambientes' | 'mesas' | 'config' | 'cnpj' | 'certificado' | 'nfce'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -730,6 +730,240 @@ function CertificadoTab({ status, reload }: { status: CertificadoStatus | null; 
   )
 }
 
+// ── NFC-e Config ──────────────────────────────────────────────────────────────
+
+type NfceConfig = {
+  regimeTributario: string | null
+  inscricaoEstadual: string | null
+  cscIdNfce: string | null
+  serieNfce: number | null
+  nfceAutomatica: boolean
+  ncmPadrao: string | null
+  cfopPadrao: string | null
+  cstCsosnPadrao: string | null
+  origemMercadoriaPadrao: string | null
+  cscConfigurado: boolean
+}
+
+function NfceTab({ config, reload }: { config: NfceConfig | null; reload: () => void }) {
+  const [regime, setRegime]           = useState(config?.regimeTributario ?? '')
+  const [ie, setIe]                   = useState(config?.inscricaoEstadual ?? '')
+  const [serie, setSerie]             = useState(String(config?.serieNfce ?? '1'))
+  const [automatica, setAutomatica]   = useState(config?.nfceAutomatica ?? false)
+  const [csc, setCsc]                 = useState('')
+  const [cscId, setCscId]             = useState(config?.cscIdNfce ?? '')
+  const [ncm, setNcm]                 = useState(config?.ncmPadrao ?? '')
+  const [cfop, setCfop]               = useState(config?.cfopPadrao ?? '')
+  const [cst, setCst]                 = useState(config?.cstCsosnPadrao ?? '')
+  const [origem, setOrigem]           = useState(config?.origemMercadoriaPadrao ?? '')
+  const [saving, setSaving]           = useState(false)
+
+  useEffect(() => {
+    if (!config) return
+    setRegime(config.regimeTributario ?? '')
+    setIe(config.inscricaoEstadual ?? '')
+    setSerie(String(config.serieNfce ?? '1'))
+    setAutomatica(config.nfceAutomatica ?? false)
+    setCscId(config.cscIdNfce ?? '')
+    setNcm(config.ncmPadrao ?? '')
+    setCfop(config.cfopPadrao ?? '')
+    setCst(config.cstCsosnPadrao ?? '')
+    setOrigem(config.origemMercadoriaPadrao ?? '')
+  }, [config])
+
+  async function save() {
+    setSaving(true)
+    const body: Record<string, string | number | boolean | undefined> = {
+      regimeTributario: regime || undefined,
+      inscricaoEstadual: ie || undefined,
+      cscIdNfce: cscId || undefined,
+      serieNfce: parseInt(serie, 10) || 1,
+      nfceAutomatica: automatica,
+      ncmPadrao: ncm || undefined,
+      cfopPadrao: cfop || undefined,
+      cstCsosnPadrao: cst || undefined,
+      origemMercadoriaPadrao: origem || undefined,
+    }
+    // Only include CSC if user typed a value
+    if (csc.trim().length > 0) body.cscNfce = csc
+
+    const r = await fetch('/api/fiscal/config-nfce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSaving(false)
+    if (!r.ok) { toast.error((await r.json()).error ?? 'Erro ao salvar'); return }
+    toast.success('Configuração NFC-e salva')
+    setCsc('')
+    reload()
+  }
+
+  const selectStyle: React.CSSProperties = {
+    ...S.input,
+    height: 34,
+    cursor: 'pointer',
+    appearance: 'auto',
+  }
+
+  const toggleBtn: (on: boolean) => React.CSSProperties = (on) => ({
+    width: 42,
+    height: 22,
+    borderRadius: 11,
+    background: on ? 'var(--tf-primary)' : 'var(--tf-border)',
+    border: 'none',
+    cursor: 'pointer',
+    position: 'relative',
+    flexShrink: 0,
+    transition: 'background 0.2s',
+  })
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 540 }}>
+      <div style={S.card}>
+        <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Regime e Inscrição</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>Regime Tributário</Label>
+            <select value={regime} onChange={(e) => setRegime(e.target.value)} style={selectStyle}>
+              <option value="">Selecione…</option>
+              <option value="SIMPLES_NACIONAL">Simples Nacional</option>
+              <option value="NORMAL">Lucro Presumido / Real</option>
+            </select>
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>Inscrição Estadual</Label>
+            <input
+              type="text"
+              value={ie}
+              onChange={(e) => setIe(e.target.value)}
+              placeholder="Ex: 123456789"
+              style={S.input}
+              maxLength={20}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>Série NFC-e</Label>
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={serie}
+                onChange={(e) => setSerie(e.target.value)}
+                style={{ ...S.input, width: 90 }}
+              />
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+                <button
+                  role="switch"
+                  aria-checked={automatica}
+                  onClick={() => setAutomatica((v) => !v)}
+                  style={toggleBtn(automatica)}
+                >
+                  <span style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: automatica ? 22 : 3,
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    background: '#fff',
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+                <Label style={{ fontSize: 13 }}>Emissão automática</Label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>CSC (Código de Segurança do Contribuinte)</h3>
+        <p style={{ fontSize: 12, color: 'var(--tf-txt2)', marginBottom: 14 }}>
+          O CSC é exigido pela SEFAZ para emissão de NFC-e. Ele é armazenado de forma criptografada.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>CSC</Label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={csc}
+              onChange={(e) => setCsc(e.target.value)}
+              placeholder={config?.cscConfigurado ? '● configurado — deixe em branco para manter' : 'Cole o CSC da SEFAZ'}
+              style={S.input}
+              maxLength={200}
+            />
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>ID do CSC</Label>
+            <input
+              type="text"
+              value={cscId}
+              onChange={(e) => setCscId(e.target.value)}
+              placeholder="Ex: 000001"
+              style={S.input}
+              maxLength={10}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Padrões Fiscais</h3>
+        <p style={{ fontSize: 12, color: 'var(--tf-txt2)', marginBottom: 14 }}>
+          Valores usados quando o produto não tem campo fiscal preenchido.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>NCM padrão</Label>
+            <input type="text" value={ncm} onChange={(e) => setNcm(e.target.value)} placeholder="Ex: 21069090" style={S.input} maxLength={12} />
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>CFOP padrão</Label>
+            <input type="text" value={cfop} onChange={(e) => setCfop(e.target.value)} placeholder="Ex: 5102" style={S.input} maxLength={6} />
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>CST / CSOSN padrão</Label>
+            <input type="text" value={cst} onChange={(e) => setCst(e.target.value)} placeholder="Ex: 102" style={S.input} maxLength={5} />
+          </div>
+          <div>
+            <Label style={{ fontSize: 12, color: 'var(--tf-txt2)', display: 'block', marginBottom: 4 }}>Origem mercadoria padrão</Label>
+            <select value={origem} onChange={(e) => setOrigem(e.target.value)} style={selectStyle}>
+              <option value="">Selecione…</option>
+              <option value="0">0 — Nacional</option>
+              <option value="1">1 — Estrangeira (importação direta)</option>
+              <option value="2">2 — Estrangeira (adquirida no mercado interno)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={save}
+        disabled={saving}
+        style={{
+          alignSelf: 'flex-start',
+          padding: '8px 20px',
+          background: 'var(--tf-primary)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: saving ? 'not-allowed' : 'pointer',
+          opacity: saving ? 0.7 : 1,
+        }}
+      >
+        {saving ? 'Salvando…' : 'Salvar configuração NFC-e'}
+      </button>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function RestaurantePage() {
@@ -765,8 +999,14 @@ export default function RestaurantePage() {
     staleTime: 10 * 60_000,
     enabled: isAdmin,
   })
+  const { data: nfceData, isLoading: loadingNfce } = useQuery<NfceConfig>({
+    queryKey: ['config-nfce'],
+    queryFn: () => fetch('/api/fiscal/config-nfce').then(r => r.json()),
+    staleTime: 10 * 60_000,
+    enabled: isAdmin,
+  })
 
-  const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj) || (tab === 'certificado' && loadingCert)
+  const loading = loadingA || loadingM || loadingC || (tab === 'cnpj' && loadingCnpj) || (tab === 'certificado' && loadingCert) || (tab === 'nfce' && loadingNfce)
 
   const reload = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['ambientes'] })
@@ -774,6 +1014,7 @@ export default function RestaurantePage() {
     queryClient.invalidateQueries({ queryKey: ['config-pdv'] })
     queryClient.invalidateQueries({ queryKey: ['configuracoes-cnpj'] })
     queryClient.invalidateQueries({ queryKey: ['fiscal-certificado'] })
+    queryClient.invalidateQueries({ queryKey: ['config-nfce'] })
   }, [queryClient])
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -783,6 +1024,7 @@ export default function RestaurantePage() {
     // CNPJ e Certificado são configurações fiscais — visíveis apenas para administradores
     ...(isAdmin ? [{ key: 'cnpj' as Tab, label: 'CNPJ', icon: <FileText size={15} /> }] : []),
     ...(isAdmin ? [{ key: 'certificado' as Tab, label: 'Certificado Digital', icon: <ShieldCheck size={15} /> }] : []),
+    ...(isAdmin ? [{ key: 'nfce' as Tab, label: 'NFC-e', icon: <Receipt size={15} /> }] : []),
   ]
 
   return (
@@ -831,6 +1073,7 @@ export default function RestaurantePage() {
           {tab === 'config' && <ConfigTab config={config} reload={reload} />}
           {tab === 'cnpj' && isAdmin && <CnpjTab cnpjAtual={cnpjData?.cnpj ?? null} reload={reload} />}
           {tab === 'certificado' && isAdmin && <CertificadoTab status={certData ?? null} reload={reload} />}
+          {tab === 'nfce' && isAdmin && <NfceTab config={nfceData ?? null} reload={reload} />}
         </>
       )}
     </div>

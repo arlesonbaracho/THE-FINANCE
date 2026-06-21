@@ -36,7 +36,9 @@ export async function GET(req: Request) {
       take: 500,
     })
 
-    return NextResponse.json(products)
+    return NextResponse.json(products, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' },
+    })
   } catch (error) {
     console.error('[PRODUCTS GET]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -54,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json(zodErrorResponse(parsed.error), { status: 400 })
     }
 
-    const { name, salePrice, categoryId } = parsed.data
+    const { name, salePrice, categoryId, ncm, cfop, cstCsosn, origemMercadoria, unidadeTributavel } = parsed.data
 
     const product = await prisma.product.create({
       data: {
@@ -62,6 +64,11 @@ export async function POST(req: Request) {
         salePrice: salePrice ?? 0,
         tenantId,
         categoryId: categoryId ?? null,
+        ...(ncm !== undefined && { ncm: ncm ?? null }),
+        ...(cfop !== undefined && { cfop: cfop ?? null }),
+        ...(cstCsosn !== undefined && { cstCsosn: cstCsosn ?? null }),
+        ...(origemMercadoria !== undefined && { origemMercadoria: origemMercadoria ?? null }),
+        ...(unidadeTributavel !== undefined && { unidadeTributavel: unidadeTributavel ?? null }),
       },
       include: {
         category: true,

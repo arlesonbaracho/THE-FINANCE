@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTenantId, unauthorizedResponse } from '@/lib/session'
 import { productSchema, zodErrorResponse } from '@/lib/validations'
+import { pausarItem, reativarItem, atualizarPreco } from '@/services/integrations/ifood/ifood-catalog.service'
 
 export async function GET(
   _req: Request,
@@ -52,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 })
     }
 
-    const { name, salePrice, categoryId, active } = parsed.data
+    const { name, salePrice, categoryId, active, ncm, cfop, cstCsosn, origemMercadoria, unidadeTributavel } = parsed.data
 
     const updated = await prisma.product.update({
       where: { id: params.id },
@@ -61,6 +62,11 @@ export async function PUT(
         ...(salePrice !== undefined && { salePrice }),
         ...(categoryId !== undefined && { categoryId: categoryId ?? null }),
         ...(active !== undefined && { active }),
+        ...(ncm !== undefined && { ncm: ncm ?? null }),
+        ...(cfop !== undefined && { cfop: cfop ?? null }),
+        ...(cstCsosn !== undefined && { cstCsosn: cstCsosn ?? null }),
+        ...(origemMercadoria !== undefined && { origemMercadoria: origemMercadoria ?? null }),
+        ...(unidadeTributavel !== undefined && { unidadeTributavel: unidadeTributavel ?? null }),
       },
       include: {
         category: true,
@@ -68,7 +74,38 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(updated)
+    const response = NextResponse.json(updated)
+
+    // Fire-and-forget: sync relevant changes to iFood if an active integration exists
+    void (async () => {
+      try {
+        const integration = await prisma.iFoodIntegration.findFirst({
+          where: { tenantId, status: 'CONECTADO' },
+        })
+        if (!integration) return
+
+        const mapping = await prisma.iFoodItemMap.findFirst({
+          where: { tenantId, produtoId: params.id },
+        })
+        if (!mapping) return
+
+        if (active !== undefined) {
+          if (active === false) {
+            await pausarItem(tenantId, mapping.ifoodItemId)
+          } else {
+            await reativarItem(tenantId, mapping.ifoodItemId)
+          }
+        }
+
+        if (salePrice !== undefined) {
+          await atualizarPreco(tenantId, mapping.ifoodItemId, salePrice)
+        }
+      } catch (err) {
+        console.error('[PRODUCT PUT ifood-sync]', err instanceof Error ? err.message : err)
+      }
+    })()
+
+    return response
   } catch (error) {
     console.error('[PRODUCT PUT]', error instanceof Error ? error.message : 'unknown')
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

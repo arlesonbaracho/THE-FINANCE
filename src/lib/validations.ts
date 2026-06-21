@@ -74,6 +74,12 @@ export const productSchema = z.object({
   salePrice: z.number().min(0).max(999_999).default(0),
   categoryId: z.string().cuid().nullable().optional(),
   active: z.boolean().optional(),
+  // Fiscal fields (optional)
+  ncm: z.string().max(12).trim().nullable().optional(),
+  cfop: z.string().max(6).trim().nullable().optional(),
+  cstCsosn: z.string().max(5).trim().nullable().optional(),
+  origemMercadoria: z.string().max(2).trim().nullable().optional(),
+  unidadeTributavel: z.string().max(10).trim().nullable().optional(),
 })
 
 export type ProductInput = z.infer<typeof productSchema>

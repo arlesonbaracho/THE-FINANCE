@@ -29,6 +29,11 @@ type FormValues = {
   salePrice: number
   categoryId?: string
   active: boolean
+  ncm?: string
+  cfop?: string
+  cstCsosn?: string
+  origemMercadoria?: string
+  unidadeTributavel?: string
 }
 
 export interface ProductFormProps {
@@ -140,6 +145,9 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
   // Financial simulator
   const [margemDesejada, setMargemDesejada] = useState(35)
 
+  // Fiscal section state
+  const [fiscalOpen, setFiscalOpen] = useState(false)
+
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormValues>({
     defaultValues: { name: '', salePrice: 0, active: true },
   })
@@ -248,9 +256,19 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
 
   useEffect(() => {
     if (product) {
-      reset({ name: product.name, salePrice: product.salePrice, categoryId: product.categoryId ?? undefined, active: product.active })
+      reset({
+        name: product.name,
+        salePrice: product.salePrice,
+        categoryId: product.categoryId ?? undefined,
+        active: product.active,
+        ncm: (product as ProductWithRelations & { ncm?: string | null }).ncm ?? '',
+        cfop: (product as ProductWithRelations & { cfop?: string | null }).cfop ?? '',
+        cstCsosn: (product as ProductWithRelations & { cstCsosn?: string | null }).cstCsosn ?? '',
+        origemMercadoria: (product as ProductWithRelations & { origemMercadoria?: string | null }).origemMercadoria ?? '',
+        unidadeTributavel: (product as ProductWithRelations & { unidadeTributavel?: string | null }).unidadeTributavel ?? '',
+      })
     } else {
-      reset({ name: '', salePrice: 0, categoryId: undefined, active: true })
+      reset({ name: '', salePrice: 0, categoryId: undefined, active: true, ncm: '', cfop: '', cstCsosn: '', origemMercadoria: '', unidadeTributavel: '' })
     }
   }, [product, reset])
 
@@ -267,10 +285,17 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
     try {
       const url    = product ? `/api/products/${product.id}` : '/api/products'
       const method = product ? 'PUT' : 'POST'
+      const fiscalFields = {
+        ncm: values.ncm?.trim() || null,
+        cfop: values.cfop?.trim() || null,
+        cstCsosn: values.cstCsosn?.trim() || null,
+        origemMercadoria: values.origemMercadoria?.trim() || null,
+        unidadeTributavel: values.unidadeTributavel?.trim() || null,
+      }
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: values.name, salePrice: values.salePrice, categoryId: values.categoryId || null, active: values.active }),
+        body: JSON.stringify({ name: values.name, salePrice: values.salePrice, categoryId: values.categoryId || null, active: values.active, ...fiscalFields }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -422,6 +447,42 @@ export function ProductForm({ open, onOpenChange, product, onSuccess }: ProductF
                     <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', transform: field.value ? 'translateX(18px)' : 'translateX(0)', transition: 'transform 200ms' }} />
                   </button>
                 )} />
+              </div>
+
+              {/* Fiscal (opcional) */}
+              <div style={{ border: '1px solid var(--tf-border)', borderRadius: 6, overflow: 'hidden' }}>
+                <button
+                  type="button"
+                  onClick={() => setFiscalOpen((v) => !v)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', background: 'var(--tf-surface2)', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tf-txt2)' }}>Fiscal (opcional)</span>
+                  <span style={{ fontSize: 11, color: 'var(--tf-txt3)' }}>{fiscalOpen ? '▲ ocultar' : '▼ expandir'}</span>
+                </button>
+                {fiscalOpen && (
+                  <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <Label style={{ fontSize: 11, color: 'var(--tf-txt2)', display: 'block', marginBottom: 3 }}>NCM</Label>
+                      <Input placeholder="Ex: 21069090" {...register('ncm')} style={{ fontSize: 12 }} maxLength={12} />
+                    </div>
+                    <div>
+                      <Label style={{ fontSize: 11, color: 'var(--tf-txt2)', display: 'block', marginBottom: 3 }}>CFOP</Label>
+                      <Input placeholder="Ex: 5102" {...register('cfop')} style={{ fontSize: 12 }} maxLength={6} />
+                    </div>
+                    <div>
+                      <Label style={{ fontSize: 11, color: 'var(--tf-txt2)', display: 'block', marginBottom: 3 }}>CST / CSOSN</Label>
+                      <Input placeholder="Ex: 102" {...register('cstCsosn')} style={{ fontSize: 12 }} maxLength={5} />
+                    </div>
+                    <div>
+                      <Label style={{ fontSize: 11, color: 'var(--tf-txt2)', display: 'block', marginBottom: 3 }}>Origem mercadoria</Label>
+                      <Input placeholder="Ex: 0" {...register('origemMercadoria')} style={{ fontSize: 12 }} maxLength={2} />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <Label style={{ fontSize: 11, color: 'var(--tf-txt2)', display: 'block', marginBottom: 3 }}>Unidade tributável</Label>
+                      <Input placeholder="Ex: UN" {...register('unidadeTributavel')} style={{ fontSize: 12 }} maxLength={10} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Cost preview */}

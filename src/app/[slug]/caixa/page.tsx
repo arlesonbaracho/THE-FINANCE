@@ -35,6 +35,7 @@ type Pedido  = { id: string; status: string; subtotal: number; taxaServico: numb
 type ConfigPdv = { formasPagamento: string[]; taxaServicoAtiva: boolean; taxaServico: number }
 
 type DashView = 'mesas' | 'pedido' | 'finalizar'
+type NfceStatus = { status: string | null; danfeUrl?: string | null; chaveAcesso?: string | null; motivoRejeicao?: string | null }
 
 const FORMAS_LABEL: Record<string, string> = { DINHEIRO: 'Dinheiro', DEBITO: 'Débito', CREDITO: 'Crédito', PIX: 'Pix' }
 
@@ -80,11 +81,22 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
   const [finalizing, setFinalizing] = useState(false)
   const [finalized, setFinalized]   = useState(false)
   const [loadingPedido, setLoadingPedido] = useState(false)
+  const [pixModal, setPixModal] = useState<{ qrCode: string; qrCodeBase64: string; txId: string; expiresAt: string } | null>(null)
+  const [pixLoading, setPixLoading] = useState(false)
+  const [pixPolling, setPixPolling] = useState<ReturnType<typeof setInterval> | null>(null)
+
+  // NFC-e state
+  const [nfceStatus, setNfceStatus] = useState<NfceStatus | null>(null)
+  const [emitingNfce, setEmitingNfce] = useState(false)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(t)
   }, [])
+
+  useEffect(() => {
+    return () => { if (pixPolling) clearInterval(pixPolling) }
+  }, [pixPolling])
 
   const loadPage = useCallback(() => {
     setLoading(true)
@@ -135,18 +147,22 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
     setMesaAtiva(mesa)
     setLoadingPedido(true)
     setDashView('pedido')
+    setNfceStatus(null)
     const r = await fetch(`/api/pedidos?slug=${slug}&mesaId=${mesa.id}&status=ABERTO,EM_PREPARO,PRONTO,ENTREGUE`)
     if (r.ok) {
       const list: Pedido[] = await r.json()
-      setPedido(list[0] ?? null)
+      const p = list[0] ?? null
+      setPedido(p)
+      if (p) loadNfceStatus(p.id)
     }
     setLoadingPedido(false)
   }
 
   async function finalizarPedido() {
     if (!pedido || !formaSelected) return
+    const pedidoId = pedido.id
     setFinalizing(true)
-    const r = await fetch(`/api/pedidos/${pedido.id}/finalizar`, {
+    const r = await fetch(`/api/pedidos/${pedidoId}/finalizar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ formaPagamento: formaSelected, valor: pedido.total, slug }),
@@ -154,14 +170,92 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
     setFinalizing(false)
     if (!r.ok) return
     setFinalized(true)
+    // Start NFC-e status polling after finalization
+    pollNfceStatus(pedidoId)
     setTimeout(() => {
       setFinalized(false)
       setDashView('mesas')
       setMesaAtiva(null)
       setPedido(null)
       setFormaSelected('')
+      setNfceStatus(null)
       loadMesas()
     }, 2000)
+  }
+
+  async function gerarPixPedido() {
+    if (!pedido) return
+    setPixLoading(true)
+    try {
+      const r = await fetch('/api/pagamentos/pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedidoId: pedido.id, slug }),
+      })
+      if (!r.ok) { setPixLoading(false); return }
+      const data = await r.json()
+      setPixModal(data)
+      setPixLoading(false)
+
+      // Poll for payment status every 3 seconds
+      const interval = setInterval(async () => {
+        const statusR = await fetch(`/api/pagamentos/status/${data.txId}`)
+        if (!statusR.ok) return
+        const { status } = await statusR.json()
+        if (status === 'approved') {
+          clearInterval(interval)
+          setPixPolling(null)
+          setPixModal(null)
+          await finalizarPedido()
+        }
+      }, 3000)
+      setPixPolling(interval)
+    } catch {
+      setPixLoading(false)
+    }
+  }
+
+  async function loadNfceStatus(pedidoId: string) {
+    try {
+      const r = await fetch(`/api/fiscal/nfce/status/${pedidoId}`)
+      if (r.ok) setNfceStatus(await r.json())
+    } catch { /* non-critical */ }
+  }
+
+  async function pollNfceStatus(pedidoId: string) {
+    let tries = 0
+    const iv = setInterval(async () => {
+      tries++
+      try {
+        const r = await fetch(`/api/fiscal/nfce/status/${pedidoId}`)
+        if (r.ok) {
+          const data: NfceStatus = await r.json()
+          setNfceStatus(data)
+          if (data.status === 'AUTORIZADA' || data.status === 'REJEITADA' || tries >= 5) {
+            clearInterval(iv)
+          }
+        } else {
+          clearInterval(iv)
+        }
+      } catch { clearInterval(iv) }
+    }, 3000)
+  }
+
+  async function emitirNfce(pedidoId: string) {
+    setEmitingNfce(true)
+    try {
+      const r = await fetch('/api/fiscal/nfce/emitir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedidoId }),
+      })
+      if (r.ok) {
+        setNfceStatus({ status: 'PROCESSANDO' })
+        pollNfceStatus(pedidoId)
+      }
+    } finally {
+      setEmitingNfce(false)
+    }
   }
 
   function selectUser(user: PinUser) {
@@ -368,6 +462,49 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                     </div>
                   </div>
 
+                  {/* NFC-e status badge */}
+                  {nfceStatus && (
+                    <div style={{ marginBottom: 10, padding: '10px 14px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: C.muted }}>NFC-e</span>
+                      {nfceStatus.status === 'PROCESSANDO' && (
+                        <span style={{ fontSize: 12, color: C.amber, fontWeight: 500 }}>● Processando…</span>
+                      )}
+                      {nfceStatus.status === 'AUTORIZADA' && (
+                        <>
+                          <span style={{ fontSize: 12, color: C.green, fontWeight: 600 }}>✓ Autorizada</span>
+                          {nfceStatus.danfeUrl && (
+                            <a href={nfceStatus.danfeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.accentLight, textDecoration: 'underline' }}>
+                              Ver DANFE
+                            </a>
+                          )}
+                        </>
+                      )}
+                      {nfceStatus.status === 'REJEITADA' && (
+                        <span style={{ fontSize: 12, color: C.red, fontWeight: 500 }}>✗ Rejeitada{nfceStatus.motivoRejeicao ? ` — ${nfceStatus.motivoRejeicao}` : ''}</span>
+                      )}
+                      {(nfceStatus.status === null || nfceStatus.status === 'REJEITADA') && (
+                        <button
+                          onClick={() => pedido && emitirNfce(pedido.id)}
+                          disabled={emitingNfce}
+                          style={{ marginLeft: 'auto', padding: '4px 12px', background: C.accentBg, border: `1px solid ${C.accent}`, borderRadius: 6, color: C.accentLight, fontSize: 12, fontWeight: 600, cursor: emitingNfce ? 'not-allowed' : 'pointer', opacity: emitingNfce ? 0.6 : 1 }}
+                        >
+                          {emitingNfce ? 'Emitindo…' : nfceStatus.status === 'REJEITADA' ? 'Reemitir NFC-e' : 'Emitir NFC-e'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {!nfceStatus && pedido && (
+                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => emitirNfce(pedido.id)}
+                        disabled={emitingNfce}
+                        style={{ padding: '4px 12px', background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.subtle, fontSize: 12, cursor: emitingNfce ? 'not-allowed' : 'pointer', opacity: emitingNfce ? 0.6 : 1 }}
+                      >
+                        {emitingNfce ? 'Emitindo…' : 'Emitir NFC-e'}
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     onClick={() => setDashView('finalizar')}
                     style={{ width: '100%', padding: '14px 0', background: C.accent, border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
@@ -407,20 +544,70 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={finalizarPedido}
-                disabled={!formaSelected || finalizing}
-                style={{
-                  width: '100%', padding: '14px 0', background: formaSelected ? C.accent : C.dim,
-                  border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: 15,
-                  cursor: formaSelected ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {finalizing ? 'Processando…' : 'Confirmar pagamento'}
-              </button>
+              {formaSelected !== 'PIX' && (
+                <button
+                  onClick={finalizarPedido}
+                  disabled={!formaSelected || finalizing}
+                  style={{
+                    width: '100%', padding: '14px 0', background: formaSelected ? C.accent : C.dim,
+                    border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: 15,
+                    cursor: formaSelected ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {finalizing ? 'Processando…' : 'Confirmar pagamento'}
+                </button>
+              )}
+              {formaSelected === 'PIX' && (
+                <button
+                  onClick={gerarPixPedido}
+                  disabled={pixLoading}
+                  style={{
+                    background: C.accent,
+                    color: C.pageBg,
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginTop: 8,
+                    opacity: pixLoading ? 0.6 : 1,
+                  }}
+                >
+                  {pixLoading ? 'Gerando QR Code...' : 'Gerar QR Code Pix'}
+                </button>
+              )}
             </div>
           )}
         </div>
+
+        {pixModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 32, maxWidth: 400, width: '90%', textAlign: 'center' }}>
+              <p style={{ color: C.txt, fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Pix — Aguardando pagamento</p>
+              {pixModal.qrCodeBase64 ? (
+                <img src={`data:image/png;base64,${pixModal.qrCodeBase64}`} alt="QR Code Pix" style={{ width: 200, height: 200, margin: '0 auto 16px' }} />
+              ) : null}
+              <p style={{ color: C.txt2, fontSize: 12, wordBreak: 'break-all', marginBottom: 16, padding: '8px 12px', background: C.surface2, borderRadius: 8 }}>
+                {pixModal.qrCode}
+              </p>
+              <button
+                onClick={() => navigator.clipboard.writeText(pixModal.qrCode)}
+                style={{ background: C.accentBg, color: C.accentLight, border: `1px solid ${C.accent}`, borderRadius: 8, padding: '8px 16px', cursor: 'pointer', marginBottom: 16 }}
+              >
+                Copiar código Pix
+              </button>
+              <p style={{ color: C.muted, fontSize: 12 }}>Verificando pagamento automaticamente...</p>
+              <button
+                onClick={() => { if (pixPolling) clearInterval(pixPolling); setPixPolling(null); setPixModal(null) }}
+                style={{ marginTop: 16, color: C.subtle, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

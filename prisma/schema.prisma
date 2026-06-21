@@ -467,21 +467,32 @@ model Supplier {
 }
 
 model TenantFiscal {
-  id                      String    @id @default(cuid())
-  tenantId                String    @unique
-  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                      String            @id @default(cuid())
+  tenantId                String            @unique
+  tenant                  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   razaoSocial             String?
   nomeFantasia            String?
   situacaoCadastral       String?
   cnpjVerifiedAt          DateTime?
-  certificadoCifrado      String?   @db.Text
-  certificadoSenhaCifrada String?   @db.Text
+  certificadoCifrado      String?           @db.Text
+  certificadoSenhaCifrada String?           @db.Text
   certificadoValidade     DateTime?
   certificadoStatus       String?
   focusEmpresaId          String?
   ultimaSincronizacaoNf   DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  regimeTributario        RegimeTributario?
+  inscricaoEstadual       String?
+  cscNfce                 String?           @db.Text
+  cscIdNfce               String?
+  serieNfce               Int?              @default(1)
+  proximoNumeroNfce       Int?              @default(1)
+  nfceAutomatica          Boolean           @default(true)
+  ncmPadrao               String?
+  cfopPadrao              String?
+  cstCsosnPadrao          String?
+  origemMercadoriaPadrao  String?           @default("0")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 }
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -563,24 +574,29 @@ enum MovementType {
 }
 
 model Product {
-  id          String              @id @default(cuid())
-  name        String
-  category    Category?           @relation(fields: [categoryId], references: [id])
-  categoryId  String?
-  salePrice   Float               @default(0)
-  image       String?
-  active      Boolean             @default(true)
-  tenantId    String
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ingredients ProductIngredient[]
-  pedidoItems PedidoItem[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  ifoodItemMaps IFoodItemMap[]
-  brandId     String?
-  isShared    Boolean             @default(false)
-  brand       Brand?              @relation(fields: [brandId], references: [id])
-  overrides   ProdutoOverride[]
+  id                String              @id @default(cuid())
+  name              String
+  category          Category?           @relation(fields: [categoryId], references: [id])
+  categoryId        String?
+  salePrice         Float               @default(0)
+  image             String?
+  active            Boolean             @default(true)
+  tenantId          String
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredients       ProductIngredient[]
+  pedidoItems       PedidoItem[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  ifoodItemMaps     IFoodItemMap[]
+  brandId           String?
+  isShared          Boolean             @default(false)
+  brand             Brand?              @relation(fields: [brandId], references: [id])
+  overrides         ProdutoOverride[]
+  ncm               String?
+  cfop              String?
+  cstCsosn          String?
+  origemMercadoria  String?
+  unidadeTributavel String?
 
   @@index([tenantId])
   @@index([categoryId])
@@ -763,6 +779,7 @@ model Pedido {
   pagamentos  Pagamento[]
   origem      OrigemPedido @default(MESA)
   ifoodPedido IFoodPedido?
+  nfce        NfProcessada?
 
   @@index([tenantId])
   @@index([mesaId])
@@ -952,11 +969,19 @@ enum NfOrigem {
   EMISSAO
 }
 
+enum RegimeTributario {
+  SIMPLES_NACIONAL
+  NORMAL
+}
+
 enum NfStatus {
   PROCESSANDO
   CONCLUIDA
   ERRO
   CAPTURADA
+  AUTORIZADA
+  REJEITADA
+  CANCELADA
 }
 
 enum NfTipo {
@@ -970,25 +995,32 @@ enum ChatRole {
 }
 
 model NfProcessada {
-  id                 String    @id @default(cuid())
-  tenantId           String
-  origem             NfOrigem
-  cloudinaryUrl      String?
-  numeroNf           String?
-  fornecedorNome     String?
-  dataEmissao        DateTime?
-  valorTotal         Decimal?
-  status             NfStatus
-  rawResponseIa      Json?
-  itensCriados       Int       @default(0)
-  processadoPor      String
-  createdAt          DateTime  @default(now())
-  chaveAcesso        String?   @unique
-  xml                String?   @db.Text
-  modelo             String?
-  tipo               NfTipo?
-  importadoEstoqueEm DateTime?
-  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(cuid())
+  tenantId             String
+  origem               NfOrigem
+  cloudinaryUrl        String?
+  numeroNf             String?
+  fornecedorNome       String?
+  dataEmissao          DateTime?
+  valorTotal           Decimal?
+  status               NfStatus
+  rawResponseIa        Json?
+  itensCriados         Int       @default(0)
+  processadoPor        String
+  createdAt            DateTime  @default(now())
+  chaveAcesso          String?   @unique
+  xml                  String?   @db.Text
+  modelo               String?
+  tipo                 NfTipo?
+  importadoEstoqueEm   DateTime?
+  pedidoId             String?   @unique
+  pedido               Pedido?   @relation(fields: [pedidoId], references: [id])
+  danfeUrl             String?
+  qrCode               String?   @db.Text
+  protocoloAutorizacao String?
+  motivoRejeicao       String?
+  refExterna           String?
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, status])

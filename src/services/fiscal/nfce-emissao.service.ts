@@ -9,15 +9,17 @@ const STATUS_MAP: Record<string, 'AUTORIZADA' | 'PROCESSANDO' | 'REJEITADA' | 'C
 
 export async function emitirNfceParaPedido(
   pedidoId: string,
+  tenantId: string,
   provider: FiscalProvider = new FocusNfeAdapter(),
 ): Promise<{ status: string; nfId: string | null }> {
-  const existente = await prisma.nfProcessada.findUnique({ where: { pedidoId } })
+  // Tenant-scoped: evita que um pedido de outro tenant seja emitido/consultado por palpite de ID
+  const existente = await prisma.nfProcessada.findFirst({ where: { pedidoId, tenantId } })
   if (existente && (existente.status === 'AUTORIZADA' || existente.status === 'PROCESSANDO')) {
     return { status: existente.status, nfId: existente.id }
   }
 
   const pedido = await prisma.pedido.findFirst({
-    where: { id: pedidoId },
+    where: { id: pedidoId, tenantId },
     include: { itens: { include: { product: true } }, pagamentos: true, tenant: { include: { fiscal: true } } },
   })
   if (!pedido?.tenant?.fiscal || !pedido.tenant.cnpj) return { status: 'ERRO', nfId: null }

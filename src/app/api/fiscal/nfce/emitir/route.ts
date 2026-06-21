@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { pedidoId } = await req.json()
   if (!pedidoId) return NextResponse.json({ error: 'pedidoId obrigatório' }, { status: 400 })
   try {
-    const r = await emitirNfceParaPedido(pedidoId)
+    const r = await emitirNfceParaPedido(pedidoId, session.user.tenantId)
     return NextResponse.json(r)
   } catch (err) {
     console.error('[nfce-emitir]', err instanceof Error ? err.message : err)

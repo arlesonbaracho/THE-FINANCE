@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    nfProcessada: { findUnique: vi.fn(), upsert: vi.fn() },
+    nfProcessada: { findFirst: vi.fn(), upsert: vi.fn() },
     tenantFiscal: { update: vi.fn() },
     pedido: { findFirst: vi.fn() },
   },
@@ -23,7 +23,7 @@ beforeEach(() => {
     pagamentos: [{ formaPagamento: 'PIX', valor: 30 }],
     tenant: { cnpj: '11222333000181', fiscal: { serieNfce: 1, proximoNumeroNfce: 7, ncmPadrao: '2106', cfopPadrao: '5102', cstCsosnPadrao: '102', origemMercadoriaPadrao: '0' } },
   })
-  mp.nfProcessada.findUnique.mockResolvedValue(null)
+  mp.nfProcessada.findFirst.mockResolvedValue(null)
   mp.nfProcessada.upsert.mockResolvedValue({ id: 'nf1' })
   mp.tenantFiscal.update.mockResolvedValue({})
   provider.emitirNfce.mockResolvedValue({ status: 'autorizado', chaveAcesso: 'C', danfeUrl: '/d', protocolo: '1' })
@@ -31,7 +31,7 @@ beforeEach(() => {
 
 describe('emitirNfceParaPedido', () => {
   it('emite e grava AUTORIZADA, incrementa a numeração', async () => {
-    const r = await emitirNfceParaPedido('p1', provider as any)
+    const r = await emitirNfceParaPedido('p1', 't1', provider as any)
     expect(provider.emitirNfce).toHaveBeenCalled()
     expect(mp.nfProcessada.upsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { pedidoId: 'p1' },
@@ -42,15 +42,15 @@ describe('emitirNfceParaPedido', () => {
   })
 
   it('é idempotente: não reemite se já AUTORIZADA', async () => {
-    mp.nfProcessada.findUnique.mockResolvedValue({ id: 'nf1', status: 'AUTORIZADA' })
-    const r = await emitirNfceParaPedido('p1', provider as any)
+    mp.nfProcessada.findFirst.mockResolvedValue({ id: 'nf1', status: 'AUTORIZADA' })
+    const r = await emitirNfceParaPedido('p1', 't1', provider as any)
     expect(provider.emitirNfce).not.toHaveBeenCalled()
     expect(r.status).toBe('AUTORIZADA')
   })
 
   it('grava REJEITADA quando o provider retorna erro', async () => {
     provider.emitirNfce.mockResolvedValue({ status: 'erro', motivo: 'Rejeição' })
-    const r = await emitirNfceParaPedido('p1', provider as any)
+    const r = await emitirNfceParaPedido('p1', 't1', provider as any)
     expect(mp.nfProcessada.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ status: 'REJEITADA' }) }))
     expect(r.status).toBe('REJEITADA')
   })

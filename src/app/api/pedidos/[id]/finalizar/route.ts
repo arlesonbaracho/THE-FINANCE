@@ -99,5 +99,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     total: pedido.total,
   })
 
+  // NFC-e automática (não-bloqueante): não derruba a finalização se falhar
+  void (async () => {
+    try {
+      const fiscal = await prisma.tenantFiscal.findUnique({
+        where: { tenantId: pedido.tenantId },
+        select: { nfceAutomatica: true, focusEmpresaId: true },
+      })
+      if (fiscal?.nfceAutomatica && fiscal.focusEmpresaId) {
+        const { emitirNfceParaPedido } = await import('@/services/fiscal/nfce-emissao.service')
+        await emitirNfceParaPedido(params.id, pedido.tenantId)
+      }
+    } catch (err) {
+      console.error('[finalizar nfce]', err instanceof Error ? err.message : err)
+    }
+  })()
+
   return NextResponse.json({ ok: true })
 }

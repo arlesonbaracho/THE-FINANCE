@@ -1,9 +1,10 @@
-import { platformHealthQueue, saasMetricsQueue, nfCaptureQueue } from '@/lib/queues'
+import { platformHealthQueue, saasMetricsQueue, nfCaptureQueue, nfceRetryQueue } from '@/lib/queues'
 import { criarPlatformHealthWorker } from './admin/platform-health.job'
 import { criarSaasMetricsWorker } from './admin/saas-metrics-snapshot.job'
-import { criarNfCaptureWorker } from './fiscal/index'
+import { criarNfCaptureWorker, criarNfceRetryWorker } from './fiscal/index'
 
 const NF_CAPTURE_INTERVAL_HOURS = parseInt(process.env.NF_CAPTURE_INTERVAL_HOURS ?? '6', 10)
+const NFCE_RETRY_INTERVAL_MIN = parseInt(process.env.NFCE_RETRY_INTERVAL_MIN ?? '15', 10)
 
 async function iniciarWorker() {
   console.log('[worker] Iniciando workers BullMQ...')
@@ -27,14 +28,22 @@ async function iniciarWorker() {
     { name: 'nf-capture', data: {} }
   )
 
+  await nfceRetryQueue.upsertJobScheduler(
+    'nfce-retry-cron',
+    { pattern: `*/${NFCE_RETRY_INTERVAL_MIN} * * * *` },
+    { name: 'nfce-retry', data: {} }
+  )
+
   // Iniciar workers
   criarPlatformHealthWorker()
   criarSaasMetricsWorker()
   criarNfCaptureWorker()
+  criarNfceRetryWorker()
 
   console.log('[worker] platform-health: a cada 5 minutos')
   console.log('[worker] saas-metrics-snapshot: diário às 01h')
   console.log(`[worker] nf-capture: a cada ${NF_CAPTURE_INTERVAL_HOURS}h`)
+  console.log(`[worker] nfce-retry: a cada ${NFCE_RETRY_INTERVAL_MIN} minutos`)
   console.log('[worker] Workers iniciados com sucesso.')
 }
 

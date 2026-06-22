@@ -5,6 +5,23 @@ import { prisma } from '@/lib/prisma'
 import { mesaSchema } from '@/lib/validations'
 import { checkPermission, PERMISSIONS } from '@/lib/permissions'
 
+// Pedidos "abertos" (em andamento) — usados para exibir tempo/total na view de mesas
+const STATUS_PEDIDO_ATIVO: ('ABERTO' | 'EM_PREPARO' | 'PRONTO' | 'ENTREGUE')[] = ['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE']
+
+const includeMesa = {
+  ambiente: { select: { id: true, nome: true } },
+  pedidos: {
+    where: { status: { in: STATUS_PEDIDO_ATIVO } },
+    orderBy: { criadoEm: 'asc' as const },
+    take: 1,
+    select: { total: true, criadoEm: true },
+  },
+}
+
+function comPedidoAtivo<T extends { pedidos: { total: number; criadoEm: Date }[] }>(mesas: T[]) {
+  return mesas.map(({ pedidos, ...m }) => ({ ...m, pedidoAtivo: pedidos[0] ?? null }))
+}
+
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
 
@@ -18,10 +35,10 @@ export async function GET(req: NextRequest) {
 
     const mesas = await prisma.mesa.findMany({
       where: { tenantId: tenant.id },
-      include: { ambiente: { select: { id: true, nome: true } } },
+      include: includeMesa,
       orderBy: [{ ambienteId: 'asc' }, { numero: 'asc' }],
     })
-    return NextResponse.json(mesas)
+    return NextResponse.json(comPedidoAtivo(mesas))
   }
 
   // Authenticated access for dashboard
@@ -30,10 +47,10 @@ export async function GET(req: NextRequest) {
 
   const mesas = await prisma.mesa.findMany({
     where: { tenantId: session.user.tenantId },
-    include: { ambiente: { select: { id: true, nome: true } } },
+    include: includeMesa,
     orderBy: [{ ambienteId: 'asc' }, { numero: 'asc' }],
   })
-  return NextResponse.json(mesas)
+  return NextResponse.json(comPedidoAtivo(mesas))
 }
 
 export async function POST(req: NextRequest) {

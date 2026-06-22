@@ -12,7 +12,7 @@ type PinUser  = { id: string; name: string; avatarUrl: string | null }
 type TenantInfo = { id: string; name: string }
 type Step    = 'select' | 'pin' | 'dashboard'
 
-type Mesa    = { id: string; numero: number; identificacao: string | null; cadeiras: number; status: string }
+type Mesa    = { id: string; numero: number; identificacao: string | null; cadeiras: number; status: string; pedidoAtivo?: { total: number; criadoEm: string } | null }
 type PedidoItem = { id: string; quantidade: number; precoUnitario: number; observacao: string | null; product: { id: string; name: string } }
 type Pagamento  = { id: string; formaPagamento: string; valor: number }
 type Pedido  = { id: string; status: string; subtotal: number; taxaServico: number; total: number; criadoEm: string; itens: PedidoItem[]; pagamentos: Pagamento[]; garcom?: { name: string } | null }
@@ -27,6 +27,10 @@ function mesaStatusColor(s: string) {
   if (s === 'LIVRE') return C.green
   if (s === 'OCUPADA') return C.amber
   return C.purple
+}
+
+function minutosDecorridos(desde: string, agora: Date): number {
+  return Math.max(0, Math.floor((agora.getTime() - new Date(desde).getTime()) / 60000))
 }
 
 function formatPrice(v: number) {
@@ -299,7 +303,8 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
   const statusChips = useMemo(() => {
     const ocupadas = mesas.filter((m) => m.status === 'OCUPADA').length
     const livres   = mesas.filter((m) => m.status === 'LIVRE').length
-    return { ocupadas, livres }
+    const valorAberto = mesas.reduce((s, m) => s + (m.pedidoAtivo?.total ?? 0), 0)
+    return { ocupadas, livres, valorAberto }
   }, [mesas])
 
   if (notFound) return (
@@ -331,6 +336,11 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
         <div style={{ padding: '4px 10px', borderRadius: 20, background: C.surface2, border: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.green, whiteSpace: 'nowrap' }}>
           {statusChips.livres} livre{statusChips.livres !== 1 ? 's' : ''}
         </div>
+        {statusChips.valorAberto > 0 && (
+          <div style={{ padding: '4px 10px', borderRadius: 20, background: C.surface2, border: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.txt, whiteSpace: 'nowrap' }}>
+            {formatPrice(statusChips.valorAberto)} em aberto
+          </div>
+        )}
       </>
     )
     return (
@@ -424,7 +434,14 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                       {m.identificacao && (
                         <span style={{ fontSize: 11, color: C.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{m.identificacao}</span>
                       )}
-                      <span style={{ fontSize: 11, color: C.muted }}>{m.cadeiras} cadeira{m.cadeiras !== 1 ? 's' : ''}</span>
+                      {ocupada && m.pedidoAtivo ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, marginTop: 2 }}>
+                          <span style={{ color: C.subtle, display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={11} /> {minutosDecorridos(m.pedidoAtivo.criadoEm, now)} min</span>
+                          <span style={{ color: C.accentLight, fontWeight: 700 }}>{formatPrice(m.pedidoAtivo.total)}</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 11, color: C.muted }}>{m.cadeiras} cadeira{m.cadeiras !== 1 ? 's' : ''}</span>
+                      )}
                     </button>
                   )
                 })}

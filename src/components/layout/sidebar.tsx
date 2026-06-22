@@ -21,6 +21,7 @@ import {
   Truck,
   MessageCircle,
   FileText,
+  FileArchive,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -70,6 +71,7 @@ const navItems: NavItem[] = [
     icon: FileText,
     children: [
       { label: 'Notas Fiscais', href: '/fiscal/notas', icon: FileText },
+      { label: 'Fechamento Fiscal', href: '/fiscal/fechamento', icon: FileArchive },
     ],
   },
   {

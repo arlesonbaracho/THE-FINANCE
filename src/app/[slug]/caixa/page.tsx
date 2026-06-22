@@ -413,9 +413,9 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
           {/* ── Mesas ── */}
           {dashView === 'mesas' && (
             <>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>
+              <div style={{ position: 'relative', padding: '4px 4px 8px', minHeight: 'clamp(120px, 15vw, 200px)' }}>
+                <div style={{ maxWidth: '100%', paddingRight: 'clamp(150px, 22vw, 300px)' }}>
+                  <h1 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: C.txt, margin: 0 }}>
                     Bem-vindo ao <span style={{ color: C.green }}>Caixa</span>
                   </h1>
                   <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>
@@ -423,7 +423,9 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{chips}</div>
                 </div>
-                <AvatarFuncao funcao="caixa" size="clamp(150px, 20vw, 300px)" frame={false} />
+                <div style={{ position: 'absolute', top: -8, right: 'clamp(0px, 2vw, 32px)', pointerEvents: 'none', filter: 'drop-shadow(0 10px 26px rgba(0,0,0,0.4))' }}>
+                  <AvatarFuncao funcao="caixa" size="clamp(130px, 17vw, 230px)" frame={false} />
+                </div>
               </div>
 
               {/* Filter tabs */}

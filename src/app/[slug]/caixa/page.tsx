@@ -4,8 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
-import { OperacaoHeader } from '@/components/operacao/OperacaoHeader'
-import { AvatarFuncao, AvatarCanto } from '@/components/operacao/avatares'
+import { AvatarFuncao } from '@/components/operacao/avatares'
 
 const C = temaOperacao('caixa')
 
@@ -398,14 +397,18 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
           {/* ── Mesas ── */}
           {dashView === 'mesas' && (
             <>
-              <OperacaoHeader
-                funcao="caixa"
-                nomeRestaurante={tenant?.name ?? slug}
-                logoUrl={tenant?.logo}
-                nomeUsuario={loggedUser?.name}
-                direita={chips}
-              />
-              <p style={{ color: C.subtle, fontSize: 13, margin: '0 18px 4px' }}>Selecione uma mesa para iniciar ou continuar um pedido.</p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>
+                    Bem-vindo ao <span style={{ color: C.accentLight }}>Caixa</span>
+                  </h1>
+                  <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>
+                    Selecione uma mesa para iniciar ou continuar um pedido.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{chips}</div>
+                </div>
+                <AvatarFuncao funcao="caixa" size={132} />
+              </div>
               {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa cadastrada.</p>}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginTop: 12 }}>
                 {mesas.map((m) => {
@@ -449,7 +452,6 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                   )
                 })}
               </div>
-              <AvatarCanto funcao="caixa" />
             </>
           )}
 

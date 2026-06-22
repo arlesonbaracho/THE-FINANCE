@@ -5,11 +5,12 @@ import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle } from '
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
 import { OperacaoHeader } from '@/components/operacao/OperacaoHeader'
+import { AvatarFuncao, AvatarCanto } from '@/components/operacao/avatares'
 
 const C = temaOperacao('caixa')
 
 type PinUser  = { id: string; name: string; avatarUrl: string | null }
-type TenantInfo = { id: string; name: string }
+type TenantInfo = { id: string; name: string; logo?: string | null }
 type Step    = 'select' | 'pin' | 'dashboard'
 
 type Mesa    = { id: string; numero: number; identificacao: string | null; cadeiras: number; status: string; pedidoAtivo?: { total: number; criadoEm: string } | null }
@@ -399,10 +400,12 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
             <>
               <OperacaoHeader
                 funcao="caixa"
-                nome={loggedUser?.name ?? tenant?.name ?? slug}
-                subtitulo="Selecione uma mesa para iniciar ou continuar um pedido"
+                nomeRestaurante={tenant?.name ?? slug}
+                logoUrl={tenant?.logo}
+                nomeUsuario={loggedUser?.name}
                 direita={chips}
               />
+              <p style={{ color: C.subtle, fontSize: 13, margin: '0 18px 4px' }}>Selecione uma mesa para iniciar ou continuar um pedido.</p>
               {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa cadastrada.</p>}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginTop: 12 }}>
                 {mesas.map((m) => {
@@ -446,6 +449,7 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                   )
                 })}
               </div>
+              <AvatarCanto funcao="caixa" />
             </>
           )}
 
@@ -644,11 +648,9 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
   return (
     <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        <div style={{ margin: '0 auto 12px', width: 56, height: 56, borderRadius: 16, background: C.accentBg, border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <ShoppingCart size={26} style={{ color: C.accentLight }} />
-        </div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: 0 }}>{tenant?.name ?? slug}</h1>
+      <div style={{ marginBottom: 32, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <AvatarFuncao funcao="caixa" size={96} />
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: '14px 0 0' }}>{tenant?.name ?? slug}</h1>
         <p style={{ fontSize: 13, color: C.muted, margin: '4px 0 0' }}>Painel do Caixa</p>
       </div>
 

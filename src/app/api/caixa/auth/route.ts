@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const tenant = await prisma.tenant.findFirst({
     where: { OR: [{ slug }, { id: slug }] },
-    select: { id: true, name: true },
+    select: { id: true, name: true, logo: true },
   })
   if (!tenant) return NextResponse.json({ error: 'Restaurante não encontrado' }, { status: 404 })
 

@@ -28,22 +28,3 @@ export function AvatarFuncao({ funcao, size = 64 }: { funcao: FuncaoOperacao; si
     </div>
   )
 }
-
-/** Mascote fixo no canto inferior direito (decorativo, não bloqueia cliques) */
-export function AvatarCanto({ funcao, size = 88 }: { funcao: FuncaoOperacao; size?: number }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'fixed',
-        right: 16,
-        bottom: 12,
-        opacity: 0.9,
-        pointerEvents: 'none',
-        zIndex: 5,
-      }}
-    >
-      <AvatarFuncao funcao={funcao} size={size} />
-    </div>
-  )
-}

@@ -4,26 +4,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { ChefHat, Delete, Clock, RefreshCw } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { fetchCached, invalidateCache } from '@/lib/client-cache'
+import { temaOperacao } from '@/lib/operacao-theme'
+import { AvatarFuncao } from '@/components/operacao/avatares'
 
-// ── Tema verde-escuro (igual ao resto do projeto) ──────────────────────────────
-
-const C = {
-  pageBg:     '#0f1714',
-  surface:    '#111a16',
-  surface2:   '#0d1410',
-  border:     '#1e2e26',
-  borderLight:'#141e19',
-  txt:        '#e8f0ec',
-  txt2:       '#c8dcd2',
-  muted:      '#3d6050',
-  dim:        '#2d5040',
-  subtle:     '#5a7a6a',
-  green:      '#2a9d6f',
-  greenLight: '#4bc994',
-  greenBg:    '#0d2b1f',
-  red:        '#e05252',
-  redBg:      '#1f0a0a',
-}
+const C = temaOperacao('cozinha')
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -257,6 +241,15 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
 
         {/* KDS — board de pedidos */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+          {/* Hero de boas-vindas */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>Bem-vindo à <span style={{ color: C.greenLight ?? C.green }}>Cozinha</span></h1>
+              <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>Pedidos em preparo aparecem aqui em tempo real.</p>
+            </div>
+            <AvatarFuncao funcao="cozinha" size={132} />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <p style={{ margin: 0, color: C.txt2, fontSize: 13 }}>
               Olá, <strong style={{ color: C.txt }}>{kitchenUser?.name}</strong> — {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} em aberto
@@ -406,15 +399,9 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
       padding: 24,
     }}>
       {/* Header */}
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        <div style={{
-          margin: '0 auto 12px', width: 56, height: 56, borderRadius: 16,
-          background: C.greenBg, border: `1px solid ${C.green}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <ChefHat size={26} style={{ color: C.greenLight }} />
-        </div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: 0 }}>
+      <div style={{ marginBottom: 32, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <AvatarFuncao funcao="cozinha" size={96} />
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: '14px 0 0' }}>
           {tenant?.name ?? slug}
         </h1>
         <p style={{ fontSize: 13, color: C.muted, margin: '4px 0 0' }}>Painel da Cozinha</p>

@@ -423,7 +423,7 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{chips}</div>
                 </div>
-                <AvatarFuncao funcao="caixa" size={210} frame={false} />
+                <AvatarFuncao funcao="caixa" size="clamp(150px, 20vw, 300px)" frame={false} />
               </div>
 
               {/* Filter tabs */}
@@ -731,8 +731,8 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
     <div style={{ minHeight: '100vh', background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,114,46,0.22), transparent 60%), radial-gradient(circle at 50% 110%, rgba(232,114,46,0.12), transparent 55%), ${C.pageBg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <div style={{ marginBottom: -32, position: 'relative', zIndex: 2, filter: 'drop-shadow(0 12px 32px rgba(232,114,46,0.45))' }}>
-        <AvatarFuncao funcao="caixa" size={240} frame={false} />
+      <div style={{ marginBottom: 'clamp(-44px, -4vw, -28px)', position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center', filter: 'drop-shadow(0 14px 36px rgba(232,114,46,0.45))' }}>
+        <AvatarFuncao funcao="caixa" size="clamp(220px, 34vw, 380px)" frame={false} />
       </div>
 
       {/* Glass card */}

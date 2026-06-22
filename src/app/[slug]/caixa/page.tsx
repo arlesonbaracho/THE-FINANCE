@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle } from 'lucide-react'
+import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle, Menu, LayoutGrid, Users, Armchair, MoreVertical, ChevronDown, ChevronRight, ArrowRight, Plus, Flame } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
 import { AvatarFuncao } from '@/components/operacao/avatares'
 
 const C = temaOperacao('caixa')
+const ORANGE = '#e8722e'
+const ORANGE_LIGHT = '#f7a368'
+const ORANGE_BG = 'rgba(232,114,46,0.12)'
 
 type PinUser  = { id: string; name: string; avatarUrl: string | null }
 type TenantInfo = { id: string; name: string; logo?: string | null }
@@ -22,12 +25,6 @@ type DashView = 'mesas' | 'pedido' | 'finalizar'
 type NfceStatus = { status: string | null; danfeUrl?: string | null; chaveAcesso?: string | null; motivoRejeicao?: string | null }
 
 const FORMAS_LABEL: Record<string, string> = { DINHEIRO: 'Dinheiro', DEBITO: 'Débito', CREDITO: 'Crédito', PIX: 'Pix' }
-
-function mesaStatusColor(s: string) {
-  if (s === 'LIVRE') return C.green
-  if (s === 'OCUPADA') return C.amber
-  return C.purple
-}
 
 function minutosDecorridos(desde: string, agora: Date): number {
   return Math.max(0, Math.floor((agora.getTime() - new Date(desde).getTime()) / 60000))
@@ -61,6 +58,9 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
 
   // Dashboard state
   const [dashView, setDashView]     = useState<DashView>('mesas')
+  const [filtroMesa, setFiltroMesa] = useState<'todas' | 'ocupadas' | 'livres'>('todas')
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [cardMenu, setCardMenu]     = useState<string | null>(null)
   const [mesas, setMesas]           = useState<Mesa[]>([])
   const [mesaAtiva, setMesaAtiva]   = useState<Mesa | null>(null)
   const [pedido, setPedido]         = useState<Pedido | null>(null)
@@ -343,42 +343,58 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
         )}
       </>
     )
+    const mesasFiltradas = mesas.filter((m) =>
+      filtroMesa === 'todas' ? true : filtroMesa === 'ocupadas' ? m.status === 'OCUPADA' : m.status === 'LIVRE'
+    )
     return (
       <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column' }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
         {/* Topbar */}
-        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {dashView !== 'mesas' && (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {dashView !== 'mesas' ? (
               <button
                 onClick={() => {
                   if (dashView === 'finalizar') { setDashView('pedido'); setFormaSelected('') }
                   else { setDashView('mesas'); setMesaAtiva(null); setPedido(null) }
                 }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center', gap: 4, marginRight: 4 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center' }}
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={18} />
               </button>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => setMenuAberto((v) => !v)} title="Menu" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center' }}>
+                  <Menu size={20} />
+                </button>
+                {menuAberto && (
+                  <div style={{ position: 'absolute', top: 30, left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, minWidth: 170, zIndex: 30, display: 'flex', flexDirection: 'column' }}>
+                    <button onClick={() => { loadMesas(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><RefreshCw size={14} /> Atualizar mesas</button>
+                    <button onClick={() => { handleLogout(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><ArrowLeft size={14} /> Sair</button>
+                  </div>
+                )}
+              </div>
             )}
-            <ShoppingCart size={18} style={{ color: C.accentLight }} />
-            <span style={{ fontSize: 15, fontWeight: 600, color: C.txt }}>{tenant?.name ?? slug}</span>
-            <span style={{ fontSize: 12, color: C.muted }}>/ Caixa</span>
-            {mesaAtiva && <span style={{ fontSize: 12, color: C.accentLight, background: C.accentBg, padding: '2px 8px', borderRadius: 4 }}>Mesa #{mesaAtiva.numero}</span>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Clock size={12} style={{ color: C.subtle }} />
-              <span style={{ fontSize: 12, color: C.subtle }}>{timeStr}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <Flame size={22} style={{ color: '#e8722e' }} />
+              <span style={{ fontSize: 15, fontWeight: 700, color: C.txt, letterSpacing: '.02em' }}>{(tenant?.name ?? slug).toUpperCase()}</span>
             </div>
-            {dashView === 'mesas' && (
-              <button onClick={loadMesas} title="Atualizar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim }}>
-                <RefreshCw size={14} />
-              </button>
-            )}
-            <span style={{ fontSize: 13, color: C.txt2 }}>{loggedUser?.name}</span>
-            <button onClick={handleLogout} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 10px', color: C.muted, fontSize: 12, cursor: 'pointer' }}>
-              Sair
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 14, marginLeft: 4, borderLeft: `1px solid ${C.border}`, color: C.green, fontWeight: 600, fontSize: 13, borderBottom: `2px solid ${C.green}`, paddingBottom: 2 }}>
+              <ShoppingCart size={16} /> CAIXA
+            </div>
+            {mesaAtiva && <span style={{ fontSize: 12, color: C.amber, background: C.accentBg, padding: '2px 8px', borderRadius: 4 }}>Mesa #{mesaAtiva.numero}</span>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={13} style={{ color: C.subtle }} />
+              <span style={{ fontSize: 13, color: C.subtle }}>{timeStr}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.txt2, fontSize: 13 }}>
+              <ShoppingCart size={14} style={{ color: C.subtle }} /> {loggedUser?.name} <ChevronDown size={13} style={{ color: C.subtle }} />
+            </div>
+            <button onClick={handleLogout} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', color: C.txt2, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ArrowLeft size={14} /> Sair
             </button>
           </div>
         </div>
@@ -397,58 +413,113 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
           {/* ── Mesas ── */}
           {dashView === 'mesas' && (
             <>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>
-                    Bem-vindo ao <span style={{ color: C.accentLight }}>Caixa</span>
+              <div style={{ position: 'relative', padding: '4px 4px 8px', minHeight: 'clamp(120px, 15vw, 200px)' }}>
+                <div style={{ maxWidth: '100%', paddingRight: 'clamp(150px, 22vw, 300px)' }}>
+                  <h1 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: C.txt, margin: 0 }}>
+                    Bem-vindo ao <span style={{ color: C.green }}>Caixa</span>
                   </h1>
                   <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>
                     Selecione uma mesa para iniciar ou continuar um pedido.
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{chips}</div>
                 </div>
-                <AvatarFuncao funcao="caixa" size={132} />
+                <div style={{ position: 'absolute', top: -8, right: 'clamp(0px, 2vw, 32px)', pointerEvents: 'none', filter: 'drop-shadow(0 10px 26px rgba(0,0,0,0.4))' }}>
+                  <AvatarFuncao funcao="caixa" size="clamp(130px, 17vw, 230px)" frame={false} />
+                </div>
               </div>
-              {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa cadastrada.</p>}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginTop: 12 }}>
-                {mesas.map((m) => {
-                  const color = mesaStatusColor(m.status)
-                  const ocupada = m.status === 'OCUPADA'
+
+              {/* Filter tabs */}
+              <div style={{ display: 'inline-flex', gap: 4, padding: 4, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, margin: '8px 0 18px' }}>
+                {([
+                  { k: 'todas' as const, label: 'Todas', Icon: LayoutGrid },
+                  { k: 'ocupadas' as const, label: 'Ocupadas', Icon: Users },
+                  { k: 'livres' as const, label: 'Livres', Icon: Armchair },
+                ]).map(({ k, label, Icon }) => {
+                  const active = filtroMesa === k
                   return (
                     <button
-                      key={m.id}
-                      onClick={() => ocupada && openMesa(m)}
-                      disabled={!ocupada}
+                      key={k}
+                      onClick={() => setFiltroMesa(k)}
                       style={{
-                        padding: '10px 12px',
-                        background: ocupada ? C.surface : C.surface2,
-                        border: `2px solid ${ocupada ? color : C.border}`,
-                        borderRadius: 10,
-                        cursor: ocupada ? 'pointer' : 'default',
-                        opacity: ocupada ? 1 : 0.45,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        gap: 4,
-                        textAlign: 'left',
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 9,
+                        background: active ? C.surface : 'transparent', border: 'none', cursor: 'pointer',
+                        color: active ? C.green : C.subtle, fontWeight: active ? 700 : 500, fontSize: 13,
+                        borderBottom: active ? `2px solid ${C.green}` : '2px solid transparent',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span style={{ fontWeight: 700, fontSize: 18, color: ocupada ? C.txt : C.txt2 }}>#{m.numero}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'uppercase', background: ocupada ? C.accentBg : C.surface2, padding: '2px 6px', borderRadius: 4 }}>{m.status}</span>
+                      <Icon size={15} /> {label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa cadastrada.</p>}
+              {mesas.length > 0 && mesasFiltradas.length === 0 && (
+                <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa {filtroMesa === 'ocupadas' ? 'ocupada' : 'livre'} no momento.</p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+                {mesasFiltradas.map((m) => {
+                  const ocupada = m.status === 'OCUPADA'
+                  const color = ocupada ? C.amber : C.green
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        position: 'relative', background: C.surface,
+                        border: `1px solid ${ocupada ? C.amber : C.border}`,
+                        borderRadius: 16, padding: '18px 16px 16px',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      {/* status pill */}
+                      <div style={{ position: 'absolute', top: 12, left: 12, fontSize: 10, fontWeight: 700, letterSpacing: '.05em', color, background: ocupada ? C.accentBg : C.surface2, border: `1px solid ${color}`, padding: '3px 9px', borderRadius: 20 }}>
+                        {ocupada ? 'OCUPADA' : 'LIVRE'}
                       </div>
-                      {m.identificacao && (
-                        <span style={{ fontSize: 11, color: C.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{m.identificacao}</span>
-                      )}
+
+                      {/* ⋮ card menu */}
+                      <div style={{ position: 'absolute', top: 10, right: 8 }}>
+                        <button onClick={() => setCardMenu(cardMenu === m.id ? null : m.id)} title="Ações" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.subtle, padding: 4, display: 'flex' }}>
+                          <MoreVertical size={16} />
+                        </button>
+                        {cardMenu === m.id && (
+                          <div style={{ position: 'absolute', top: 28, right: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, minWidth: 150, zIndex: 20, display: 'flex', flexDirection: 'column' }}>
+                            <button onClick={() => { setCardMenu(null); openMesa(m) }} disabled={!ocupada} style={{ background: 'none', border: 'none', cursor: ocupada ? 'pointer' : 'not-allowed', color: ocupada ? C.txt2 : C.dim, fontSize: 13, textAlign: 'left', padding: '8px 10px', borderRadius: 6 }}>Ver pedido</button>
+                            <button onClick={() => { setCardMenu(null); loadMesas() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, fontSize: 13, textAlign: 'left', padding: '8px 10px', borderRadius: 6 }}>Atualizar</button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* big table icon */}
+                      <div style={{ marginTop: 20, width: 56, height: 56, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ocupada ? C.accentBg : C.surface2, color }}>
+                        <Armchair size={30} />
+                      </div>
+
+                      <span style={{ fontSize: 30, fontWeight: 800, color: C.txt, lineHeight: 1 }}>#{m.numero}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: C.txt2 }}>{m.identificacao || `Mesa ${m.numero}`}</span>
+
                       {ocupada && m.pedidoAtivo ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, marginTop: 2 }}>
-                          <span style={{ color: C.subtle, display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={11} /> {minutosDecorridos(m.pedidoAtivo.criadoEm, now)} min</span>
-                          <span style={{ color: C.accentLight, fontWeight: 700 }}>{formatPrice(m.pedidoAtivo.total)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                          <span style={{ color: C.subtle, display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={12} /> {minutosDecorridos(m.pedidoAtivo.criadoEm, now)} min</span>
+                          <span style={{ color: C.amber, fontWeight: 700 }}>{formatPrice(m.pedidoAtivo.total)}</span>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 11, color: C.muted }}>{m.cadeiras} cadeira{m.cadeiras !== 1 ? 's' : ''}</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{ocupada ? 'Clique para ver o pedido' : `${m.cadeiras} lugares • livre`}</span>
                       )}
-                    </button>
+
+                      {/* CTA */}
+                      <button
+                        onClick={() => ocupada && openMesa(m)}
+                        disabled={!ocupada}
+                        style={{
+                          marginTop: 10, width: '100%', padding: '11px 0', borderRadius: 10,
+                          border: `1.5px solid ${color}`, background: 'transparent', color,
+                          fontWeight: 700, fontSize: 13, cursor: ocupada ? 'pointer' : 'default', opacity: ocupada ? 1 : 0.7,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}
+                      >
+                        {ocupada ? <>Continuar pedido <ArrowRight size={15} /></> : <>Iniciar pedido <Plus size={15} /></>}
+                      </button>
+                    </div>
                   )
                 })}
               </div>
@@ -615,6 +686,12 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
           )}
         </div>
 
+        {/* Footer */}
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11, color: C.muted, flexWrap: 'wrap' }}>
+          <span>© {new Date().getFullYear()} {tenant?.name ?? slug} • Todos os direitos reservados</span>
+          <span>Sistema de Gestão • Versão 1.0.0</span>
+        </div>
+
         {pixModal && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 32, maxWidth: 400, width: '90%', textAlign: 'center' }}>
@@ -647,76 +724,100 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
 
   // ── Select / PIN ─────────────────────────────────────────────────────────────
 
+  const fullName = tenant?.name ?? slug
+  const nameParts = fullName.trim().split(/\s+/)
+  const lastWord = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+  const firstWords = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : fullName
+
   return (
-    <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div style={{ minHeight: '100vh', background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,114,46,0.22), transparent 60%), radial-gradient(circle at 50% 110%, rgba(232,114,46,0.12), transparent 55%), ${C.pageBg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ marginBottom: 32, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <AvatarFuncao funcao="caixa" size={96} />
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: '14px 0 0' }}>{tenant?.name ?? slug}</h1>
-        <p style={{ fontSize: 13, color: C.muted, margin: '4px 0 0' }}>Painel do Caixa</p>
+
+      <div style={{ marginBottom: 'clamp(-44px, -4vw, -28px)', position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center', filter: 'drop-shadow(0 14px 36px rgba(232,114,46,0.45))' }}>
+        <AvatarFuncao funcao="caixa" size="clamp(220px, 34vw, 380px)" frame={false} />
       </div>
 
-      {step === 'select' && (
-        <div style={{ width: '100%', maxWidth: 340 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
-            <p style={{ fontSize: 13, color: C.subtle, margin: 0 }}>Selecione seu nome</p>
-            <button onClick={loadPage} title="Atualizar lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}>
-              <RefreshCw size={13} />
-            </button>
-          </div>
-          {users.length === 0 ? (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '32px 24px', textAlign: 'center' }}>
-              <ShoppingCart size={32} style={{ color: C.dim, marginBottom: 10 }} />
-              <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>Nenhum caixa com PIN configurado</p>
-              <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>Um administrador deve cadastrar caixas com PIN</p>
+      {/* Glass card */}
+      <div style={{ width: '100%', maxWidth: 400, background: 'rgba(20,16,8,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: `1px solid ${C.border}`, borderRadius: 22, padding: '44px 28px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: C.txt, margin: 0, letterSpacing: '.01em' }}>
+            {firstWords}{lastWord && <> <span style={{ color: ORANGE }}>{lastWord}</span></>}
+          </h1>
+          <p style={{ fontSize: 13, color: C.subtle, margin: '6px 0 0' }}>Painel do Caixa</p>
+          <div style={{ width: 56, height: 3, borderRadius: 2, background: ORANGE, margin: '16px auto 0' }} />
+        </div>
+
+        {step === 'select' && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
+              <ShoppingCart size={15} style={{ color: ORANGE }} />
+              <p style={{ fontSize: 13, color: C.txt2, margin: 0 }}>Selecione seu nome para continuar</p>
+              <button onClick={loadPage} title="Atualizar lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}>
+                <RefreshCw size={13} />
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => selectUser(u)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, cursor: 'pointer', textAlign: 'left', width: '100%' }}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.accentBg, border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.accentLight }}>{(u.name ?? '?')[0].toUpperCase()}</span>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: C.txt2 }}>{u.name}</span>
-                </button>
+            {users.length === 0 ? (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
+                <ShoppingCart size={32} style={{ color: C.dim, marginBottom: 10 }} />
+                <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>Nenhum caixa com PIN configurado</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>Um administrador deve cadastrar caixas com PIN</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {users.map((u) => {
+                  const sel = selected?.id === u.id
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => selectUser(u)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: sel ? ORANGE_BG : C.surface, border: `1.5px solid ${sel ? ORANGE : C.border}`, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: ORANGE_BG, border: `1px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: ORANGE_LIGHT }}>{(u.name ?? '?')[0].toUpperCase()}</span>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: C.txt, flex: 1 }}>{u.name}</span>
+                      <ChevronRight size={18} style={{ color: sel ? ORANGE : C.dim }} />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 'pin' && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ margin: '0 auto 10px', width: 48, height: 48, borderRadius: '50%', background: ORANGE_BG, border: `2px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: ORANGE_LIGHT }}>{(selected?.name ?? '?')[0].toUpperCase()}</span>
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>{selected?.name}</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Digite seu PIN</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? ORANGE_LIGHT : C.surface2, border: `2px solid ${i < pin.length ? ORANGE : C.border}`, transition: 'background 0.12s' }} />
               ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {step === 'pin' && (
-        <div style={{ width: '100%', maxWidth: 280 }}>
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ margin: '0 auto 10px', width: 48, height: 48, borderRadius: '50%', background: C.accentBg, border: `2px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: C.accentLight }}>{(selected?.name ?? '?')[0].toUpperCase()}</span>
+            {error && <p style={{ fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 14 }}>{error}</p>}
+            {authing && <p style={{ fontSize: 13, color: C.subtle, textAlign: 'center', marginBottom: 14 }}>Verificando...</p>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {['1','2','3','4','5','6','7','8','9'].map((d) => (
+                <button key={d} onClick={() => pressDigit(d)} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
+              ))}
+              <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setError('') }} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
+              <button onClick={() => pressDigit('0')} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>0</button>
+              <button onClick={backspace} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Delete size={20} />
+              </button>
             </div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>{selected?.name}</p>
-            <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Digite seu PIN</p>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? C.accentLight : C.surface2, border: `2px solid ${i < pin.length ? C.accent : C.border}`, transition: 'background 0.12s' }} />
-            ))}
-          </div>
-          {error && <p style={{ fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 14 }}>{error}</p>}
-          {authing && <p style={{ fontSize: 13, color: C.subtle, textAlign: 'center', marginBottom: 14 }}>Verificando...</p>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {['1','2','3','4','5','6','7','8','9'].map((d) => (
-              <button key={d} onClick={() => pressDigit(d)} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
-            ))}
-            <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setError('') }} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
-            <button onClick={() => pressDigit('0')} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>0</button>
-            <button onClick={backspace} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Delete size={20} />
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <p style={{ fontSize: 11, color: C.muted, margin: '22px 0 0', textAlign: 'center' }}>
+        © {new Date().getFullYear()} {fullName} • Sistema de Gestão • Versão 1.0.0
+      </p>
     </div>
   )
 }

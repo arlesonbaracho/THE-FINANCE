@@ -3,25 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { UtensilsCrossed, Delete, ArrowLeft, Plus, Minus, ShoppingCart, CheckCircle, PackageCheck } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
+import { temaOperacao } from '@/lib/operacao-theme'
+import { AvatarFuncao } from '@/components/operacao/avatares'
 
 // ── Tema roxo/índigo ──────────────────────────────────────────────────────────
 
-const C = {
-  pageBg:     '#0f0d18',
-  surface:    '#131020',
-  surface2:   '#0f0c1a',
-  border:     '#2a2550',
-  txt:        '#ede8f8',
-  txt2:       '#b8b0d8',
-  muted:      '#4a4570',
-  accent:     '#6d4fc2',
-  accentLight:'#8b6fd4',
-  accentBg:   '#1a1530',
-  green:      '#2a9d6f',
-  amber:      '#d97706',
-  purple:     '#6d4fc2',
-  red:        '#e05252',
-}
+const C = temaOperacao('garcom')
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -312,12 +299,10 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
       <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 24 }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <UtensilsCrossed size={28} style={{ color: C.accent }} />
-          <div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: C.txt }}>{tenant?.name ?? slug}</p>
-            <p style={{ margin: 0, fontSize: 12, color: C.muted }}>Painel do Garçom</p>
-          </div>
+        <div style={{ marginBottom: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <AvatarFuncao funcao="garcom" size={96} />
+          <p style={{ margin: '14px 0 0', fontWeight: 700, fontSize: 18, color: C.txt }}>{tenant?.name ?? slug}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: C.muted }}>Painel do Garçom</p>
         </div>
 
         {step === 'select' && (
@@ -418,6 +403,13 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <Topbar />
       <div style={{ flex: 1, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>Bem-vindo, <span style={{ color: C.accentLight ?? C.accent }}>Garçom</span></h1>
+            <p style={{ color: C.subtle ?? C.muted, fontSize: 14, margin: '6px 0 14px' }}>Selecione uma mesa para atender.</p>
+          </div>
+          <AvatarFuncao funcao="garcom" size={132} />
+        </div>
         <p style={{ color: C.txt2, fontSize: 14, margin: '0 0 16px' }}>
           Selecione <strong style={{ color: C.green }}>LIVRE</strong> para novo pedido ou <strong style={{ color: C.amber }}>OCUPADA</strong> para adicionar itens:
         </p>

@@ -1,28 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
+import { temaOperacao } from '@/lib/operacao-theme'
+import { OperacaoHeader } from '@/components/operacao/OperacaoHeader'
 
-const C = {
-  pageBg:      '#131009',
-  surface:     '#1a1608',
-  surface2:    '#130f07',
-  border:      '#2e2410',
-  borderLight: '#1e1808',
-  txt:         '#f0ece8',
-  txt2:        '#dcd4c8',
-  muted:       '#604830',
-  dim:         '#503a20',
-  subtle:      '#7a6040',
-  accent:      '#b48a2a',
-  accentLight: '#d4a84b',
-  accentBg:    '#2b1f0d',
-  red:         '#e05252',
-  green:       '#2a9d6f',
-  amber:       '#d97706',
-  purple:      '#6d4fc2',
-}
+const C = temaOperacao('caixa')
 
 type PinUser  = { id: string; name: string; avatarUrl: string | null }
 type TenantInfo = { id: string; name: string }
@@ -312,6 +296,12 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
 
   const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
+  const statusChips = useMemo(() => {
+    const ocupadas = mesas.filter((m) => m.status === 'OCUPADA').length
+    const livres   = mesas.filter((m) => m.status === 'LIVRE').length
+    return { ocupadas, livres }
+  }, [mesas])
+
   if (notFound) return (
     <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <ShoppingCart size={40} style={{ color: C.dim, marginBottom: 16 }} />
@@ -333,6 +323,16 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
   // ── Dashboard ──────────────────────────────────────────────────────────────────
 
   if (step === 'dashboard') {
+    const chips = (
+      <>
+        <div style={{ padding: '4px 10px', borderRadius: 20, background: C.accentBg, border: `1px solid ${C.accent}`, fontSize: 12, fontWeight: 600, color: C.accentLight, whiteSpace: 'nowrap' }}>
+          {statusChips.ocupadas} ocupada{statusChips.ocupadas !== 1 ? 's' : ''}
+        </div>
+        <div style={{ padding: '4px 10px', borderRadius: 20, background: C.surface2, border: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.green, whiteSpace: 'nowrap' }}>
+          {statusChips.livres} livre{statusChips.livres !== 1 ? 's' : ''}
+        </div>
+      </>
+    )
     return (
       <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column' }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -387,11 +387,14 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
           {/* ── Mesas ── */}
           {dashView === 'mesas' && (
             <>
-              <p style={{ color: C.txt2, fontSize: 14, margin: '0 0 16px' }}>
-                Clique em uma mesa <strong style={{ color: C.amber }}>OCUPADA</strong> para ver o pedido:
-              </p>
-              {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Nenhuma mesa cadastrada.</p>}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+              <OperacaoHeader
+                funcao="caixa"
+                nome={loggedUser?.name ?? tenant?.name ?? slug}
+                subtitulo="Selecione uma mesa para iniciar ou continuar um pedido"
+                direita={chips}
+              />
+              {mesas.length === 0 && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Nenhuma mesa cadastrada.</p>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginTop: 12 }}>
                 {mesas.map((m) => {
                   const color = mesaStatusColor(m.status)
                   const ocupada = m.status === 'OCUPADA'
@@ -401,20 +404,27 @@ export default function CaixaPage({ params }: { params: { slug: string } }) {
                       onClick={() => ocupada && openMesa(m)}
                       disabled={!ocupada}
                       style={{
-                        padding: '14px 10px',
+                        padding: '10px 12px',
                         background: ocupada ? C.surface : C.surface2,
                         border: `2px solid ${ocupada ? color : C.border}`,
                         borderRadius: 10,
                         cursor: ocupada ? 'pointer' : 'default',
-                        opacity: ocupada ? 1 : 0.5,
+                        opacity: ocupada ? 1 : 0.45,
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: 4,
+                        textAlign: 'left',
                       }}
                     >
-                      <span style={{ fontWeight: 700, fontSize: 20, color: ocupada ? C.txt : C.txt2 }}>#{m.numero}</span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'uppercase' }}>{m.status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span style={{ fontWeight: 700, fontSize: 18, color: ocupada ? C.txt : C.txt2 }}>#{m.numero}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'uppercase', background: ocupada ? C.accentBg : C.surface2, padding: '2px 6px', borderRadius: 4 }}>{m.status}</span>
+                      </div>
+                      {m.identificacao && (
+                        <span style={{ fontSize: 11, color: C.subtle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{m.identificacao}</span>
+                      )}
+                      <span style={{ fontSize: 11, color: C.muted }}>{m.cadeiras} cadeira{m.cadeiras !== 1 ? 's' : ''}</span>
                     </button>
                   )
                 })}

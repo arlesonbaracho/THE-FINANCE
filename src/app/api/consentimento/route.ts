@@ -39,6 +39,7 @@ export async function POST(req: Request) {
         versao: d.versao,
         ip,
       })),
+      skipDuplicates: true,
     })
   }
 

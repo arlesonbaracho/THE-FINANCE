@@ -80,6 +80,13 @@ export async function confirmarImportacaoCardapio(
       })
       criados++
     } else if (d.acao === 'casar' && d.produtoId) {
+      const produtoDoTenant = await prisma.product.findFirst({
+        where: { id: d.produtoId, tenantId },
+        select: { id: true },
+      })
+      if (!produtoDoTenant) {
+        throw new Error('Produto selecionado não pertence a este restaurante.')
+      }
       await prisma.iFoodItemMap.upsert({
         where: { tenantId_ifoodItemId: { tenantId, ifoodItemId: d.ifoodItemId } },
         create: { tenantId, ifoodItemId: d.ifoodItemId, ifoodItemNome: d.ifoodItemNome, produtoId: d.produtoId },

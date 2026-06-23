@@ -80,6 +80,7 @@ model User {
   accounts            Account[]
   sessions            Session[]
   accessLogs          UserAccessLog[]
+  consentRecords      ConsentRecord[]
   passwordResetTokens PasswordResetToken[]
   pedidosGarcom       Pedido[]             @relation("Garcom")
   sessoesCaixa        SessaoCaixa[]        @relation("SessoesCaixa")
@@ -1286,4 +1287,25 @@ model PaymentTransaction {
 
   @@index([tenantId])
   @@index([pedidoId])
+}
+
+// ── LGPD Consent ──────────────────────────────────────────────────────────────
+
+enum ConsentDoc {
+  POLITICA
+  TERMOS
+}
+
+model ConsentRecord {
+  id        String     @id @default(cuid())
+  userId    String
+  tenantId  String?
+  documento ConsentDoc
+  versao    String
+  aceitoEm  DateTime   @default(now())
+  ip        String?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, documento])
 }

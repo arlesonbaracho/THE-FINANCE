@@ -98,7 +98,7 @@ export default function ConvitePage() {
     const res = await fetch(`/api/convite/${token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), password, aceiteLgpd: true }),
+      body: JSON.stringify({ name: name.trim(), password, aceiteLgpd }),
     })
     const data = await res.json()
     setSubmitting(false)

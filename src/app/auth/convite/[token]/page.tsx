@@ -75,6 +75,7 @@ export default function ConvitePage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [aceiteLgpd, setAceiteLgpd] = useState(false)
   const pwStr = getPwStrength(password)
 
   useEffect(() => {
@@ -92,11 +93,12 @@ export default function ConvitePage() {
     e.preventDefault()
     if (password !== confirm) { setError('As senhas não coincidem'); return }
     if (pwStr.score < 3) { setError('Senha muito fraca. Use maiúsculas, números e caracteres especiais.'); return }
+    if (!aceiteLgpd) { setError('É necessário aceitar a Política de Privacidade e os Termos'); return }
     setSubmitting(true); setError('')
     const res = await fetch(`/api/convite/${token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), password }),
+      body: JSON.stringify({ name: name.trim(), password, aceiteLgpd: true }),
     })
     const data = await res.json()
     setSubmitting(false)
@@ -259,15 +261,35 @@ export default function ConvitePage() {
                     )}
                   </div>
 
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <input
+                      id="aceite-lgpd"
+                      type="checkbox"
+                      checked={aceiteLgpd}
+                      onChange={(e) => setAceiteLgpd(e.target.checked)}
+                      style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--tf-primary)', width: 16, height: 16, cursor: 'pointer' }}
+                    />
+                    <label htmlFor="aceite-lgpd" style={{ fontSize: 13, color: 'var(--tf-txt2)', lineHeight: 1.5, cursor: 'pointer' }}>
+                      Li e aceito a{' '}
+                      <a href="/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--tf-primary)', textDecoration: 'underline' }}>
+                        Política de Privacidade
+                      </a>
+                      {' '}e os{' '}
+                      <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--tf-primary)', textDecoration: 'underline' }}>
+                        Termos de Uso
+                      </a>
+                    </label>
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={submitting || password !== confirm || pwStr.score < 3 || !name.trim()}
+                    disabled={submitting || password !== confirm || pwStr.score < 3 || !name.trim() || !aceiteLgpd}
                     style={{
                       width: '100%', padding: '12px', borderRadius: 8,
                       background: 'var(--tf-primary)', color: 'var(--tf-primary-txt)',
                       border: 'none', fontFamily: 'var(--font-manrope)', fontWeight: 600, fontSize: 15,
-                      cursor: submitting || password !== confirm || pwStr.score < 3 || !name.trim() ? 'not-allowed' : 'pointer',
-                      opacity: submitting || password !== confirm || pwStr.score < 3 || !name.trim() ? 0.6 : 1,
+                      cursor: submitting || password !== confirm || pwStr.score < 3 || !name.trim() || !aceiteLgpd ? 'not-allowed' : 'pointer',
+                      opacity: submitting || password !== confirm || pwStr.score < 3 || !name.trim() || !aceiteLgpd ? 0.6 : 1,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       marginTop: 6,
                     }}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import { getClientIp } from '@/lib/rate-limit'
+import { POLITICA_VERSAO, TERMOS_VERSAO } from '@/lib/legal'
 
 const getInviteSchema = z.object({
   token: z.string().min(10),
@@ -10,6 +12,7 @@ const getInviteSchema = z.object({
 const acceptSchema = z.object({
   name: z.string().min(2).max(80),
   password: z.string().min(8).regex(/[A-Z]/, 'Precisa de maiúscula').regex(/[0-9]/, 'Precisa de número'),
+  aceiteLgpd: z.literal(true, { error: 'É necessário aceitar a Política de Privacidade e os Termos' }),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -38,6 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  const ip = getClientIp(req)
 
   const invite = await prisma.invite.findUnique({
     where: { token },
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   const hash = await bcrypt.hash(parsed.data.password, 12)
 
-  await prisma.$transaction([
+  const [newUser] = await prisma.$transaction([
     prisma.user.create({
       data: {
         name: parsed.data.name,
@@ -79,6 +83,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       data: { status: 'ACCEPTED', usedAt: new Date() },
     }),
   ])
+
+  await prisma.consentRecord.createMany({
+    data: [
+      { userId: newUser.id, tenantId: invite.tenantId, documento: 'POLITICA', versao: POLITICA_VERSAO, ip },
+      { userId: newUser.id, tenantId: invite.tenantId, documento: 'TERMOS', versao: TERMOS_VERSAO, ip },
+    ],
+  })
 
   return NextResponse.json({ ok: true })
 }

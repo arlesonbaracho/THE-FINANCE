@@ -1,10 +1,44 @@
+import Link from 'next/link'
 import { TFMark } from '@/components/ui/tf-mark'
 
-const COLS = [
-  { title: 'Produto',  links: ['Funcionalidades', 'Planos', 'Novidades', 'Roadmap'] },
-  { title: 'Empresa',  links: ['Sobre', 'Blog', 'Contato', 'Trabalhe conosco'] },
-  { title: 'Suporte',  links: ['Central de ajuda', 'Documentação', 'Status', 'Termos e Privacidade'] },
+const COLS: { title: string; links: { label: string; href: string }[] }[] = [
+  {
+    title: 'Produto',
+    links: [
+      { label: 'Funcionalidades', href: '#' },
+      { label: 'Planos', href: '#' },
+      { label: 'Novidades', href: '#' },
+      { label: 'Roadmap', href: '#' },
+    ],
+  },
+  {
+    title: 'Empresa',
+    links: [
+      { label: 'Sobre', href: '#' },
+      { label: 'Blog', href: '#' },
+      { label: 'Contato', href: '#' },
+      { label: 'Trabalhe conosco', href: '#' },
+    ],
+  },
+  {
+    title: 'Suporte',
+    links: [
+      { label: 'Central de ajuda', href: '#' },
+      { label: 'Documentação', href: '#' },
+      { label: 'Status', href: '#' },
+      { label: 'Política de Privacidade', href: '/privacidade' },
+      { label: 'Termos', href: '/termos' },
+    ],
+  },
 ]
+
+const linkStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-inter)',
+  fontSize: 14,
+  color: 'rgba(255,255,255,0.55)',
+  textDecoration: 'none',
+  transition: 'color 0.2s',
+}
 
 export function Footer() {
   return (
@@ -51,15 +85,12 @@ export function Footer() {
               textTransform: 'uppercase', letterSpacing: '0.12em',
             }}>{col.title}</p>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {col.links.map((link) => (
-                <li key={link}>
-                  <a href="#" style={{
-                    fontFamily: 'var(--font-inter)', fontSize: 14,
-                    color: 'rgba(255,255,255,0.55)', textDecoration: 'none', transition: 'color 0.2s',
-                  }}
+              {col.links.map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} style={linkStyle}
                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#fff')}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)')}
-                  >{link}</a>
+                  >{item.label}</Link>
                 </li>
               ))}
             </ul>

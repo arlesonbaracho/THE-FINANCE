@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { UtensilsCrossed, Delete, ArrowLeft, Plus, Minus, ShoppingCart, CheckCircle, PackageCheck } from 'lucide-react'
+import { UtensilsCrossed, Delete, ArrowLeft, Plus, Minus, ShoppingCart, CheckCircle, PackageCheck, Flame, ChevronDown, ChevronRight, Clock, RefreshCw } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
 import { AvatarFuncao } from '@/components/operacao/avatares'
@@ -9,6 +9,9 @@ import { AvatarFuncao } from '@/components/operacao/avatares'
 // ── Tema roxo/índigo ──────────────────────────────────────────────────────────
 
 const C = temaOperacao('garcom')
+const ORANGE = '#e8722e'
+const ORANGE_LIGHT = '#f7a368'
+const ORANGE_BG = 'rgba(232,114,46,0.12)'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -38,37 +41,6 @@ function mesaStatusColor(s: string) {
 
 function formatPrice(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-// ── Teclado PIN ───────────────────────────────────────────────────────────────
-
-function PinKeyboard({ onDigit, onBack }: { onDigit: (d: string) => void; onBack: () => void }) {
-  const digits = ['1','2','3','4','5','6','7','8','9','','0','⌫']
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 64px)', gap: 10, justifyContent: 'center' }}>
-      {digits.map((d, i) => (
-        d === '' ? <div key={i} /> :
-        d === '⌫' ? (
-          <button key={i} onClick={onBack} style={{
-            width: 64, height: 64, borderRadius: 12,
-            background: C.surface2, border: `1px solid ${C.border}`,
-            color: C.txt2, fontSize: 20, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Delete size={20} />
-          </button>
-        ) : (
-          <button key={i} onClick={() => onDigit(d)} style={{
-            width: 64, height: 64, borderRadius: 12,
-            background: C.surface, border: `1px solid ${C.border}`,
-            color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer',
-          }}>
-            {d}
-          </button>
-        )
-      ))}
-    </div>
-  )
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -101,6 +73,17 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
   const [obsProduct, setObsProduct] = useState<Product | null>(null)
   const [obsText, setObsText]       = useState('')
   const [obsQtd, setObsQtd]         = useState(1)
+
+  // UI-only state — topbar hamburger menu toggle
+  const [menuAberto, setMenuAberto] = useState(false)
+  // Clock for topbar time display
+  const [now, setNow] = useState(new Date())
+
+  // Atualiza o relógio a cada minuto
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   const loadInitial = useCallback(() => {
     setLoading(true)
@@ -292,107 +275,166 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
     </div>
   )
 
-  // ── Select / PIN ──────────────────────────────────────────────────────────────
+  // ── Select / PIN (login glass card) ──────────────────────────────────────────
 
   if (step === 'select' || step === 'pin') {
+    const fullName = tenant?.name ?? slug
+    const nameParts = fullName.trim().split(/\s+/)
+    const lastWord = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+    const firstWords = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : fullName
+
     return (
-      <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 24 }}>
+      <div style={{ minHeight: '100vh', background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,114,46,0.22), transparent 60%), radial-gradient(circle at 50% 110%, rgba(232,114,46,0.12), transparent 55%), ${C.pageBg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-        <div style={{ marginBottom: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <AvatarFuncao funcao="garcom" size={96} />
-          <p style={{ margin: '14px 0 0', fontWeight: 700, fontSize: 18, color: C.txt }}>{tenant?.name ?? slug}</p>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: C.muted }}>Painel do Garçom</p>
+        <div style={{ marginBottom: 'clamp(-44px, -4vw, -28px)', position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center', filter: 'drop-shadow(0 14px 36px rgba(232,114,46,0.45))' }}>
+          <AvatarFuncao funcao="garcom" size="clamp(220px,34vw,380px)" frame={false} />
         </div>
 
-        {step === 'select' && (
-          <>
-            <p style={{ color: C.txt2, fontSize: 14, margin: 0 }}>Selecione seu nome para entrar:</p>
-            {users.length === 0 && (
-              <p style={{ color: C.muted, fontSize: 13 }}>Nenhum garçom com PIN configurado.</p>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => { setSelected(u); setPin(''); setPinError(''); setStep('pin') }}
-                  style={{
-                    padding: '14px 18px',
-                    background: C.surface,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 12,
-                    color: C.txt,
-                    fontSize: 15,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 18, background: C.accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <UtensilsCrossed size={16} style={{ color: C.accent }} />
-                  </div>
-                  {u.name}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {/* Glass card */}
+        <div style={{ width: '100%', maxWidth: 400, background: 'rgba(20,16,8,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: `1px solid ${C.border}`, borderRadius: 22, padding: '44px 28px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: C.txt, margin: 0, letterSpacing: '.01em' }}>
+              {firstWords}{lastWord && <> <span style={{ color: ORANGE }}>{lastWord}</span></>}
+            </h1>
+            <p style={{ fontSize: 13, color: C.subtle, margin: '6px 0 0' }}>Painel do Garçom</p>
+            <div style={{ width: 56, height: 3, borderRadius: 2, background: ORANGE, margin: '16px auto 0' }} />
+          </div>
 
-        {step === 'pin' && selected && (
-          <>
-            <button onClick={() => { setStep('select'); setPin(''); setPinError('') }} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
-              <ArrowLeft size={14} /> Voltar
-            </button>
-            <p style={{ color: C.txt2, fontSize: 14, margin: 0 }}>
-              Digite o PIN de <strong style={{ color: C.txt }}>{selected.name}</strong>
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[0,1,2,3].map((i) => (
-                <div key={i} style={{
-                  width: 16, height: 16, borderRadius: 8,
-                  background: i < pin.length ? C.accent : C.border,
-                  transition: 'background 0.15s',
-                }} />
-              ))}
+          {/* ── Step: selecionar usuário ── */}
+          {step === 'select' && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
+                <UtensilsCrossed size={15} style={{ color: ORANGE }} />
+                <p style={{ fontSize: 13, color: C.txt2, margin: 0 }}>Selecione seu nome para continuar</p>
+                <button onClick={loadInitial} title="Atualizar lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}>
+                  <RefreshCw size={13} />
+                </button>
+              </div>
+              {users.length === 0 ? (
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
+                  <UtensilsCrossed size={32} style={{ color: C.dim, marginBottom: 10 }} />
+                  <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>Nenhum garçom com PIN configurado</p>
+                  <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>Um administrador deve cadastrar garçons com PIN</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {users.map((u) => {
+                    const sel = selected?.id === u.id
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => { setSelected(u); setPin(''); setPinError(''); setStep('pin') }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: sel ? ORANGE_BG : C.surface, border: `1.5px solid ${sel ? ORANGE : C.border}`, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                      >
+                        <div style={{ width: 38, height: 38, borderRadius: '50%', background: ORANGE_BG, border: `1px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: ORANGE_LIGHT }}>{(u.name ?? '?')[0].toUpperCase()}</span>
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: C.txt, flex: 1 }}>{u.name}</span>
+                        <ChevronRight size={18} style={{ color: sel ? ORANGE : C.dim }} />
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            {pinError && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{pinError}</p>}
-            {authing
-              ? <div style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid ${C.border}`, borderTopColor: C.accentLight, animation: 'spin 0.8s linear infinite' }} />
-              : <PinKeyboard onDigit={(d) => { if (pin.length < 4) setPin((p) => p + d) }} onBack={() => setPin((p) => p.slice(0, -1))} />
-            }
-          </>
-        )}
+          )}
+
+          {/* ── Step: digitar PIN ── */}
+          {step === 'pin' && selected && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ margin: '0 auto 10px', width: 48, height: 48, borderRadius: '50%', background: ORANGE_BG, border: `2px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: ORANGE_LIGHT }}>{(selected?.name ?? '?')[0].toUpperCase()}</span>
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>{selected?.name}</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Digite seu PIN</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? ORANGE_LIGHT : C.surface2, border: `2px solid ${i < pin.length ? ORANGE : C.border}`, transition: 'background 0.12s' }} />
+                ))}
+              </div>
+              {pinError && <p style={{ fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 14 }}>{pinError}</p>}
+              {authing && <p style={{ fontSize: 13, color: C.subtle, textAlign: 'center', marginBottom: 14 }}>Verificando...</p>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {['1','2','3','4','5','6','7','8','9'].map((d) => (
+                  <button key={d} onClick={() => { if (pin.length < 4) setPin((p) => p + d) }} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
+                ))}
+                <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setPinError('') }} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
+                <button onClick={() => { if (pin.length < 4) setPin((p) => p + '0') }} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>0</button>
+                <button onClick={() => setPin((p) => p.slice(0, -1))} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Delete size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p style={{ fontSize: 11, color: C.muted, margin: '22px 0 0', textAlign: 'center' }}>
+          © {new Date().getFullYear()} {tenant?.name ?? slug} • Sistema de Gestão • Versão 1.0.0
+        </p>
       </div>
     )
   }
 
   // ── Topbar compartilhado ──────────────────────────────────────────────────────
 
+  const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
   const Topbar = () => (
-    <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {(step === 'cardapio' || step === 'pedido') && (
+    <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {(step === 'cardapio' || step === 'pedido') ? (
           <button
             onClick={() => { if (step === 'pedido') { setStep('cardapio') } else { setMesaAtiva(null); loadMesas() } }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center', gap: 4, marginRight: 4 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center' }}
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={18} />
           </button>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setMenuAberto((v) => !v)} title="Menu" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center' }}>
+              ☰
+            </button>
+            {menuAberto && (
+              <div style={{ position: 'absolute', top: 30, left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, minWidth: 170, zIndex: 30, display: 'flex', flexDirection: 'column' }}>
+                <button onClick={() => { loadMesas(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><RefreshCw size={14} /> Atualizar mesas</button>
+                <button onClick={() => { handleLogout(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><ArrowLeft size={14} /> Sair</button>
+              </div>
+            )}
+          </div>
         )}
-        <UtensilsCrossed size={18} style={{ color: C.accent }} />
-        <span style={{ fontSize: 15, fontWeight: 600, color: C.txt }}>{tenant?.name ?? slug}</span>
-        <span style={{ fontSize: 12, color: C.muted }}>/ Garçom</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <Flame size={22} style={{ color: '#e8722e' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.txt, letterSpacing: '.02em' }}>{(tenant?.name ?? slug).toUpperCase()}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 14, marginLeft: 4, borderLeft: `1px solid ${C.border}`, color: C.accentLight, fontWeight: 600, fontSize: 13, borderBottom: `2px solid ${C.accent}`, paddingBottom: 2 }}>
+          <UtensilsCrossed size={16} /> GARÇOM
+        </div>
         {mesaAtiva && <span style={{ fontSize: 12, color: C.accentLight, background: C.accentBg, padding: '2px 8px', borderRadius: 4 }}>Mesa #{mesaAtiva.numero}</span>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 13, color: C.txt2 }}>{garcom?.name}</span>
-        <button onClick={handleLogout} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 10px', color: C.txt2, fontSize: 12, cursor: 'pointer' }}>
-          Sair
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Clock size={13} style={{ color: C.subtle }} />
+          <span style={{ fontSize: 13, color: C.subtle }}>{timeStr}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.txt2, fontSize: 13 }}>
+          <UtensilsCrossed size={14} style={{ color: C.subtle }} /> {garcom?.name} <ChevronDown size={13} style={{ color: C.subtle }} />
+        </div>
+        <button onClick={handleLogout} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', color: C.txt2, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ArrowLeft size={14} /> Sair
         </button>
       </div>
+    </div>
+  )
+
+  // ── Footer compartilhado ──────────────────────────────────────────────────────
+
+  const Footer = () => (
+    <div style={{ flexShrink: 0, borderTop: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11, color: C.muted, flexWrap: 'wrap' }}>
+      <span>© {new Date().getFullYear()} {tenant?.name ?? slug} • Todos os direitos reservados</span>
+      <span>Sistema de Gestão • Versão 1.0.0</span>
     </div>
   )
 
@@ -402,14 +444,22 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
     <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <Topbar />
-      <div style={{ flex: 1, padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>Bem-vindo, <span style={{ color: C.accentLight ?? C.accent }}>Garçom</span></h1>
-            <p style={{ color: C.subtle ?? C.muted, fontSize: 14, margin: '6px 0 14px' }}>Selecione uma mesa para atender.</p>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+        {/* Hero */}
+        <div style={{ position: 'relative', padding: '4px 4px 8px', minHeight: 'clamp(120px, 15vw, 200px)' }}>
+          <div style={{ maxWidth: '100%', paddingRight: 'clamp(150px, 22vw, 300px)' }}>
+            <h1 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: C.txt, margin: 0 }}>
+              Bem-vindo ao <span style={{ color: C.accentLight }}>Garçom</span>
+            </h1>
+            <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>
+              Selecione uma mesa para abrir ou continuar um pedido.
+            </p>
           </div>
-          <AvatarFuncao funcao="garcom" size={132} />
+          <div style={{ position: 'absolute', top: -8, right: 'clamp(0px, 2vw, 32px)', pointerEvents: 'none', filter: 'drop-shadow(0 10px 26px rgba(0,0,0,0.4))' }}>
+            <AvatarFuncao funcao="garcom" size="clamp(130px,17vw,230px)" frame={false} />
+          </div>
         </div>
+
         <p style={{ color: C.txt2, fontSize: 14, margin: '0 0 16px' }}>
           Selecione <strong style={{ color: C.green }}>LIVRE</strong> para novo pedido ou <strong style={{ color: C.amber }}>OCUPADA</strong> para adicionar itens:
         </p>
@@ -444,6 +494,7 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
           })}
         </div>
       </div>
+      <Footer />
     </div>
   )
 

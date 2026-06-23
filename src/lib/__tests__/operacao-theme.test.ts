@@ -14,6 +14,12 @@ describe('temaOperacao', () => {
     expect(temaOperacao('garcom').accent).toBe('#6d4fc2')
     expect(temaOperacao('garcom').pageBg).toBe('#0f0d18')
   })
+  it('garcom tem chaves de moldura (subtle/dim/borderLight)', () => {
+    const g = temaOperacao('garcom')
+    expect(g.subtle).toBeDefined()
+    expect(g.dim).toBeDefined()
+    expect(g.borderLight).toBeDefined()
+  })
 })
 
 describe('funcaoMeta', () => {

@@ -14,8 +14,8 @@ const PALETAS: Record<FuncaoOperacao, Record<string, string>> = {
     red: '#e05252', redBg: '#1f0a0a',
   },
   garcom: {
-    pageBg: '#0f0d18', surface: '#131020', surface2: '#0f0c1a', border: '#2a2550',
-    txt: '#ede8f8', txt2: '#b8b0d8', muted: '#4a4570',
+    pageBg: '#0f0d18', surface: '#131020', surface2: '#0f0c1a', border: '#2a2550', borderLight: '#1c1838',
+    txt: '#ede8f8', txt2: '#b8b0d8', muted: '#4a4570', dim: '#3a3560', subtle: '#6a6498',
     accent: '#6d4fc2', accentLight: '#8b6fd4', accentBg: '#1a1530',
     green: '#2a9d6f', amber: '#d97706', purple: '#6d4fc2', red: '#e05252',
   },

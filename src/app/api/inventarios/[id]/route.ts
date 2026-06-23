@@ -61,7 +61,7 @@ export async function PATCH(
     await prisma.$transaction(
       items.map(({ itemId, qtdContada, observacao }) =>
         prisma.inventarioItem.update({
-          where: { id: itemId },
+          where: { id: itemId, inventarioId: inventario.id },
           data: {
             qtdContada,
             diferenca: undefined, // will compute on finalize

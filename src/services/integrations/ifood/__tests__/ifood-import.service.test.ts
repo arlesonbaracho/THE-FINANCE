@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     iFoodItemMap: { findMany: vi.fn(), upsert: vi.fn() },
-    product: { findMany: vi.fn(), create: vi.fn() },
+    product: { findMany: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
     category: { findUnique: vi.fn(), create: vi.fn() },
   },
 }))
@@ -52,6 +52,7 @@ describe('confirmarImportacaoCardapio', () => {
     expect(r.criados).toBe(1)
   })
   it('apenas grava map para acao=casar', async () => {
+    mp.product.findFirst.mockResolvedValue({ id: 'pX' })
     const r = await confirmarImportacaoCardapio('t1', [
       { ifoodItemId: 'i3', ifoodItemNome: 'Batata', preco: 12, categoriaNome: null, acao: 'casar', produtoId: 'pX' },
     ])
@@ -59,6 +60,21 @@ describe('confirmarImportacaoCardapio', () => {
     expect(mp.iFoodItemMap.upsert).toHaveBeenCalledWith(expect.objectContaining({
       create: expect.objectContaining({ produtoId: 'pX', ifoodItemId: 'i3' }),
     }))
+    expect(r.mapeados).toBe(1)
+  })
+  it('casar rejeita produtoId que não é do tenant', async () => {
+    mp.product.findFirst.mockResolvedValue(null) // produto não pertence ao tenant
+    await expect(
+      confirmarImportacaoCardapio('t1', [{ acao: 'casar', ifoodItemId: 'if1', ifoodItemNome: 'X', preco: 1, produtoId: 'P-de-outro-tenant' }] as any)
+    ).rejects.toThrow(/não pertence/i)
+    expect(mp.iFoodItemMap.upsert).not.toHaveBeenCalled()
+  })
+  it('casar aceita produtoId do próprio tenant', async () => {
+    mp.product.findFirst.mockResolvedValue({ id: 'P1' })
+    mp.iFoodItemMap.upsert.mockResolvedValue({})
+    const r = await confirmarImportacaoCardapio('t1', [{ acao: 'casar', ifoodItemId: 'if1', ifoodItemNome: 'X', preco: 1, produtoId: 'P1' }] as any)
+    expect(mp.product.findFirst).toHaveBeenCalledWith({ where: { id: 'P1', tenantId: 't1' }, select: { id: true } })
+    expect(mp.iFoodItemMap.upsert).toHaveBeenCalled()
     expect(r.mapeados).toBe(1)
   })
 })

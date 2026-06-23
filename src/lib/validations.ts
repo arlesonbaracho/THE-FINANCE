@@ -21,6 +21,7 @@ export const registerSchema = z.object({
     .string()
     .min(1, 'CNPJ é obrigatório')
     .refine(isValidCnpj, 'CNPJ inválido'),
+  aceiteLgpd: z.literal(true, { error: 'É necessário aceitar a Política de Privacidade e os Termos' }),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>

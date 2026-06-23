@@ -25,6 +25,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    aceiteLgpd: false,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -61,6 +62,11 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
+    if (!formData.aceiteLgpd) {
+      setError('É necessário aceitar a Política de Privacidade e os Termos.')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('As senhas não coincidem.')
       return
@@ -76,6 +82,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          aceiteLgpd: formData.aceiteLgpd,
         }),
       })
 
@@ -120,6 +127,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          aceiteLgpd: formData.aceiteLgpd,
           code,
         }),
       })
@@ -154,6 +162,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          aceiteLgpd: formData.aceiteLgpd,
         }),
       })
       const data = await res.json()
@@ -353,16 +362,37 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <input
+                      type="checkbox"
+                      id="aceiteLgpd"
+                      required
+                      checked={formData.aceiteLgpd}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, aceiteLgpd: e.target.checked }))}
+                      style={{ marginTop: 2, cursor: 'pointer', accentColor: C.green, flexShrink: 0 }}
+                    />
+                    <label htmlFor="aceiteLgpd" style={{ fontSize: 12, color: C.dim, cursor: 'pointer', lineHeight: 1.5 }}>
+                      Li e aceito a{' '}
+                      <a href="/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: C.green, textDecoration: 'underline' }}>
+                        Política de Privacidade
+                      </a>{' '}
+                      e os{' '}
+                      <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: C.green, textDecoration: 'underline' }}>
+                        Termos
+                      </a>
+                    </label>
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !formData.aceiteLgpd}
                     className="reg-submit"
                     style={{
                       width: '100%', padding: '13px', borderRadius: 7, border: 'none',
                       background: C.green, color: '#fff',
                       fontWeight: 600, fontSize: 14,
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      opacity: loading ? 0.75 : 1,
+                      cursor: (loading || !formData.aceiteLgpd) ? 'not-allowed' : 'pointer',
+                      opacity: (loading || !formData.aceiteLgpd) ? 0.75 : 1,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       transition: 'background 0.15s, box-shadow 0.15s, transform 0.1s',
                       marginTop: 4,

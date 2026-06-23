@@ -6,6 +6,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { slugify } from '@/lib/utils'
 import { z } from 'zod'
 import { normalizeCnpj, lookupCnpj, buildFiscalData } from '@/services/fiscal/cnpj.service'
+import { POLITICA_VERSAO, TERMOS_VERSAO } from '@/lib/legal'
 
 const verifySchema = registerSchema.extend({
   code: z.string().length(6).regex(/^\d{6}$/, 'Código deve ter 6 dígitos numéricos'),
@@ -100,6 +101,15 @@ export async function POST(req: Request) {
           },
         },
       },
+      include: { users: true },
+    })
+
+    const adminUser = tenant.users[0]
+    await prisma.consentRecord.createMany({
+      data: [
+        { userId: adminUser.id, tenantId: tenant.id, documento: 'POLITICA', versao: POLITICA_VERSAO, ip },
+        { userId: adminUser.id, tenantId: tenant.id, documento: 'TERMOS', versao: TERMOS_VERSAO, ip },
+      ],
     })
 
     return NextResponse.json(

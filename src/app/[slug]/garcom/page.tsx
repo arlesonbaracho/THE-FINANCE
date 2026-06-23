@@ -361,7 +361,7 @@ export default function GarcomPage({ params }: { params: { slug: string } }) {
                 {['1','2','3','4','5','6','7','8','9'].map((d) => (
                   <button key={d} onClick={() => { if (pin.length < 4) setPin((p) => p + d) }} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
                 ))}
-                <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setPinError('') }} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
+                <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setPinError('') }} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
                 <button onClick={() => { if (pin.length < 4) setPin((p) => p + '0') }} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>0</button>
                 <button onClick={() => setPin((p) => p.slice(0, -1))} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Delete size={20} />

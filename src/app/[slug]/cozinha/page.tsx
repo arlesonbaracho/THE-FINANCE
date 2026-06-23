@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ChefHat, Delete, Clock, RefreshCw } from 'lucide-react'
+import { ChefHat, Delete, Clock, RefreshCw, Flame, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { fetchCached, invalidateCache } from '@/lib/client-cache'
 import { temaOperacao } from '@/lib/operacao-theme'
 import { AvatarFuncao } from '@/components/operacao/avatares'
 
 const C = temaOperacao('cozinha')
+const ORANGE = '#e8722e'
+const ORANGE_LIGHT = '#f7a368'
+const ORANGE_BG = 'rgba(232,114,46,0.12)'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -49,6 +52,7 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
   const [rejectModal, setRejectModal] = useState<{ pedidoId: string; ifoodOrderId?: string } | null>(null)
   const [rejectMotivo, setRejectMotivo] = useState('PedidoUnavailable')
   const [rejecting, setRejecting] = useState(false)
+  const [menuAberto, setMenuAberto] = useState(false)
 
   // Atualiza o relógio a cada minuto
   useEffect(() => {
@@ -207,34 +211,40 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
 
     return (
       <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
         {/* Topbar */}
-        <div style={{
-          background: C.surface, borderBottom: `1px solid ${C.border}`,
-          padding: '14px 24px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ChefHat size={20} style={{ color: C.greenLight }} />
-            <span style={{ fontSize: 16, fontWeight: 600, color: C.txt }}>{tenant?.name ?? slug}</span>
-            <span style={{ fontSize: 13, color: C.muted }}>/ Cozinha</span>
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setMenuAberto((v) => !v)} title="Menu" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, display: 'flex', alignItems: 'center' }}>
+                ☰
+              </button>
+              {menuAberto && (
+                <div style={{ position: 'absolute', top: 30, left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, minWidth: 170, zIndex: 30, display: 'flex', flexDirection: 'column' }}>
+                  <button onClick={() => { loadPedidos(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.txt2, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><RefreshCw size={14} /> Atualizar pedidos</button>
+                  <button onClick={() => { handleLogout(); setMenuAberto(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 13, textAlign: 'left', padding: '9px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}><ArrowLeft size={14} /> Sair</button>
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <Flame size={22} style={{ color: '#e8722e' }} />
+              <span style={{ fontSize: 15, fontWeight: 700, color: C.txt, letterSpacing: '.02em' }}>{(tenant?.name ?? slug).toUpperCase()}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 14, marginLeft: 4, borderLeft: `1px solid ${C.border}`, color: C.green, fontWeight: 600, fontSize: 13, borderBottom: `2px solid ${C.green}`, paddingBottom: 2 }}>
+              <ChefHat size={16} /> COZINHA
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <Clock size={13} style={{ color: C.subtle }} />
               <span style={{ fontSize: 13, color: C.subtle }}>{timeStr}</span>
             </div>
-            <span style={{ fontSize: 13, color: C.txt2, fontWeight: 500 }}>{kitchenUser?.name}</span>
-            <button
-              onClick={handleLogout}
-              style={{
-                fontSize: 12, color: C.muted, background: 'none',
-                border: `1px solid ${C.border}`, borderRadius: 6,
-                padding: '5px 12px', cursor: 'pointer', transition: 'color 0.12s, border-color 0.12s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.txt2; e.currentTarget.style.borderColor = C.subtle }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
-            >
-              Sair
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.txt2, fontSize: 13 }}>
+              <ChefHat size={14} style={{ color: C.subtle }} /> {kitchenUser?.name} <ChevronDown size={13} style={{ color: C.subtle }} />
+            </div>
+            <button onClick={handleLogout} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', color: C.txt2, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ArrowLeft size={14} /> Sair
             </button>
           </div>
         </div>
@@ -242,12 +252,18 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
         {/* KDS — board de pedidos */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
           {/* Hero de boas-vindas */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '4px 4px 8px' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 style={{ fontSize: 30, fontWeight: 700, color: C.txt, margin: 0 }}>Bem-vindo à <span style={{ color: C.greenLight ?? C.green }}>Cozinha</span></h1>
-              <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>Pedidos em preparo aparecem aqui em tempo real.</p>
+          <div style={{ position: 'relative', padding: '4px 4px 8px', minHeight: 'clamp(120px, 15vw, 200px)' }}>
+            <div style={{ maxWidth: '100%', paddingRight: 'clamp(150px, 22vw, 300px)' }}>
+              <h1 style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: C.txt, margin: 0 }}>
+                Bem-vindo à <span style={{ color: C.green }}>Cozinha</span>
+              </h1>
+              <p style={{ color: C.subtle, fontSize: 14, margin: '6px 0 14px' }}>
+                Acompanhe e avance os pedidos em preparo.
+              </p>
             </div>
-            <AvatarFuncao funcao="cozinha" size={132} />
+            <div style={{ position: 'absolute', top: -8, right: 'clamp(0px, 2vw, 32px)', pointerEvents: 'none', filter: 'drop-shadow(0 10px 26px rgba(0,0,0,0.4))' }}>
+              <AvatarFuncao funcao="cozinha" size="clamp(130px,17vw,230px)" frame={false} />
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -367,6 +383,12 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
             </div>
           )}
         </div>
+        {/* Footer */}
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11, color: C.muted, flexWrap: 'wrap' }}>
+          <span>© {new Date().getFullYear()} {tenant?.name ?? slug} • Todos os direitos reservados</span>
+          <span>Sistema de Gestão • Versão 1.0.0</span>
+        </div>
+
         {rejectModal && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%' }}>
@@ -392,194 +414,102 @@ export default function CozinhaPage({ params }: { params: { slug: string } }) {
 
   // ── Tela de login (select / pin) ───────────────────────────────────────────
 
+  const fullName = tenant?.name ?? slug
+  const nameParts = fullName.trim().split(/\s+/)
+  const lastWord = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+  const firstWords = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : fullName
+
   return (
-    <div style={{
-      minHeight: '100vh', background: C.pageBg,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 24,
-    }}>
-      {/* Header */}
-      <div style={{ marginBottom: 32, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <AvatarFuncao funcao="cozinha" size={96} />
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.txt, margin: '14px 0 0' }}>
-          {tenant?.name ?? slug}
-        </h1>
-        <p style={{ fontSize: 13, color: C.muted, margin: '4px 0 0' }}>Painel da Cozinha</p>
+    <div style={{ minHeight: '100vh', background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,114,46,0.22), transparent 60%), radial-gradient(circle at 50% 110%, rgba(232,114,46,0.12), transparent 55%), ${C.pageBg}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <div style={{ marginBottom: 'clamp(-44px, -4vw, -28px)', position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center', filter: 'drop-shadow(0 14px 36px rgba(232,114,46,0.45))' }}>
+        <AvatarFuncao funcao="cozinha" size="clamp(220px,34vw,380px)" frame={false} />
       </div>
 
-      {/* ── Step: selecionar usuário ── */}
-      {step === 'select' && (
-        <div style={{ width: '100%', maxWidth: 340 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
-            <p style={{ fontSize: 13, color: C.subtle, margin: 0 }}>Selecione seu nome</p>
-            <button
-              onClick={() => loadKitchen(true)}
-              title="Atualizar lista"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.subtle }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.dim }}
-            >
-              <RefreshCw size={13} />
-            </button>
-          </div>
-          {users.length === 0 ? (
-            <div style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 10, padding: '32px 24px', textAlign: 'center',
-            }}>
-              <ChefHat size={32} style={{ color: C.dim, marginBottom: 10 }} />
-              <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>Nenhum usuário com PIN configurado</p>
-              <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>
-                Um administrador deve cadastrar cozinheiros com PIN
-              </p>
+      {/* Glass card */}
+      <div style={{ width: '100%', maxWidth: 400, background: 'rgba(20,16,8,0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: `1px solid ${C.border}`, borderRadius: 22, padding: '44px 28px 28px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: C.txt, margin: 0, letterSpacing: '.01em' }}>
+            {firstWords}{lastWord && <> <span style={{ color: ORANGE }}>{lastWord}</span></>}
+          </h1>
+          <p style={{ fontSize: 13, color: C.subtle, margin: '6px 0 0' }}>Painel da Cozinha</p>
+          <div style={{ width: 56, height: 3, borderRadius: 2, background: ORANGE, margin: '16px auto 0' }} />
+        </div>
+
+        {/* ── Step: selecionar usuário ── */}
+        {step === 'select' && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16 }}>
+              <ChefHat size={15} style={{ color: ORANGE }} />
+              <p style={{ fontSize: 13, color: C.txt2, margin: 0 }}>Selecione seu nome para continuar</p>
+              <button onClick={() => loadKitchen(true)} title="Atualizar lista" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.dim, padding: 4, display: 'flex', alignItems: 'center' }}>
+                <RefreshCw size={13} />
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => selectUser(u)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 16px', borderRadius: 10,
-                    background: C.surface, border: `1px solid ${C.border}`,
-                    cursor: 'pointer', textAlign: 'left', width: '100%',
-                    transition: 'background 0.1s, border-color 0.1s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#0d1a14'; e.currentTarget.style.borderColor = C.green }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.border }}
-                >
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: C.greenBg, border: `1px solid ${C.green}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.greenLight }}>
-                      {(u.name ?? '?')[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: C.txt2 }}>{u.name}</span>
-                </button>
+            {users.length === 0 ? (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
+                <ChefHat size={32} style={{ color: C.dim, marginBottom: 10 }} />
+                <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>Nenhum usuário com PIN configurado</p>
+                <p style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>Um administrador deve cadastrar cozinheiros com PIN</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {users.map((u) => {
+                  const sel = selected?.id === u.id
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => selectUser(u)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, background: sel ? ORANGE_BG : C.surface, border: `1.5px solid ${sel ? ORANGE : C.border}`, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                    >
+                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: ORANGE_BG, border: `1px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: ORANGE_LIGHT }}>{(u.name ?? '?')[0].toUpperCase()}</span>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: C.txt, flex: 1 }}>{u.name}</span>
+                      <ChevronRight size={18} style={{ color: sel ? ORANGE : C.dim }} />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Step: digitar PIN ── */}
+        {step === 'pin' && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ margin: '0 auto 10px', width: 48, height: 48, borderRadius: '50%', background: ORANGE_BG, border: `2px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: ORANGE_LIGHT }}>{(selected?.name ?? '?')[0].toUpperCase()}</span>
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>{selected?.name}</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Digite seu PIN</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? ORANGE_LIGHT : C.surface2, border: `2px solid ${i < pin.length ? ORANGE : C.border}`, transition: 'background 0.12s' }} />
               ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Step: digitar PIN ── */}
-      {step === 'pin' && (
-        <div style={{ width: '100%', maxWidth: 280 }}>
-          {/* Avatar do usuário selecionado */}
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div style={{
-              margin: '0 auto 10px', width: 48, height: 48, borderRadius: '50%',
-              background: C.greenBg, border: `2px solid ${C.green}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: C.greenLight }}>
-                {(selected?.name ?? '?')[0].toUpperCase()}
-              </span>
-            </div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: C.txt, margin: 0 }}>{selected?.name}</p>
-            <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>Digite seu PIN</p>
-          </div>
-
-          {/* Indicadores de dígitos */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: 14, height: 14, borderRadius: '50%',
-                  background: i < pin.length ? C.greenLight : C.surface2,
-                  border: `2px solid ${i < pin.length ? C.green : C.border}`,
-                  transition: 'background 0.12s, border-color 0.12s',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Mensagens */}
-          {error && (
-            <p style={{ fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 14, fontWeight: 500 }}>
-              {error}
-            </p>
-          )}
-          {authing && (
-            <p style={{ fontSize: 13, color: C.subtle, textAlign: 'center', marginBottom: 14 }}>
-              Verificando...
-            </p>
-          )}
-
-          {/* Teclado numérico */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {['1','2','3','4','5','6','7','8','9'].map((d) => (
-              <button
-                key={d}
-                onClick={() => pressDigit(d)}
-                disabled={authing}
-                style={{
-                  height: 58, borderRadius: 10, border: `1px solid ${C.border}`,
-                  background: C.surface, color: C.txt,
-                  fontSize: 22, fontWeight: 600, cursor: 'pointer',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => { if (!authing) e.currentTarget.style.background = C.surface2 }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = C.surface }}
-              >
-                {d}
+            {error && <p style={{ fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 14 }}>{error}</p>}
+            {authing && <p style={{ fontSize: 13, color: C.subtle, textAlign: 'center', marginBottom: 14 }}>Verificando...</p>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {['1','2','3','4','5','6','7','8','9'].map((d) => (
+                <button key={d} onClick={() => pressDigit(d)} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
+              ))}
+              <button onClick={() => { setStep('select'); setSelected(null); setPin(''); setError('') }} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.dim, fontSize: 11, cursor: 'pointer' }}>Voltar</button>
+              <button onClick={() => pressDigit('0')} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.txt, fontSize: 22, fontWeight: 600, cursor: 'pointer' }}>0</button>
+              <button onClick={backspace} disabled={authing} style={{ height: 58, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.subtle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Delete size={20} />
               </button>
-            ))}
-
-            {/* Voltar */}
-            <button
-              onClick={() => { setStep('select'); setSelected(null); setPin(''); setError('') }}
-              style={{
-                height: 58, borderRadius: 10, border: `1px solid ${C.border}`,
-                background: C.surface, color: C.dim,
-                fontSize: 11, cursor: 'pointer',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.surface2 }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.surface }}
-            >
-              Voltar
-            </button>
-
-            {/* 0 */}
-            <button
-              onClick={() => pressDigit('0')}
-              disabled={authing}
-              style={{
-                height: 58, borderRadius: 10, border: `1px solid ${C.border}`,
-                background: C.surface, color: C.txt,
-                fontSize: 22, fontWeight: 600, cursor: 'pointer',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={(e) => { if (!authing) e.currentTarget.style.background = C.surface2 }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.surface }}
-            >
-              0
-            </button>
-
-            {/* Apagar */}
-            <button
-              onClick={backspace}
-              disabled={authing}
-              style={{
-                height: 58, borderRadius: 10, border: `1px solid ${C.border}`,
-                background: C.surface, color: C.subtle,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={(e) => { if (!authing) e.currentTarget.style.background = C.surface2 }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = C.surface }}
-            >
-              <Delete size={20} />
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <p style={{ fontSize: 11, color: C.muted, margin: '22px 0 0', textAlign: 'center' }}>
+        © {new Date().getFullYear()} {fullName} • Sistema de Gestão • Versão 1.0.0
+      </p>
     </div>
   )
 }

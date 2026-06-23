@@ -84,7 +84,7 @@ Apenas `package-lock.json` foi alterado.
 
 - **Advisories:** GHSA-c7w3-x93f-qmm8, GHSA-vvjj-xcjg-gr5g, GHSA-268h-hp4c-crq3, GHSA-wqvq-jvpq-h66f, GHSA-r7g4-qg5f-qqm2, GHSA-p6gq-j5cr-w38f
 - **Status:** "No fix available" — versão atual 9.x ainda tem CVEs abertos.
-- **Mitigação:** `nodemailer` é usado via `next-auth` (transitivo) para fluxo de e-mail interno. Nenhum input externo não-sanitizado chega ao transporte. Monitorar releases do pacote.
+- **Mitigação:** `nodemailer` é **dependência direta** (`^7.0.13` no `package.json`), usado pelo serviço de e-mail transacional/auth interno. O advisory cobre `<=9.0.0`, então a versão fixada (7.x) está no range. Nenhum input externo não-sanitizado chega ao transporte (e-mails montados a partir de templates próprios). Monitorar releases do pacote.
 - **Ação futura:** quando houver versão corrigida do `nodemailer`, fazer upgrade e re-auditar.
 
 ### 3. `glob` 10.2.0–10.4.5 (via `eslint-config-next`)

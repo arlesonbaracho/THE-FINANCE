@@ -109,7 +109,7 @@ export default function DadosClientesPage() {
       if (res.ok) {
         const body = await res.json()
         setDeleteSuccess(
-          `Apagados: ${body.reservas ?? 0} reservas, ${body.contatosWhatsapp ?? 0} contatos, ${body.logsWhatsapp ?? 0} mensagens.`
+          `Apagados: ${body.reservas ?? 0} reservas, ${body.contatos ?? 0} contatos, ${body.logs ?? 0} mensagens.`
         )
         setResult(null)
         setSearched(false)

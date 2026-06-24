@@ -1,11 +1,11 @@
-import { Worker, type Job } from 'bullmq'
+import { Worker } from 'bullmq'
 import { redisConnectionOptions } from '@/lib/bullmq'
 import { processExpurgoJob } from './expurgo.job'
 
 export function criarExpurgoWorker() {
   const worker = new Worker(
     'lgpd-expurgo',
-    async (_job: Job) => {
+    async () => {
       await processExpurgoJob()
     },
     { connection: redisConnectionOptions },

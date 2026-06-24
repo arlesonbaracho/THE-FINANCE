@@ -20,6 +20,7 @@ describe('registerSchema', () => {
     password: 'Senha123',
     // CNPJ sintético que passa no algoritmo de dígitos verificadores (uso em testes)
     cnpj: '11.222.333/0001-81',
+    aceiteLgpd: true,
   }
 
   it('accepts a valid registration', () => {

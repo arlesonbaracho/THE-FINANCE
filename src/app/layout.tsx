@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Manrope, Cabin, Instrument_Serif } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
+import { CookieNotice } from '@/components/legal/CookieNotice'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' })
@@ -40,6 +41,7 @@ export default function RootLayout({
         className={`${inter.className} ${inter.variable} ${manrope.variable} ${cabin.variable} ${instrumentSerif.variable}`}
       >
         <Providers>{children}</Providers>
+        <CookieNotice />
       </body>
     </html>
   )

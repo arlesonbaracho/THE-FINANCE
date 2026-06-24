@@ -24,6 +24,7 @@ export default function ConvitePage({ params }: { params: Promise<{ token: strin
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [aceiteLgpd, setAceiteLgpd] = useState(false)
 
   useEffect(() => {
     fetch(`/api/convite/${token}`)
@@ -42,7 +43,7 @@ export default function ConvitePage({ params }: { params: Promise<{ token: strin
     const res = await fetch(`/api/convite/${token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password }),
+      body: JSON.stringify({ name, password, aceiteLgpd }),
     })
     const data = await res.json()
     setSubmitting(false)
@@ -113,7 +114,26 @@ export default function ConvitePage({ params }: { params: Promise<{ token: strin
                 <p className="text-xs text-zinc-500">Precisa de 1 maiúscula e 1 número</p>
               </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button type="submit" disabled={submitting} className="w-full bg-zinc-700 hover:bg-zinc-600">
+              <div className="flex items-start gap-2">
+                <input
+                  id="aceite-lgpd"
+                  type="checkbox"
+                  checked={aceiteLgpd}
+                  onChange={(e) => setAceiteLgpd(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer accent-zinc-400"
+                />
+                <label htmlFor="aceite-lgpd" className="cursor-pointer text-xs text-zinc-400 leading-relaxed">
+                  Li e aceito a{' '}
+                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline text-zinc-300 hover:text-white">
+                    Política de Privacidade
+                  </a>
+                  {' '}e os{' '}
+                  <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline text-zinc-300 hover:text-white">
+                    Termos de Uso
+                  </a>
+                </label>
+              </div>
+              <Button type="submit" disabled={submitting || !aceiteLgpd} className="w-full bg-zinc-700 hover:bg-zinc-600">
                 {submitting ? 'Criando conta...' : 'Criar conta e entrar'}
               </Button>
             </form>

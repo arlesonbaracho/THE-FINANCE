@@ -42,11 +42,11 @@ export async function anonimizarUsuario(userId: string): Promise<void> {
 
 export async function contarAdminsAtivos(tenantId: string): Promise<number> {
   return prisma.user.count({
-    where: { tenantId, role: 'ADMIN', status: 'ACTIVE', anonimizadoEm: null },
+    where: { tenantId, role: { in: ['ADMIN', 'SUPER_ADMIN'] }, status: 'ACTIVE', anonimizadoEm: null },
   })
 }
 
 export function podeAnonimizar(usuario: { role: string; tenantId: string | null }, totalAdminsAtivos: number): boolean {
-  if (usuario.role === 'ADMIN') return totalAdminsAtivos > 1
+  if (usuario.role === 'ADMIN' || usuario.role === 'SUPER_ADMIN') return totalAdminsAtivos > 1
   return true
 }

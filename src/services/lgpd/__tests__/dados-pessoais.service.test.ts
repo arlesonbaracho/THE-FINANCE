@@ -16,6 +16,12 @@ describe('podeAnonimizar', () => {
     expect(podeAnonimizar({ role: 'STAFF', tenantId: 't1' }, 1)).toBe(true)
     expect(podeAnonimizar({ role: 'MANAGER', tenantId: 't1' }, 1)).toBe(true)
   })
+  it('bloqueia o unico SUPER_ADMIN ativo', () => {
+    expect(podeAnonimizar({ role: 'SUPER_ADMIN', tenantId: 't1' }, 1)).toBe(false)
+  })
+  it('permite SUPER_ADMIN quando ha outro admin', () => {
+    expect(podeAnonimizar({ role: 'SUPER_ADMIN', tenantId: 't1' }, 2)).toBe(true)
+  })
 })
 
 describe('exportarDadosUsuario', () => {

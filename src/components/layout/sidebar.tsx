@@ -23,6 +23,7 @@ import {
   FileText,
   FileArchive,
   Shield,
+  UserSearch,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -90,7 +91,8 @@ const navItems: NavItem[] = [
       { label: 'Assinatura',  href: '/configuracoes/assinatura',           icon: Settings },
       { label: 'Integrações', href: '/configuracoes/integracoes/ifood',    icon: Plug },
       { label: 'WhatsApp',    href: '/configuracoes/integracoes/whatsapp', icon: MessageCircle },
-      { label: 'Privacidade', href: '/configuracoes/privacidade',          icon: Shield },
+      { label: 'Privacidade',      href: '/configuracoes/privacidade',          icon: Shield },
+      { label: 'Dados de Clientes', href: '/configuracoes/dados-clientes',      icon: UserSearch },
     ],
   },
 ]

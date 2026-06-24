@@ -40,7 +40,12 @@ export const nfceRetryQueue = new Queue('nfce-retry', {
   defaultJobOptions: { attempts: 3, backoff: { type: 'fixed', delay: 5000 } },
 })
 
-for (const q of [platformHealthQueue, saasMetricsQueue, nfCaptureQueue, nfceRetryQueue]) {
+export const expurgoQueue = new Queue('lgpd-expurgo', {
+  connection: redisConnectionOptions,
+  defaultJobOptions: { attempts: 2, backoff: { type: 'fixed', delay: 5000 } },
+})
+
+for (const q of [platformHealthQueue, saasMetricsQueue, nfCaptureQueue, nfceRetryQueue, expurgoQueue]) {
   q.on('error', (err) => {
     const code = (err as NodeJS.ErrnoException).code
     if (code !== 'ECONNREFUSED' && code !== 'EPIPE') {

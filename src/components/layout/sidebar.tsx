@@ -22,6 +22,7 @@ import {
   MessageCircle,
   FileText,
   FileArchive,
+  Shield,
   LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -88,7 +89,8 @@ const navItems: NavItem[] = [
       { label: 'Meu Perfil',  href: '/configuracoes/perfil',               icon: User },
       { label: 'Assinatura',  href: '/configuracoes/assinatura',           icon: Settings },
       { label: 'Integrações', href: '/configuracoes/integracoes/ifood',    icon: Plug },
-      { label: 'WhatsApp', href: '/configuracoes/integracoes/whatsapp', icon: MessageCircle },
+      { label: 'WhatsApp',    href: '/configuracoes/integracoes/whatsapp', icon: MessageCircle },
+      { label: 'Privacidade', href: '/configuracoes/privacidade',          icon: Shield },
     ],
   },
 ]

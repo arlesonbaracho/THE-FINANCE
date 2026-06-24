@@ -5,6 +5,6 @@ export async function processExpurgoJob(): Promise<void> {
   const r = await expurgarDadosAntigos({ retencaoLogsMeses })
   console.log(
     `[lgpd-expurgo] códigos=${r.codigosVerificacao} tokens=${r.tokensReset} ` +
-    `logsAcesso=${r.logsAcesso} logsWhatsapp=${r.logsWhatsapp}`,
+    `logsAcesso=${r.logsAcesso} logsWhatsapp=${r.logsWhatsapp} logsPii=${r.logsPii}`,
   )
 }

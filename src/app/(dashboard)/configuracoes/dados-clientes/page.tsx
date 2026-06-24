@@ -1,16 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Download, Trash2, Search, ShieldAlert } from 'lucide-react'
+import { Download, Trash2, Search, ShieldAlert, History } from 'lucide-react'
 
 interface ClienteData {
   reservas: unknown[]
   contatosWhatsapp: unknown[]
   logsWhatsapp: unknown[]
+}
+
+interface AcessoPii {
+  createdAt: string
+  acao: 'CONSULTA' | 'EXPORTACAO' | 'EXCLUSAO'
+  alvo: string
+  userId: string
+  ip: string | null
 }
 
 export default function DadosClientesPage() {
@@ -33,11 +41,34 @@ export default function DadosClientesPage() {
   const [deleteError, setDeleteError] = useState('')
   const [deleteSuccess, setDeleteSuccess] = useState('')
 
+  // Access history state (LGPD)
+  const [acessos, setAcessos] = useState<AcessoPii[]>([])
+  const [loadingAcessos, setLoadingAcessos] = useState(false)
+
   const hasResult =
     result !== null &&
     (result.reservas.length > 0 ||
       result.contatosWhatsapp.length > 0 ||
       result.logsWhatsapp.length > 0)
+
+  async function loadAcessos() {
+    setLoadingAcessos(true)
+    try {
+      const r = await fetch('/api/clientes/acessos-pii')
+      if (r.ok) {
+        const data: AcessoPii[] = await r.json()
+        setAcessos(data)
+      }
+    } catch {
+      // silently ignore — non-critical
+    } finally {
+      setLoadingAcessos(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAcessos()
+  }, [])
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -115,6 +146,7 @@ export default function DadosClientesPage() {
         setSearched(false)
         setShowDeleteConfirm(false)
         setDeleteConfirm('')
+        await loadAcessos()
       } else {
         const body = await res.json().catch(() => ({}))
         setDeleteError(body.error ?? 'Erro ao excluir dados. Tente novamente.')
@@ -302,6 +334,51 @@ export default function DadosClientesPage() {
           </Card>
         </>
       )}
+
+      {/* Access history (LGPD) */}
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <History className="h-4 w-4" /> Histórico de acessos (LGPD)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingAcessos ? (
+            <p className="text-sm text-zinc-500">Carregando...</p>
+          ) : acessos.length === 0 ? (
+            <p className="text-sm text-zinc-500">Nenhum acesso registrado.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-zinc-300">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase tracking-wide">
+                    <th className="text-left pb-2 pr-4 font-medium">Data/hora</th>
+                    <th className="text-left pb-2 pr-4 font-medium">Ação</th>
+                    <th className="text-left pb-2 pr-4 font-medium">Alvo</th>
+                    <th className="text-left pb-2 pr-4 font-medium">Autor</th>
+                    <th className="text-left pb-2 font-medium">IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {acessos.map((a, i) => (
+                    <tr key={i} className="border-b border-zinc-800/50 last:border-0">
+                      <td className="py-2 pr-4 font-mono text-xs whitespace-nowrap">
+                        {new Date(a.createdAt).toLocaleString('pt-BR')}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className="font-mono text-xs">{a.acao}</span>
+                      </td>
+                      <td className="py-2 pr-4 truncate max-w-[140px]">{a.alvo}</td>
+                      <td className="py-2 pr-4 font-mono text-xs truncate max-w-[120px]">{a.userId}</td>
+                      <td className="py-2 font-mono text-xs">{a.ip ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

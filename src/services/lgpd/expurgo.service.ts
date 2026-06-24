@@ -5,6 +5,7 @@ export type ResultadoExpurgo = {
   tokensReset: number
   logsAcesso: number
   logsWhatsapp: number
+  logsPii: number
 }
 
 /**
@@ -18,11 +19,12 @@ export async function expurgarDadosAntigos(
   const corte = new Date(now)
   corte.setMonth(corte.getMonth() - retencaoLogsMeses)
 
-  const [codigos, tokens, logsAcesso, logsWa] = await Promise.all([
+  const [codigos, tokens, logsAcesso, logsWa, logsPii] = await Promise.all([
     prisma.emailVerificationCode.deleteMany({ where: { expiresAt: { lt: now } } }),
     prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: now } } }),
     prisma.userAccessLog.deleteMany({ where: { createdAt: { lt: corte } } }),
     prisma.whatsAppLog.deleteMany({ where: { createdAt: { lt: corte } } }),
+    prisma.piiAccessLog.deleteMany({ where: { createdAt: { lt: corte } } }),
   ])
 
   return {
@@ -30,5 +32,6 @@ export async function expurgarDadosAntigos(
     tokensReset: tokens.count,
     logsAcesso: logsAcesso.count,
     logsWhatsapp: logsWa.count,
+    logsPii: logsPii.count,
   }
 }

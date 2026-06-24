@@ -4,6 +4,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: {
   passwordResetToken: { deleteMany: vi.fn() },
   userAccessLog: { deleteMany: vi.fn() },
   whatsAppLog: { deleteMany: vi.fn() },
+  piiAccessLog: { deleteMany: vi.fn() },
 } }))
 import { expurgarDadosAntigos } from '../expurgo.service'
 import { prisma } from '@/lib/prisma'
@@ -14,12 +15,13 @@ beforeEach(() => {
   mp.passwordResetToken.deleteMany.mockResolvedValue({ count: 2 })
   mp.userAccessLog.deleteMany.mockResolvedValue({ count: 10 })
   mp.whatsAppLog.deleteMany.mockResolvedValue({ count: 5 })
+  mp.piiAccessLog.deleteMany.mockResolvedValue({ count: 4 })
 })
 
 describe('expurgarDadosAntigos', () => {
   it('apaga transitorios expirados e logs alem do corte, retorna contagens', async () => {
     const r = await expurgarDadosAntigos({ retencaoLogsMeses: 12 })
-    expect(r).toEqual({ codigosVerificacao: 3, tokensReset: 2, logsAcesso: 10, logsWhatsapp: 5 })
+    expect(r).toEqual({ codigosVerificacao: 3, tokensReset: 2, logsAcesso: 10, logsWhatsapp: 5, logsPii: 4 })
 
     // transitorios: expiresAt < now
     const codeWhere = mp.emailVerificationCode.deleteMany.mock.calls[0][0].where
@@ -37,6 +39,10 @@ describe('expurgarDadosAntigos', () => {
     expect(corte.getMonth()).toBe(esperado.getMonth())
     const waWhere = mp.whatsAppLog.deleteMany.mock.calls[0][0].where
     expect(waWhere.createdAt.lt).toBeInstanceOf(Date)
+    const piiWhere = mp.piiAccessLog.deleteMany.mock.calls[0][0].where
+    expect(piiWhere.createdAt.lt).toBeInstanceOf(Date)
+    expect(piiWhere.createdAt.lt.getFullYear()).toBe(corte.getFullYear())
+    expect(piiWhere.createdAt.lt.getMonth()).toBe(corte.getMonth())
   })
 
   it('respeita a janela configurada (6 meses)', async () => {

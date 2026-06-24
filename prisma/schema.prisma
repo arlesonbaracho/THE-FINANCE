@@ -1310,3 +1310,23 @@ model ConsentRecord {
   @@index([userId])
   @@index([userId, documento])
 }
+
+enum AcaoPii {
+  CONSULTA
+  EXPORTACAO
+  EXCLUSAO
+}
+
+model PiiAccessLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  acao      AcaoPii
+  alvo      String
+  detalhe   String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}

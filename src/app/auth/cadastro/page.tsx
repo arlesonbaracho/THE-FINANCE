@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, Mail, RotateCcw, CheckCircle } from 'lucide-react'
@@ -28,7 +28,7 @@ const PLANO_LABELS: Record<string, { nome: string; preco: string; cor: string }>
   enterprise:   { nome: 'Plano Enterprise',    preco: 'R$ 599/mês', cor: '#b48a2a' },
 }
 
-export default function CadastroPage() {
+function CadastroForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planoParam = searchParams.get('plano')?.toLowerCase() ?? ''
@@ -359,5 +359,13 @@ export default function CadastroPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense fallback={null}>
+      <CadastroForm />
+    </Suspense>
   )
 }

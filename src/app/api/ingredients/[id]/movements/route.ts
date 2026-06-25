@@ -3,10 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession, unauthorizedResponse } from '@/lib/session'
 import { movementSchema, zodErrorResponse } from '@/lib/validations'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
   const tenantId = session.user.tenantId
@@ -33,10 +31,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
   const tenantId = session.user.tenantId

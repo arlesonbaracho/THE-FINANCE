@@ -4,10 +4,8 @@ import { getTenantId, unauthorizedResponse } from '@/lib/session'
 import { productSchema, zodErrorResponse } from '@/lib/validations'
 import { pausarItem, reativarItem, atualizarPreco } from '@/services/integrations/ifood/ifood-catalog.service'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 
@@ -31,10 +29,8 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 
@@ -112,10 +108,8 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 

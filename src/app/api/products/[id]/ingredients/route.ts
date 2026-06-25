@@ -3,10 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getTenantId, unauthorizedResponse } from '@/lib/session'
 import { productIngredientSchema, zodErrorResponse } from '@/lib/validations'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 
@@ -32,10 +30,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 
@@ -84,10 +80,8 @@ export async function POST(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 

@@ -16,10 +16,8 @@ function validateSignature(rawBody: string, signature: string): boolean {
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { tenantId: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ tenantId: string }> }) {
+  const params = await props.params;
   const { tenantId } = params
   const rawBody = await req.text()
   const signature = req.headers.get('x-ifood-signature') ?? ''

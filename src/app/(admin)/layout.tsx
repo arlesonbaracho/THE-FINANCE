@@ -5,7 +5,7 @@ import { AdminSidebar } from '@/components/admin/sidebar'
 import { AdminHeader } from '@/components/admin/header'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const token = cookies().get('admin_token')?.value
+  const token = (await cookies()).get('admin_token')?.value
   if (!token) redirect('/admin/login')
 
   const session = await verifyAdminToken(token)

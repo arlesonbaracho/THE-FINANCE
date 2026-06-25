@@ -15,7 +15,8 @@ const updateSchema = z.object({
   recebeResumoDiario: z.boolean().optional(),
 })
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions)
   if (!session?.user?.tenantId || !allowed(session.user.role)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -35,7 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions)
   if (!session?.user?.tenantId || !allowed(session.user.role)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

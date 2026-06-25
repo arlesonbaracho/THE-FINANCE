@@ -8,7 +8,8 @@ const updateSchema = z.object({
   status: z.enum(['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'FINALIZADO', 'CANCELADO']),
 })
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const slug = req.nextUrl.searchParams.get('slug')
   let tenantId: string | null = null
 
@@ -34,7 +35,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(pedido)
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const slug = req.nextUrl.searchParams.get('slug')
   let tenantId: string | null = null
 

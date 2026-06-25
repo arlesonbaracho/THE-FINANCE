@@ -18,10 +18,8 @@ const schema = z.object({
   horarioSilencioFim: z.string().nullable().optional(),
 })
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 

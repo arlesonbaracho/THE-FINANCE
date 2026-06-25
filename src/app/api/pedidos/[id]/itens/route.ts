@@ -31,7 +31,8 @@ async function recalcTotal(pedidoId: string, tenantId: string) {
   await prisma.pedido.update({ where: { id: pedidoId }, data: { subtotal, taxaServico, total } })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId(req)
   if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -62,7 +63,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json(item, { status: 201 })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId(req)
   if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

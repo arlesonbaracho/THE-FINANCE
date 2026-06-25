@@ -3,7 +3,8 @@ import { getSession } from '@/lib/session'
 import { checkMultiUnitFeature, MultiUnitForbiddenError } from '@/lib/check-multi-unit'
 import { exportarPDF, exportarExcel } from '@/services/multi-unit/purchase-order.service'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 

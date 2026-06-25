@@ -21,10 +21,11 @@ const statusColor: Record<string, string> = {
 }
 
 interface PageProps {
-  searchParams: { search?: string; status?: string; planId?: string }
+  searchParams: Promise<{ search?: string; status?: string; planId?: string }>
 }
 
-export default async function TenantsPage({ searchParams }: PageProps) {
+export default async function TenantsPage(props: PageProps) {
+  const searchParams = await props.searchParams;
   const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 

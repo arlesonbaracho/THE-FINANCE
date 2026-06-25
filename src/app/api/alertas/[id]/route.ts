@@ -8,10 +8,8 @@ const schema = z.object({
   status: z.enum(['LIDO', 'RESOLVIDO', 'IGNORADO']),
 })
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 

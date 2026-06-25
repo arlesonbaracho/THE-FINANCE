@@ -7,10 +7,8 @@ const schema = z.object({
   novoStatus: z.enum(['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE']),
 })
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = req.headers.get('authorization')
   const token = auth?.replace('Bearer ', '') ?? ''
   const payload = await verifyKdsToken(token)

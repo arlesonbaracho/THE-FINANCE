@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTenantId, unauthorizedResponse } from '@/lib/session'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { nfId: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ nfId: string }> }) {
+  const params = await props.params;
   const tenantId = await getTenantId()
   if (!tenantId) return unauthorizedResponse()
 

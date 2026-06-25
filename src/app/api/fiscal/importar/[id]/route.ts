@@ -3,7 +3,7 @@ import { getSession, unauthorizedResponse } from '@/lib/session'
 import { prepararImportacao, aplicarEntradaEstoque } from '@/services/fiscal/nf-import.service'
 import type { ItemConfirmado } from '@/services/fiscal/nf-import.service'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 function adminGuard(session: Awaited<ReturnType<typeof getSession>>) {
   if (!session?.user?.tenantId) return unauthorizedResponse()
@@ -15,7 +15,8 @@ function adminGuard(session: Awaited<ReturnType<typeof getSession>>) {
 /** GET /api/fiscal/importar/[id]
  *  Returns the enriched de-para for the confirmation screen.
  *  Admin-only. */
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await getSession()
   const guard = adminGuard(session)
   if (guard) return guard
@@ -40,7 +41,8 @@ interface PostBody {
 /** POST /api/fiscal/importar/[id]
  *  Body: { itens: [{ insumoId, quantidade, custoUnitario }] }
  *  Applies stock entry + marks NF as CONCLUIDA. Admin-only. */
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await getSession()
   const guard = adminGuard(session)
   if (guard) return guard

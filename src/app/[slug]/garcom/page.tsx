@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, use } from 'react';
 import { UtensilsCrossed, Delete, ArrowLeft, Plus, Minus, ShoppingCart, CheckCircle, PackageCheck, Flame, ChevronDown, ChevronRight, Clock, RefreshCw } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
@@ -45,7 +45,8 @@ function formatPrice(v: number) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function GarcomPage({ params }: { params: { slug: string } }) {
+export default function GarcomPage(props: { params: Promise<{ slug: string }> }) {
+  const params = use(props.params);
   const { slug } = params
 
   const [tenant, setTenant]     = useState<TenantInfo | null>(null)

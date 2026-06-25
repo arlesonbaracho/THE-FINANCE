@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, unauthorizedResponse } from '@/lib/session'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
   const tenantId = session.user.tenantId
@@ -37,10 +35,8 @@ export async function GET(
 }
 
 // PATCH: update counted quantities for items
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
   const tenantId = session.user.tenantId
@@ -78,10 +74,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session?.user?.tenantId) return unauthorizedResponse()
   const tenantId = session.user.tenantId

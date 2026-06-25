@@ -4,10 +4,8 @@ import { getAdminSession } from '@/lib/admin-auth'
 import { logAdminAction } from '@/lib/admin-logger'
 import { getClientIp } from '@/lib/rate-limit'
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getAdminSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 

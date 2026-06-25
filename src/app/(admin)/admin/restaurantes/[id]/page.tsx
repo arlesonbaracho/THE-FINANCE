@@ -19,7 +19,8 @@ const invoiceStatusColor: Record<string, string> = {
   OVERDUE: 'bg-red-500/20 text-red-400 border-red-500/30',
 }
 
-export default async function TenantDetailPage({ params }: { params: { id: string } }) {
+export default async function TenantDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getAdminSession()
   if (!session) redirect('/admin/login')
 

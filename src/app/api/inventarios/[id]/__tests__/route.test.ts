@@ -39,7 +39,7 @@ describe('PATCH /api/inventarios/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ items: [] }),
     })
-    const res = await PATCH(req, { params: { id: 'inv-1' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'inv-1' }) })
     expect(res.status).toBe(401)
   })
 
@@ -51,7 +51,7 @@ describe('PATCH /api/inventarios/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ items: [{ itemId: 'item-1', qtdContada: 5 }] }),
     })
-    const res = await PATCH(req, { params: { id: 'inv-other' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'inv-other' }) })
     expect(res.status).toBe(404)
     expect(mp.$transaction).not.toHaveBeenCalled()
   })
@@ -72,7 +72,7 @@ describe('PATCH /api/inventarios/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ items: [{ itemId: 'item-from-tenant-B', qtdContada: 3 }] }),
     })
-    const res = await PATCH(req, { params: { id: 'inv-A' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'inv-A' }) })
     expect(res.status).toBe(200)
 
     // Confirm that inventarioId is included in where — this is the ownership guard
@@ -95,7 +95,7 @@ describe('PATCH /api/inventarios/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ items: [{ itemId: 'alien-item', qtdContada: 99 }] }),
     })
-    const res = await PATCH(req, { params: { id: 'inv-A' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'inv-A' }) })
     // The route catches all errors and returns 500; the alien item is NOT silently updated
     expect(res.status).toBe(500)
   })

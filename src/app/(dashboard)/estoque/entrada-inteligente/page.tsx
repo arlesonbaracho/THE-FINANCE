@@ -65,7 +65,7 @@ export default function EntradaInteligentePage() {
 
     try {
       let body: BodyInit
-      let headers: Record<string, string> = {}
+      const headers: Record<string, string> = {}
 
       if (modo === 'arquivo' && arquivo) {
         const fd = new FormData()

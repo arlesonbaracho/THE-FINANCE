@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, use } from 'react';
 import { Package, Delete, Clock, RefreshCw } from 'lucide-react'
 
 const C = {
@@ -25,7 +25,8 @@ type PinUser    = { id: string; name: string; avatarUrl: string | null }
 type TenantInfo = { id: string; name: string }
 type Step       = 'select' | 'pin' | 'dashboard'
 
-export default function EstoquePage({ params }: { params: { slug: string } }) {
+export default function EstoquePage(props: { params: Promise<{ slug: string }> }) {
+  const params = use(props.params);
   const { slug } = params
 
   const [tenant, setTenant]         = useState<TenantInfo | null>(null)

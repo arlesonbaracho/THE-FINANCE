@@ -44,7 +44,7 @@ export async function coletarMetricas(): Promise<PlatformMetrics> {
 
   // DB — conexões ativas
   let dbConexoes = 0
-  let dbQueriesLentas = 0
+  const dbQueriesLentas = 0
   try {
     const conResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT count(*) FROM pg_stat_activity WHERE state = 'active'

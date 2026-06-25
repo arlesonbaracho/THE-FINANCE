@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, use } from 'react';
 import { ShoppingCart, Delete, Clock, RefreshCw, ArrowLeft, CheckCircle, Menu, LayoutGrid, Users, Armchair, MoreVertical, ChevronDown, ChevronRight, ArrowRight, Plus, Flame } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { temaOperacao } from '@/lib/operacao-theme'
@@ -41,7 +41,8 @@ function timeAgo(iso: string) {
   return `${Math.floor(diff / 60)}h${diff % 60 > 0 ? ` ${diff % 60}min` : ''}`
 }
 
-export default function CaixaPage({ params }: { params: { slug: string } }) {
+export default function CaixaPage(props: { params: Promise<{ slug: string }> }) {
+  const params = use(props.params);
   const { slug } = params
 
   const [tenant, setTenant]         = useState<TenantInfo | null>(null)

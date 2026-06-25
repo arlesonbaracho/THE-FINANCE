@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
+import { cookies, type UnsafeUnwrappedCookies } from 'next/headers';
 
 const COOKIE_NAME = 'admin_token'
 const IMPERSONATION_COOKIE = 'impersonation_token'
@@ -42,7 +42,7 @@ export async function signImpersonationToken(payload: ImpersonationPayload): Pro
 }
 
 export function setAdminCookie(token: string): void {
-  cookies().set(COOKIE_NAME, token, {
+  (cookies() as unknown as UnsafeUnwrappedCookies).set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -52,7 +52,7 @@ export function setAdminCookie(token: string): void {
 }
 
 export function setImpersonationCookie(token: string): void {
-  cookies().set(IMPERSONATION_COOKIE, token, {
+  (cookies() as unknown as UnsafeUnwrappedCookies).set(IMPERSONATION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -62,11 +62,11 @@ export function setImpersonationCookie(token: string): void {
 }
 
 export function clearAdminCookie(): void {
-  cookies().delete(COOKIE_NAME)
+  (cookies() as unknown as UnsafeUnwrappedCookies).delete(COOKIE_NAME)
 }
 
 export function clearImpersonationCookie(): void {
-  cookies().delete(IMPERSONATION_COOKIE)
+  (cookies() as unknown as UnsafeUnwrappedCookies).delete(IMPERSONATION_COOKIE)
 }
 
 // ── Verify ────────────────────────────────────────────────────────────────────
@@ -92,13 +92,13 @@ export async function verifyImpersonationToken(token: string): Promise<Impersona
 // ── Session helpers ───────────────────────────────────────────────────────────
 
 export async function getAdminSession(): Promise<AdminTokenPayload | null> {
-  const token = cookies().get(COOKIE_NAME)?.value
+  const token = (await cookies()).get(COOKIE_NAME)?.value
   if (!token) return null
   return verifyAdminToken(token)
 }
 
 export async function getImpersonationSession(): Promise<ImpersonationPayload | null> {
-  const token = cookies().get(IMPERSONATION_COOKIE)?.value
+  const token = (await cookies()).get(IMPERSONATION_COOKIE)?.value
   if (!token) return null
   return verifyImpersonationToken(token)
 }

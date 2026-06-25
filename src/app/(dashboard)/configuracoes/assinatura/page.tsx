@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -198,7 +198,7 @@ function CheckoutModal({ plan, price, onSuccess, onClose }: {
 }
 
 // ---- Main Page ----
-export default function AssinaturaPage() {
+function AssinaturaContent() {
   const { data: session } = useSession()
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
@@ -622,5 +622,13 @@ export default function AssinaturaPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function AssinaturaPage() {
+  return (
+    <Suspense fallback={null}>
+      <AssinaturaContent />
+    </Suspense>
   )
 }

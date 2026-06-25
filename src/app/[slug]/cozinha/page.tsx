@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, use } from 'react';
 import { ChefHat, Delete, Clock, RefreshCw, Flame, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react'
 import { getSocket } from '@/lib/socket-client'
 import { fetchCached, invalidateCache } from '@/lib/client-cache'
@@ -33,7 +33,8 @@ function timeAgo(iso: string) {
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export default function CozinhaPage({ params }: { params: { slug: string } }) {
+export default function CozinhaPage(props: { params: Promise<{ slug: string }> }) {
+  const params = use(props.params);
   const { slug } = params
 
   const [tenant, setTenant]         = useState<TenantInfo | null>(null)

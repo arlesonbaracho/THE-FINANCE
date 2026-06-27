@@ -1,8 +1,10 @@
 # THE FINANCE — Relatório Técnico do Projeto
 
-**Data de geração:** 27/05/2026  
+**Data de geração:** 27/05/2026 · **Última atualização:** 27/06/2026  
 **Versão do sistema:** 0.1.0  
 **Status:** Em desenvolvimento
+
+> **📌 Atualização Jun/2026:** o projeto avançou bastante desde a 1ª geração. Foram entregues os módulos **Fiscal** (captura de NF-e, emissão de NFC-e, fechamento fiscal/pacote do contador), **importação de cardápio do iFood**, **redesign dos painéis operacionais** (caixa/cozinha/garçom), **endurecimento de segurança** e **conformidade LGPD completa** (consentimento, direitos do titular, dados do cliente, retenção, log de acesso a PII), além do **upgrade Next.js 14 → 15 + React 19**. Veja a **seção 14 (Atualizações Recentes)** e a **seção 15 (Pontos de Atenção / Pendências)**.
 
 ---
 
@@ -26,10 +28,12 @@ O sistema é dividido em quatro camadas de acesso independentes:
 ### Runtime e Framework
 | Tecnologia | Versão | Uso |
 |------------|--------|-----|
-| Next.js | 14.2.35 | Framework full-stack (App Router) |
-| React | 18 | UI |
+| Next.js | **15.5** | Framework full-stack (App Router) — *upgrade 14→15 em Jun/2026* |
+| React | **19** | UI — *upgrade 18→19 junto do Next 15* |
 | TypeScript | 5 | Tipagem estática |
 | Node.js | 20 | Runtime |
+
+> **Nota Next 15:** `params`/`searchParams`/`cookies()`/`headers()` agora são **assíncronos** (`await`/`use()`); páginas com `useSearchParams` exigem `<Suspense>`. Migração feita com o codemod oficial. `next.config` usa `serverExternalPackages` (antigo `experimental.serverComponentsExternalPackages`).
 
 ### Banco de Dados e ORM
 | Tecnologia | Versão | Uso |
@@ -846,13 +850,60 @@ Cobertura: `npm run test:coverage`
 | Configurações do restaurante | ✅ Implementado | Nome, logo, telefone |
 | Email multi-provedor | ✅ Implementado | Resend → SMTP → Console |
 | Entrada Inteligente de Estoque (IA) | ✅ Implementado | Gemini Vision + chat assistente + controle de uso |
+| Fiscal — Captura de NF-e | ✅ Implementado | Focus NFe (adapter); `NfProcessada` (XML/chave) |
+| Fiscal — Emissão de NFC-e | ✅ Implementado | NFC-e no caixa, gatilho na finalização, retry job |
+| Fiscal — Fechamento (pacote do contador) | ✅ Implementado | ZIP de XMLs + relatório .xlsx por período |
+| Importação de cardápio do iFood | ✅ Implementado | preview→confirm com de-para por similaridade |
+| Redesign painéis operacionais | ✅ Implementado | caixa/cozinha/garçom fiéis aos comps |
+| LGPD — Transparência & consentimento | ✅ Implementado | política/termos, consentimento, re-consentimento |
+| LGPD — Direitos do titular | ✅ Implementado | exportar/excluir (anonimizar) a própria conta |
+| LGPD — Dados do cliente final | ✅ Implementado | buscar/exportar/excluir por telefone (operador) |
+| LGPD — Retenção/expurgo + log de acesso a PII | ✅ Implementado | job diário de expurgo + `PiiAccessLog` |
+| Pagamentos (Stripe/Mercado Pago) | 🚧 Em progresso | WIP — rotas/serviços parciais |
 | Financeiro / DRE | 📋 Planejado | Invoices no schema, sem painel |
 | Multi-unidade | 📋 Planejado | Feature flag `multiUnit` no plano |
 | Exportação PDF/Excel | 📋 Planejado | Feature flag `exportReports` no plano |
 
 ---
 
-## 14. Pontos de Atenção
+## 14. Atualizações Recentes — Roadmap Fiscal/LGPD + Next 15 (Jun/2026)
+
+Decisão estratégica do bloco fiscal: **não** reconstruir emissão SEFAZ do zero — usar **API fiscal terceira (Focus NFe)** atrás de um adapter. Specs/planos de cada item em `docs/superpowers/`.
+
+### Fiscal
+- **Captura de NF-e (entradas):** provedor Focus NFe atrás de `FiscalProvider`/`FocusNfeAdapter` (`src/services/fiscal/`); `NfProcessada` guarda XML/chave/modelo/tipo. Captura agendada (BullMQ) + sync manual. ⚠️ E2E pendente de credenciais Focus (token homologação + certificado A1).
+- **Emissão de NFC-e (modelo 65):** no caixa; config fiscal por tenant (regime/IE/CSC cifrado/série); builder puro de payload; serviço **tenant-scoped** e idempotente; gatilho não-bloqueante na finalização do pedido + retry job. ⚠️ E2E pendente de CSC homologação.
+- **Fechamento fiscal (pacote do contador):** `GET /api/fiscal/fechamento` gera um **ZIP** com os XMLs do período (entradas+saídas) + relatório **.xlsx**; UI em `/fiscal/fechamento`. Não gera SPED (domínio do contador).
+
+### Integrações
+- **Importação de cardápio do iFood:** fluxo preview→confirm com de-para por similaridade (Levenshtein, helper `match-nome.ts`); cria Product+Category; idempotente; admin/MANAGER.
+
+### Design
+- **Redesign caixa/cozinha/garçom** fiéis aos comps (topbar com logo-chama, hero com mascote responsivo, login com card de vidro). Tema central `operacao-theme.ts`.
+
+### Segurança (G1)
+- Fix de **authz cross-tenant** no import iFood (`casar`) e em `inventarios/[id]`; auditoria de tenant-scoping (`docs/superpowers/notes/2026-06-22-authz-checklist.md`); remoção de rota órfã; `npm audit` reduzido. **xlsx** atualizado p/ build corrigido do **SheetJS CDN 0.20.3**.
+
+### LGPD (G2 — completo)
+- **G2a Transparência & consentimento:** páginas `/privacidade` e `/termos` (**minuta** — banner avisando que precisa de revisão jurídica), cookie notice, modelo `ConsentRecord`, consentimento obrigatório no cadastro e no aceite de convite, re-consentimento por versão (gate no layout do dashboard).
+- **G2b Direitos do titular:** Configurações › Privacidade — baixar os próprios dados (JSON) e excluir a conta via **anonimização** (`User.anonimizadoEm`; guarda do último admin).
+- **G2c-2 Dados do cliente final:** Configurações › Dados de Clientes — buscar por telefone e exportar/excluir (Reserva/WhatsApp), tenant-scoped, admin/MANAGER.
+- **G2c-1 Retenção/expurgo + G2c-3 Log de acesso a PII:** job BullMQ diário (`lgpd-expurgo`) apaga transitórios expirados e logs > 12 meses; `PiiAccessLog` registra consulta/exportação/exclusão de PII do cliente (instrumentação não-bloqueante).
+
+### Plataforma
+- **Next 14 → 15 + React 19:** resolveu as *high* CVEs do `next`; codemod oficial p/ APIs assíncronas; `<Suspense>` em `useSearchParams`. **Stripe lazy** (`getStripe()`) — `next build` não depende mais de `STRIPE_SECRET_KEY`. Verificado: tsc + 431 testes + `next build` 164/164.
+
+---
+
+## 15. Pontos de Atenção
+
+### ⏳ Pendências em aberto (Jun/2026)
+
+1. **Minutas legais (Política de Privacidade / Termos)** — estão como **minuta** marcada; faltam **razão social + CNPJ + comarca/foro + e-mail do DPO** (dados da empresa mantenedora) e **revisão jurídica**. Aguardando o usuário ter CNPJ. (Ver também `docs/superpowers/notes/PENDENCIAS.md`.)
+2. **`nodemailer` — 1 vulnerabilidade high residual** — o fix (9.0.1) conflita com o peer `nodemailer@^7` do `@auth/core` (next-auth@4). Resolver junto com o **upgrade para next-auth v5**. Mitigado (uso interno, templates próprios).
+3. **E2E fiscal (Focus NFe)** — captura de NF-e e emissão de NFC-e precisam de credenciais de homologação (token + certificado A1 + CSC) pra validar ponta-a-ponta.
+4. **`next build` exige `STRIPE_SECRET_KEY`?** — **não mais** (Stripe lazy). Mas o CI/deploy deve ter as envs reais dos provedores de pagamento pro fluxo funcionar.
+5. **Migrações LGPD** já aplicadas no banco local (`prisma migrate deploy`); aplicar nos demais ambientes.
 
 ### Limitações Conhecidas
 
@@ -876,4 +927,4 @@ Cobertura: `npm run test:coverage`
 
 ---
 
-*Gerado automaticamente — THE FINANCE v0.1.0*
+*THE FINANCE v0.1.0 — relatório atualizado em 27/06/2026 (roadmap Fiscal/iFood/LGPD/Segurança + Next 15).*

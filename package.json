@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "seed": "npx ts-node --skip-project prisma/seed.ts",
+    "seed:dev": "npx ts-node --skip-project -r dotenv/config prisma/seed-dev.ts",
     "sync-roles": "npx ts-node --skip-project prisma/sync-roles.ts",
     "worker": "tsx src/jobs/worker.ts"
   },

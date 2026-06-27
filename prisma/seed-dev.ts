@@ -335,6 +335,76 @@ async function main() {
     console.log(`✅ ${vendas} pedidos finalizados (30 dias) + ${movimentos} movimentações OUT — relatórios populados`)
   }
 
+  // ── Pedidos EM ABERTO (KDS / caixa / garçom não começam vazios) ───────────
+  const jaTemAtivos = await prisma.pedido.count({ where: { tenantId: tid, status: { in: ['ABERTO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE'] } } })
+  if (jaTemAtivos > 0) {
+    console.log(`ℹ️  ${jaTemAtivos} pedidos ativos já existem — pulando geração de abertos`)
+  } else {
+    const precoPorProduto2: Record<string, number> = Object.fromEntries(produtos.map((p) => [p.name, p.price]))
+    const nomesProds = produtos.map((p) => p.name).filter((n) => productIds[n])
+    const mesasLivres = await prisma.mesa.findMany({ where: { tenantId: tid }, select: { id: true, numero: true }, orderBy: { numero: 'asc' } })
+    const garcom = userIds[5]
+    const rnd2 = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
+    const pick2 = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+    const itemStatusDe: Record<string, 'PENDENTE' | 'EM_PREPARO' | 'PRONTO' | 'ENTREGUE'> = { ABERTO: 'PENDENTE', EM_PREPARO: 'EM_PREPARO', PRONTO: 'PRONTO', ENTREGUE: 'ENTREGUE' }
+
+    // status variados: 2 na cozinha (ABERTO/EM_PREPARO), 1 PRONTO, 1 ENTREGUE (pronto p/ pagar no caixa)
+    const statusesAbertos = ['ABERTO', 'EM_PREPARO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE'] as const
+    let abertos = 0
+    for (let i = 0; i < statusesAbertos.length && i < mesasLivres.length; i++) {
+      const st = statusesAbertos[i]
+      const mesa = mesasLivres[i]
+      const minutosAtras = rnd2(5, 70)
+      const criadoEm = new Date(Date.now() - minutosAtras * 60_000)
+      const escolhidos = [...new Set(Array.from({ length: rnd2(1, 3) }, () => pick2(nomesProds)))]
+      const itens = escolhidos.map((nome) => ({ nome, quantidade: rnd2(1, 2), preco: precoPorProduto2[nome] }))
+      const subtotal = itens.reduce((s, it) => s + it.preco * it.quantidade, 0)
+      const taxaServico = Math.round(subtotal * 0.10 * 100) / 100
+      const total = Math.round((subtotal + taxaServico) * 100) / 100
+
+      await prisma.pedido.create({
+        data: {
+          tenantId: tid, status: st, origem: 'MESA', criadoEm, mesaId: mesa.id, garcomId: garcom,
+          subtotal, taxaServico, total,
+          itens: { create: itens.map((it) => ({ productId: productIds[it.nome], quantidade: it.quantidade, precoUnitario: it.preco, status: itemStatusDe[st] })) },
+        },
+      })
+      await prisma.mesa.update({ where: { id: mesa.id }, data: { status: 'OCUPADA' } })
+      abertos++
+    }
+    console.log(`✅ ${abertos} pedidos em aberto (mesas ocupadas) — KDS/caixa/garçom com dados ao vivo`)
+  }
+
+  // ── Reservas de exemplo ───────────────────────────────────────────────────
+  const jaTemReservas = await prisma.reserva.count({ where: { tenantId: tid } })
+  if (jaTemReservas > 0) {
+    console.log(`ℹ️  ${jaTemReservas} reservas já existem — pulando`)
+  } else {
+    const mesasParaReserva = await prisma.mesa.findMany({ where: { tenantId: tid }, select: { id: true }, orderBy: { numero: 'desc' }, take: 4 })
+    const reservas = [
+      { clienteNome: 'Família Oliveira', contato: '(54) 99111-2233', numPessoas: 6, emDias: 1, hora: 20, obs: 'Aniversário — mesa perto da janela' },
+      { clienteNome: 'João e Maria',     contato: '(51) 98222-3344', numPessoas: 2, emDias: 1, hora: 21, obs: 'Comemoração de noivado' },
+      { clienteNome: 'Equipe Tech RS',   contato: '(54) 99333-4455', numPessoas: 8, emDias: 2, hora: 19, obs: 'Confraternização da empresa' },
+      { clienteNome: 'Carlos Mendes',    contato: '(54) 99444-5566', numPessoas: 4, emDias: 3, hora: 20, obs: null },
+    ]
+    let reservasCriadas = 0
+    for (let i = 0; i < reservas.length; i++) {
+      const r = reservas[i]
+      const dataHora = new Date()
+      dataHora.setDate(dataHora.getDate() + r.emDias)
+      dataHora.setHours(r.hora, 0, 0, 0)
+      await prisma.reserva.create({
+        data: {
+          tenantId: tid, clienteNome: r.clienteNome, contato: r.contato, dataHora,
+          numPessoas: r.numPessoas, mesaIds: mesasParaReserva[i] ? [mesasParaReserva[i].id] : [],
+          ...(r.obs ? { observacao: r.obs } : {}),
+        },
+      })
+      reservasCriadas++
+    }
+    console.log(`✅ ${reservasCriadas} reservas de exemplo (próximos dias)`)
+  }
+
   console.log('\n🎉 Conta DEV pronta — sem bloqueios!\n')
   console.log('───────────────────────────────────────────────────────────')
   console.log('Painel (login e-mail):  http://localhost:3000/auth/login')

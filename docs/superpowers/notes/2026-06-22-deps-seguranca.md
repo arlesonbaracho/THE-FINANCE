@@ -73,19 +73,17 @@ Apenas `package-lock.json` foi alterado.
 
 ## HIGH residuais (sem fix seguro disponível)
 
-### 1. `xlsx` *
+### 1. `xlsx` — ✅ RESOLVIDO (2026-06-27)
 
-- **Advisories:** GHSA-4r6h-8v6p-xvw6 (Prototype Pollution), GHSA-5pgg-2g8v-p4x9 (ReDoS)
-- **Status:** Sem fix disponível. O upgrade para ExcelJS ou SheetJS Pro exigiria breaking changes na API.
-- **Mitigação aplicável:** uso server-side a partir de dados próprios do tenant, sem input de terceiros; sem fix sem breaking change — adiado.
-- **Ação futura:** avaliar migração para `exceljs` em sub-projeto dedicado.
+- **Advisories:** GHSA-4r6h-8v6p-xvw6 (Prototype Pollution), GHSA-5pgg-2g8v-p4x9 (ReDoS).
+- **Fix aplicado:** o pacote npm `xlsx` travou em 0.18.5 (SheetJS parou de publicar no npm). Instalado o build **oficial corrigido do CDN do SheetJS**: `"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` no `package.json`. API compatível (`aoa_to_sheet`/`book_new`/`write`/`read`/`sheet_to_json`) — `fechamento-fiscal` e `purchase-order` seguem funcionando; tsc + 431 testes verdes. As 2 *high* saíram do `npm audit`.
 
-### 2. `nodemailer` <=9.0.0
+### 2. `nodemailer` <=9.0.0 — RESIDUAL (bloqueado pelo next-auth@4)
 
-- **Advisories:** GHSA-c7w3-x93f-qmm8, GHSA-vvjj-xcjg-gr5g, GHSA-268h-hp4c-crq3, GHSA-wqvq-jvpq-h66f, GHSA-r7g4-qg5f-qqm2, GHSA-p6gq-j5cr-w38f
-- **Status:** "No fix available" — versão atual 9.x ainda tem CVEs abertos.
-- **Mitigação:** `nodemailer` é **dependência direta** (`^7.0.13` no `package.json`), usado pelo serviço de e-mail transacional/auth interno. O advisory cobre `<=9.0.0`, então a versão fixada (7.x) está no range. Nenhum input externo não-sanitizado chega ao transporte (e-mails montados a partir de templates próprios). Monitorar releases do pacote.
-- **Ação futura:** quando houver versão corrigida do `nodemailer`, fazer upgrade e re-auditar.
+- **Advisories:** GHSA-c7w3-x93f-qmm8, GHSA-vvjj-xcjg-gr5g, GHSA-268h-hp4c-crq3, GHSA-wqvq-jvpq-h66f, GHSA-r7g4-qg5f-qqm2, GHSA-p6gq-j5cr-w38f.
+- **Status:** o fix existe (**nodemailer@9.0.1**), mas **conflita com o peer do `@auth/core@0.34.3`** (transitivo do `next-auth@4.24.14`), que exige `nodemailer@^7`. Subir p/ 9 gera ERESOLVE e arriscaria o fluxo de e-mail do next-auth. O fix real depende de migrar p/ **next-auth v5** (fora de escopo).
+- **Mitigação:** `nodemailer` (`^7.0.13`) é usado só no serviço de e-mail transacional/auth interno, com e-mails montados a partir de templates próprios e destinatários controlados — nenhum input externo não-sanitizado chega ao transporte (os CVEs são SMTP/CRLF injection via envelope/headers/conteúdo controlados pelo atacante, o que não ocorre aqui).
+- **Ação futura:** resolver junto com o upgrade do next-auth v5.
 
 ### 3. `glob` 10.2.0–10.4.5 (via `eslint-config-next`)
 

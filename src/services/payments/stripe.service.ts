@@ -1,13 +1,23 @@
 import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Instanciação lazy: evita construir o client no import (quebraria `next build`
+// sem STRIPE_SECRET_KEY). Só constrói na primeira chamada de um handler em runtime.
+let _stripe: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY
+    if (!key) throw new Error('STRIPE_SECRET_KEY não configurada')
+    _stripe = new Stripe(key)
+  }
+  return _stripe
+}
 
 export async function getOrCreateStripeCustomer(tenantId: string, email: string, name: string): Promise<string> {
   const existing = await prisma.stripeCustomer.findUnique({ where: { tenantId } })
   if (existing) return existing.stripeCustomerId
 
-  const customer = await stripe.customers.create({ email, name, metadata: { tenantId } })
+  const customer = await getStripe().customers.create({ email, name, metadata: { tenantId } })
 
   await prisma.stripeCustomer.create({
     data: { tenantId, stripeCustomerId: customer.id },
@@ -21,7 +31,7 @@ export async function createSetupIntent(
   name: string,
 ): Promise<{ clientSecret: string }> {
   const customerId = await getOrCreateStripeCustomer(tenantId, email, name)
-  const intent = await stripe.setupIntents.create({
+  const intent = await getStripe().setupIntents.create({
     customer: customerId,
     payment_method_types: ['card'],
     usage: 'off_session',
@@ -37,12 +47,12 @@ export async function createSubscriptionFromPaymentMethod(
   const customer = await prisma.stripeCustomer.findUnique({ where: { tenantId } })
   if (!customer) throw new Error('Cliente Stripe não encontrado')
 
-  await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.stripeCustomerId })
-  await stripe.customers.update(customer.stripeCustomerId, {
+  await getStripe().paymentMethods.attach(paymentMethodId, { customer: customer.stripeCustomerId })
+  await getStripe().customers.update(customer.stripeCustomerId, {
     invoice_settings: { default_payment_method: paymentMethodId },
   })
 
-  const subscription = await stripe.subscriptions.create({
+  const subscription = await getStripe().subscriptions.create({
     customer: customer.stripeCustomerId,
     items: [{ price: priceId }],
     default_payment_method: paymentMethodId,
@@ -61,7 +71,7 @@ export async function cancelSubscription(tenantId: string): Promise<void> {
   const customer = await prisma.stripeCustomer.findUnique({ where: { tenantId } })
   if (!customer?.stripeSubId) return
 
-  await stripe.subscriptions.update(customer.stripeSubId, { cancel_at_period_end: true })
+  await getStripe().subscriptions.update(customer.stripeSubId, { cancel_at_period_end: true })
 
   await prisma.tenantSubscription.update({
     where: { tenantId },
@@ -146,5 +156,3 @@ export async function handleWebhook(event: Stripe.Event): Promise<void> {
     }
   }
 }
-
-export { stripe }

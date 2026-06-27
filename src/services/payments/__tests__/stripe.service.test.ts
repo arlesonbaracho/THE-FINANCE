@@ -54,6 +54,7 @@ const mockPrisma = prisma as unknown as {
 describe('handleWebhook — checkout.session.completed', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.STRIPE_SECRET_KEY = 'sk_test_mock' // construtor Stripe é mockado; chave só p/ passar a guarda do getStripe lazy
     mockPrisma.stripeCustomer.findFirst.mockResolvedValue({
       tenantId: 'tenant_abc',
       stripeCustomerId: 'cus_123',

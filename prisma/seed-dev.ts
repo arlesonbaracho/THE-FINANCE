@@ -262,6 +262,79 @@ async function main() {
   }
   console.log(`✅ ${ambientesData.length} ambientes + ${mesasCreated} mesas`)
 
+  // ── Vendas históricas (popula os RELATÓRIOS) ──────────────────────────────
+  // Cria pedidos FINALIZADOS nos últimos 30 dias + movimentações OUT de estoque
+  // (drive: relatórios de vendas, produtos, cozinha, delivery e CMV/giro).
+  const jaTemVendas = await prisma.pedido.count({ where: { tenantId: tid, status: 'FINALIZADO' } })
+  if (jaTemVendas > 0) {
+    console.log(`ℹ️  ${jaTemVendas} pedidos finalizados já existem — pulando geração de vendas`)
+  } else {
+    const precoPorProduto: Record<string, number> = Object.fromEntries(produtos.map((p) => [p.name, p.price]))
+    const cmpPorInsumo: Record<string, number> = Object.fromEntries(insumos.map((i) => [i.name, i.cost]))
+    const fichasPorProduto: Record<string, Array<{ ingredient: string; quantity: number }>> = {}
+    for (const f of fichas) (fichasPorProduto[f.product] ||= []).push({ ingredient: f.ingredient, quantity: f.quantity })
+    const nomesProdutos = produtos.map((p) => p.name).filter((n) => productIds[n])
+    const mesas = await prisma.mesa.findMany({ where: { tenantId: tid }, select: { id: true } })
+    const garcomUserId = userIds[5] // ordem de usersToCreate: o garçom é o 6º
+
+    const rnd = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
+    const pick = <T,>(arr: T[]): T => arr[rnd(0, arr.length - 1)]
+    const TAXA = 0.10
+    const TOTAL_PEDIDOS = 55
+
+    let vendas = 0, movimentos = 0
+    for (let i = 0; i < TOTAL_PEDIDOS; i++) {
+      // origem ponderada: MESA 60% · BALCAO 25% · IFOOD 15%
+      const r = Math.random()
+      const origem = r < 0.6 ? 'MESA' : r < 0.85 ? 'BALCAO' : 'IFOOD'
+
+      // data: dia aleatório nos últimos 30, em horário de almoço/jantar
+      const diasAtras = rnd(0, 29)
+      const criadoEm = new Date()
+      criadoEm.setDate(criadoEm.getDate() - diasAtras)
+      criadoEm.setHours(Math.random() < 0.5 ? rnd(11, 14) : rnd(18, 22), rnd(0, 59), 0, 0)
+      const fechadoEm = new Date(criadoEm.getTime() + rnd(20, 75) * 60_000)
+
+      // 1 a 4 produtos distintos
+      const qtdItens = rnd(1, 4)
+      const escolhidos = [...new Set(Array.from({ length: qtdItens }, () => pick(nomesProdutos)))]
+      const itens = escolhidos.map((nome) => ({ nome, quantidade: rnd(1, 3), preco: precoPorProduto[nome] }))
+      const subtotal = itens.reduce((s, it) => s + it.preco * it.quantidade, 0)
+      const taxaServico = Math.round(subtotal * TAXA * 100) / 100
+      const total = Math.round((subtotal + taxaServico) * 100) / 100
+
+      await prisma.pedido.create({
+        data: {
+          tenantId: tid, status: 'FINALIZADO', origem: origem as 'MESA' | 'BALCAO' | 'IFOOD',
+          criadoEm, fechadoEm, subtotal, taxaServico, total,
+          ...(origem === 'MESA' && mesas.length ? { mesaId: pick(mesas).id, garcomId: garcomUserId } : {}),
+          itens: { create: itens.map((it) => ({ productId: productIds[it.nome], quantidade: it.quantidade, precoUnitario: it.preco, status: 'ENTREGUE' as const })) },
+          pagamentos: { create: { formaPagamento: pick(['DINHEIRO', 'DEBITO', 'CREDITO', 'PIX'] as const), valor: total } },
+        },
+      })
+      vendas++
+
+      // Movimentações OUT de estoque (CMV/giro) — a partir das fichas dos produtos
+      for (const it of itens) {
+        for (const fi of fichasPorProduto[it.nome] ?? []) {
+          const ingredientId = ingredientIds[fi.ingredient]
+          const cmp = cmpPorInsumo[fi.ingredient] ?? 0
+          if (!ingredientId) continue
+          const quantity = Math.round(fi.quantity * it.quantidade * 1000) / 1000
+          await prisma.ingredientMovement.create({
+            data: {
+              ingredientId, tenantId: tid, type: 'OUT', quantity,
+              unitCost: cmp, totalCost: Math.round(quantity * cmp * 100) / 100,
+              reason: 'venda', note: 'Baixa por venda (seed dev)', createdAt: criadoEm,
+            },
+          })
+          movimentos++
+        }
+      }
+    }
+    console.log(`✅ ${vendas} pedidos finalizados (30 dias) + ${movimentos} movimentações OUT — relatórios populados`)
+  }
+
   console.log('\n🎉 Conta DEV pronta — sem bloqueios!\n')
   console.log('───────────────────────────────────────────────────────────')
   console.log('Painel (login e-mail):  http://localhost:3000/auth/login')
